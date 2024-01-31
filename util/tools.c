@@ -148,4 +148,10 @@ int read_b64(const char *bytes, int len, char *output){
     return output_counter;
 }
 
+void print_hex(char *hex_str, int len){
+    for(int i = 0; i < len; i++)
+        printf("%02x", hex_str[i]);
+    printf("\n");
+}
+
 

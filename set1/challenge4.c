@@ -15,7 +15,6 @@ void find_encrypted_text(FILE *f){
     char line[60];
     char ciphertext[30];
     char plaintext[30];
-    int line_counter = 1;
     while (fgets(line, sizeof(line), f)){
         // printf("line %d: ", line_counter);
         hex_to_bytes_conv(line, 60, ciphertext);

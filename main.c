@@ -1,9 +1,11 @@
 #include <stdio.h>
 #include "test/test_util.h"
+#include "test/bigint_test.h"
 #include "set1/set1_challenge.h"
 
 #define NUM_UTIL_TEST 4
-#define NUM_CHAL_TEST 1
+#define NUM_CHAL_TEST 5
+#define NUM_BIGINT_TEST 1
 
 util_unit_test util_tests[] = {
     {"hex_to_bytes_conv_test", &hex_to_bytes_conv_test, 1},
@@ -17,7 +19,12 @@ challeng1_test set1_test[] = {
     {"set1_chal1_hex_to_base64", &set1_challenge1, 1},
     {"set1_chal2_fixed_length_xor", &set1_challenge2, 1},
     {"set1_chal3_single_byte_XOR_cipher", &set1_challenge3, 1},
-    {"set1_chal4_Detect_single_character_XOR", &set1_challenge4, 1}
+    {"set1_chal4_Detect_single_character_XOR", &set1_challenge4, 1},
+    {"set1_chal5_repeating_byte_XOR", &set1_challenge5, 1}
+};
+
+bigint_tests bigint_test[] = {
+    {"bigint test - bigint_inc_test", &bigint_inc_test, 1}
 };
 
 void run_util_tests(){
@@ -39,6 +46,15 @@ void run_challenge_test(){
     }
 }
 
+void run_bigint_test(){
+    int num = sizeof(bigint_test) / sizeof(bigint_test[0]);
+    for(int i = 0; i < num; i++){
+        if(bigint_test[i].enabled){
+            bigint_test[i].unit_test_fn();
+            printf("\n");
+        }
+    }
+}
 int main(int argc, char *argv[]){
     if(argc == 1){
         printf("Running all tests\n\n");
@@ -52,6 +68,10 @@ int main(int argc, char *argv[]){
         else if(!strcmp(argv[1], "c")){
             printf("Running challenge tests\n\n");
             run_challenge_test();
+        }
+        else if(!strcmp(argv[1], "b")){
+            printf("Running bigint tests\n\n");
+            run_bigint_test();
         }
         else{
             printf("Unrecognized arg\n");
@@ -80,7 +100,19 @@ int main(int argc, char *argv[]){
             printf("Test %s not found\n", argv[2]);
             return 0;
         }
+        else if(!strcmp(argv[1], "b")){
+            for(int i = 0; i < NUM_BIGINT_TEST; i++){
+                if(!strcmp(argv[2], bigint_test[i].name)){
+                    bigint_test[i].unit_test_fn();
+                    printf("\n");
+                    return 0;
+                }
+            }
+            printf("Test %s not found\n", argv[2]);
+            return 0;
+        }
     }
+    
     else {
         printf("Bad arg\n");
         return 1;

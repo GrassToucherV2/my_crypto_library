@@ -31,6 +31,7 @@ int init_int24(uint8_t *a, int24 *num);
 double score_text(char *text, int len);
 
 /* String manipulations */
+void print_hex(char *hex_str, int len);
 int hex_to_bytes_conv(const char *input, int input_size, char *output);
 int three_bytes_to_base64(int24 *num, char *output);
 int bytes_to_base64(const char *input, int input_len, char *output);

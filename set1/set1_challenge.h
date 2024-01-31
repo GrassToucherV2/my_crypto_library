@@ -20,10 +20,16 @@ void set1_challenge1();
 void set1_challenge2();
 void set1_challenge3();
 void set1_challenge4();
+void set1_challenge5();
+void set1_challenge6();
+void set1_challenge7();
+void set1_challenge8();
 
 int hex_to_base64(char *output);
 void fixed_length_xor(char *output, int len);
 void break_single_byte_XOR_cipher(char *ciphertext, char *plaintext, int len);
-void find_encrypted_text();
+void find_encrypted_text(FILE *f);
+void repeat_byte_XOR(char *plaintext, char *key, char* ciphertext, 
+                    int plaintext_len, int key_len);
 
 #endif /* SET_CHALLENGE1_H */

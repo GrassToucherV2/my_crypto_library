@@ -2,8 +2,9 @@
 
 # List of C source files
 FILES=("test/test_util.c" "util/tools.c" \
-         "main.c" "util/bigint.c"                       \
-         "set1/challenge1.c" "set1/challenge2.c" "set1/challenge3.c" "set1/challenge4.c")
+         "main.c" "util/bigint.c"   "test/bigint_test.c"                    \
+         "set1/challenge1.c" "set1/challenge2.c" "set1/challenge3.c" "set1/challenge4.c"
+         "set1/challenge5.c")
 
 # Compiler options
 CC=gcc
