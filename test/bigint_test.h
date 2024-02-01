@@ -8,5 +8,7 @@ typedef struct {
 } bigint_tests;
 
 void bigint_inc_test();
+void bigint_expand_test();
+void bigint_clamp_test();
 
 #endif /* BIGINT_TEST_H */

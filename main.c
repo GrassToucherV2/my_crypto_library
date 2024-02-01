@@ -5,7 +5,7 @@
 
 #define NUM_UTIL_TEST 4
 #define NUM_CHAL_TEST 5
-#define NUM_BIGINT_TEST 1
+#define NUM_BIGINT_TEST 3
 
 util_unit_test util_tests[] = {
     {"hex_to_bytes_conv_test", &hex_to_bytes_conv_test, 1},
@@ -24,7 +24,9 @@ challeng1_test set1_test[] = {
 };
 
 bigint_tests bigint_test[] = {
-    {"bigint test - bigint_inc_test", &bigint_inc_test, 1}
+    {"bigint test - bigint_inc_test", &bigint_inc_test, 1},
+    {"bigint test - bigint_expand_test", &bigint_expand_test, 1},
+    {"bigint test - bigint_clamp_test", &bigint_clamp_test, 1}
 };
 
 void run_util_tests(){
