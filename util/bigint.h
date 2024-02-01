@@ -45,4 +45,4 @@ bigint_err bigint_inc(bigint *a);
 // c = a + b
 bigint_err bigint_add(bigint *a, bigint *b, bigint *c);
 
-#endif /* BIGINT_H */
+#endif /* BIGINT_H  */
