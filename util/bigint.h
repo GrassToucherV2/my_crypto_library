@@ -1,6 +1,12 @@
 #ifndef BIGINT_H
 #define BIGINT_H
 
+/*
+    My attempt at creating a big integer library, heavily inspired by:
+    BigNum Math - Implementing Cryptographic Multiple Precision Arithmetic
+    and Mozilla NSS library
+*/
+
 #include <stdint.h>
 
 #define BASE 0x3B9ACA00 /* 10^9 = 0x3B9ACA00 */ /* 2^31 = 2147483648*/
