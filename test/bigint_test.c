@@ -32,7 +32,7 @@ void bigint_expand_test() {
 
     // Cleanup
     bigint_free(&a);
-    printf("test_bigint_expand passed\n");
+    print_msg(GREEN, "test_bigint_expand passed\n");
 }
 
 void bigint_inc_test(){
@@ -107,6 +107,60 @@ void bigint_clamp_test() {
     assert(a.MSD == 0); // MSD should be updated to 0
     bigint_free(&a);
 
-    printf("All bigint_clamp tests passed\n");
+    print_msg(GREEN, "All bigint_clamp tests passed\n");
 }
 
+void bigint_set_zero_test(){
+    print_msg(YELLOW, "bigint_set_zero test");
+
+    bigint b;
+
+    // Initialize bigint with a specific value, e.g., 123
+    bigint_init(&b, 3); 
+    b.digits[0] = 3;
+    b.digits[1] = 2;
+    b.digits[2] = 1;
+    b.MSD = 2; // Since we manually set the number to 123
+
+    // Perform the left shift operation
+    assert(bigint_set_zero(&b) == BIGINT_OKAY);
+    assert(b.digits[0] == 0); 
+    assert(b.MSD == 0);
+
+    // Clean up
+    bigint_free(&b);
+    print_msg(GREEN, "bigint_set_zero test passed.\n");
+}
+
+void bigint_left_shift_test(){
+    print_msg(YELLOW, "bigint_left_shift test");
+    bigint b;
+    bigint_err err;
+
+    // Initialize bigint with a specific value, e.g., 123
+    bigint_init(&b, 3); 
+    b.digits[0] = 3;
+    b.digits[1] = 2;
+    b.digits[2] = 1;
+    b.MSD = 2; // Since we manually set the number to 123
+
+    // Perform the left shift operation
+    err = bigint_left_shift(&b);
+    assert(err == BIGINT_OKAY);
+
+    // Verify the result is as expected, i.e., 1230 in this example
+    assert(b.digits[0] == 0); // Least significant digit should be 0 after shift
+    assert(b.digits[1] == 3);
+    assert(b.digits[2] == 2);
+    assert(b.digits[3] == 1);
+    assert(b.MSD == 3); // MSD should have incremented by 1
+
+    // Print the result (optional, for verification)
+    printf("Result of left shift: ");
+    bigint_print(&b);
+
+    // Clean up
+    bigint_free(&b);
+
+    print_msg(GREEN, "bigint_left_shift_test passed.\n");
+}

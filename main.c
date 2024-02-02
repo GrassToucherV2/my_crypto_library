@@ -24,9 +24,11 @@ challeng1_test set1_test[] = {
 };
 
 bigint_tests bigint_test[] = {
-    {"bigint test - bigint_inc_test", &bigint_inc_test, 1},
+    {"bigint test - bigint_inc_test", &bigint_inc_test, 0},
     {"bigint test - bigint_expand_test", &bigint_expand_test, 1},
-    {"bigint test - bigint_clamp_test", &bigint_clamp_test, 1}
+    {"bigint test - bigint_clamp_test", &bigint_clamp_test, 1},
+    {"bigint test - bigint_left_shift_test", &bigint_left_shift_test, 1},
+    {"bigint test - bigint_set_zero_test", &bigint_set_zero_test, 1}
 };
 
 void run_util_tests(){

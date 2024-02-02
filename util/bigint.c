@@ -10,11 +10,16 @@ void buffers_xor(const char *a, const char *b, int len, char *output){
     }
 }
 
-void bigint_init(bigint *b, unsigned int num_of_digit){
-    b->digits = malloc(num_of_digit * sizeof(uint64_t));
-    memset(b->digits, 0, num_of_digit * sizeof(uint64_t));
+bigint_err bigint_init(bigint *b, unsigned int num_of_digit){
+    b->digits = malloc(num_of_digit * sizeof(digit));
+    if(!b->digits){
+        printf("malloc failed\n");
+        return BIGINT_REALLOC_FAILURE;
+    }
+    memset(b->digits, 0, num_of_digit * sizeof(digit));
     b->MSD = 0;
     b->num_of_digit = num_of_digit;
+    return BIGINT_OKAY;
 }
 
 bigint_err bigint_free(bigint *b){
@@ -31,11 +36,11 @@ bigint_err bigint_expand(bigint *a, unsigned int size){
     if(a->num_of_digit >= size)
         return BIGINT_OKAY;
 
-    uint64_t *tmp = malloc(size * sizeof(uint64_t));
+    digit *tmp = malloc(size * sizeof(digit));
     if(!tmp)
         return BIGINT_REALLOC_FAILURE;
-    memset(tmp, 0, size * sizeof(uint64_t));
-    memcpy(tmp, a->digits, a->num_of_digit * sizeof(uint64_t));
+    memset(tmp, 0, size * sizeof(digit));
+    memcpy(tmp, a->digits, a->num_of_digit * sizeof(digit));
     bigint_free(a);
 
     a->digits = tmp;
@@ -47,6 +52,7 @@ bigint_err bigint_expand(bigint *a, unsigned int size){
 bigint_err bigint_set_zero(bigint *a){
     if(!a) return BIGINT_ERROR_NULLPTR;
     memset(a->digits, 0, a->num_of_digit);
+    a->MSD = 0;
     return BIGINT_OKAY;
 }
 
@@ -72,8 +78,46 @@ bigint_err bigint_clamp(bigint *a){
     return BIGINT_OKAY;
 }
 
-void bigint_copy(bigint *src, bigint *dest, int num){
-    memcpy(dest->digits, src->digits, num * sizeof(uint64_t));
+bigint_err bigint_copy(bigint *src, bigint *dest){
+    if(!src || !dest) return BIGINT_ERROR_NULLPTR;
+
+    // if dest does not have enough digits allocated (src->MSD + 1) is the num of digits being used in 
+    // src. 
+    // Expand dest if necessary
+    if(src->MSD + 1 > dest->num_of_digit){
+        CHECK_OKAY(bigint_expand(dest, src->MSD+1), BIGINT_REALLOC_FAILURE);
+    }
+    CHECK_OKAY(bigint_set_zero(dest), BIGINT_ERROR_SET_ZERO);
+       
+    memcpy(dest->digits, src->digits, src->num_of_digit * sizeof(digit));
+    dest->MSD = src->MSD;
+
+    return BIGINT_OKAY;
+}
+
+/* 
+    This function shifts a by one digit to the left
+*/
+bigint_err bigint_left_shift(bigint *a){
+    if(!a) return BIGINT_ERROR_NULLPTR;
+
+    // making sure the digit is big enough to shift, otherwise expand it
+    int diff  = a->num_of_digit - (a->MSD + 1);
+    if(diff <= 0)
+        CHECK_OKAY(bigint_expand(a, a->num_of_digit + 1), BIGINT_REALLOC_FAILURE);
+
+    // shifting all the digits over to the left by one digit
+    unsigned int i = 0;
+    for(i = a->MSD; i > 0; i--)
+        a->digits[i + 1] = a->digits[i];
+    
+    // handling the last digit and  then setting the lowest digit to 0
+    a->digits[1] = a->digits[0];
+    a->digits[0] = 0;
+    a->MSD++;
+
+    return BIGINT_OKAY;
+
 }
 
 bigint_err bigint_print(bigint *b){
@@ -92,6 +136,12 @@ bigint_err bigint_from_int(bigint *b, unsigned int a){
 
     b->digits[0] = a;
     return BIGINT_OKAY;
+}
+
+bigint_err bigint_from_bytes(bigint *a, unsigned char *str, unsigned int len){
+    if(!a || !str) return BIGINT_ERROR_NULLPTR;
+
+    CHECK_OKAY(bigint_set_zero(a), BIGINT_ERROR_SET_ZERO);
 }
 
 bigint_err bigint_inc(bigint *a){
