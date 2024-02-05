@@ -27,6 +27,14 @@ void print_msg(int color, char *msg){
     printf("\033[0m");
 }
 
+void print_bytes(const unsigned char* bytes, size_t size, const char* str){
+    printf("%s", str);
+    for (size_t i = 0; i < size; i++) {
+        printf("%02X ", bytes[i]);
+    }
+    printf("\n");
+}
+
 //////////////////////////////////////////////////////////////
 
 void hex_to_bytes_conv_test(){

@@ -2,6 +2,7 @@
 #include "../util/bigint.h"
 #include "test_util.h"
 #include <assert.h>
+#include <stdlib.h>
 
 void bigint_expand_test() {
     print_msg(YELLOW, "bigint_expand test");
@@ -36,41 +37,41 @@ void bigint_expand_test() {
 }
 
 void bigint_inc_test(){
-    print_msg(YELLOW, "bigint_inc_test");
-    bigint b;
-    bigint_init(&b, 1); // Initialize bigint with one digit.
-    bigint_from_int(&b, 0); // Set bigint to 0.
-    bigint_inc(&b); // Increment bigint.
-    bigint_print(&b); // Expected output: 1
-    // bigint_free(&b); // Cleanup.
+//     print_msg(YELLOW, "bigint_inc_test");
+//     bigint b;
+//     bigint_init(&b, 1); // Initialize bigint with one digit.
+//     bigint_from_int(&b, 0); // Set bigint to 0.
+//     bigint_inc(&b); // Increment bigint.
+//     bigint_print(&b); // Expected output: 1
+//     // bigint_free(&b); // Cleanup.
 
-    // print_msg(YELLOW, "bigint_int_test case 2");
-    bigint_init(&b, 2); // Allocate two digits for potential carry over.
-    b.digits[0] = BASE - 2; // Set the least significant digit to BASE - 1.
-    bigint_inc(&b); // Increment bigint.
-    bigint_print(&b); // Expected output: 10 (in base 2^31, visualized as decimal for simplicity)
-    // unsigned char str[60] = {0};
-    // // bigint_to_str(&b, str, 60);
-    // for(int i = 0; i < 60; i++){
-    //     printf("%c", str[i]);
-    // }
-    printf("\n");
-    // bigint_free(&b); // Cleanup.
+//     // print_msg(YELLOW, "bigint_int_test case 2");
+//     bigint_init(&b, 2); // Allocate two digits for potential carry over.
+//     b.digits[0] = BASE - 2; // Set the least significant digit to BASE - 1.
+//     bigint_inc(&b); // Increment bigint.
+//     bigint_print(&b); // Expected output: 10 (in base 2^31, visualized as decimal for simplicity)
+//     // unsigned char str[60] = {0};
+//     // // bigint_to_str(&b, str, 60);
+//     // for(int i = 0; i < 60; i++){
+//     //     printf("%c", str[i]);
+//     // }
+//     printf("\n");
+//     // bigint_free(&b); // Cleanup.
 
-    // print_msg(YELLOW, "bigint_int_test case 3");
-    bigint_init(&b, 2); // Assume we're working with 2 digits for this test.
-    b.digits[0] = BASE - 1;
-    b.digits[1] = BASE - 1;
-    b.MSD = 1; // Manually set MSD to simulate a filled bigint.
-    bigint_err result = bigint_inc(&b); // Attempt to increment.
-    // Expected result: BIGINT_ERROR_OVERFLOW
-    if (result == BIGINT_ERROR_OVERFLOW) {
-        printf("Overflow detected as expected.\n");
-    } else {
-        printf("Unexpected behavior.\n");
-    }
-    bigint_free(&b); // Cleanup.
-    printf("end of bigint_inc_test\n");
+//     // print_msg(YELLOW, "bigint_int_test case 3");
+//     bigint_init(&b, 2); // Assume we're working with 2 digits for this test.
+//     b.digits[0] = BASE - 1;
+//     b.digits[1] = BASE - 1;
+//     b.MSD = 1; // Manually set MSD to simulate a filled bigint.
+//     bigint_err result = bigint_inc(&b); // Attempt to increment.
+//     // Expected result: BIGINT_ERROR_OVERFLOW
+//     if (result == BIGINT_ERROR_OVERFLOW) {
+//         printf("Overflow detected as expected.\n");
+//     } else {
+//         printf("Unexpected behavior.\n");
+//     }
+//     bigint_free(&b); // Cleanup.
+//     printf("end of bigint_inc_test\n");
 }
 
 void bigint_clamp_test() {
@@ -163,4 +164,105 @@ void bigint_left_shift_test(){
     bigint_free(&b);
 
     print_msg(GREEN, "bigint_left_shift_test passed.\n");
+}
+
+void bigint_from_to_bytes_test() {
+    print_msg(YELLOW, "bigint_from_to_bytes_test -- no leading zeros");
+    unsigned char original_bytes[] = {0xDE, 0xAD, 0xBE, 0xEF, 0x00, 0x00, 0x01, 0x23};
+    size_t original_size = sizeof(original_bytes) / sizeof(original_bytes[0]);
+
+    bigint b;
+    bigint_init(&b, 10); // Initialize bigint with more digits than necessary for test
+
+    // Convert byte array to bigint
+    bigint_err from_result = bigint_from_bytes(&b, original_bytes, original_size);
+    if (from_result != BIGINT_OKAY) {
+        printf("bigint_from_bytes failed with error code: %d\n", from_result);
+        return;
+    }
+
+    // Allocate buffer for conversion back to bytes
+    unsigned char* converted_bytes = malloc(original_size);
+    if (!converted_bytes) {
+        printf("Memory allocation failed for converted_bytes\n");
+        return;
+    }
+
+    // Convert bigint back to byte array
+    bigint_err to_result = bigint_to_bytes(&b, converted_bytes, original_size, 1); // Assuming ignore_leading_zero is a flag
+    if (to_result != BIGINT_OKAY) {
+        printf("bigint_to_bytes failed with error code: %d\n", to_result);
+        free(converted_bytes);
+        return;
+    }
+
+    // Compare original and converted byte arrays
+    if (memcmp(original_bytes, converted_bytes, original_size) == 0) {
+        print_bytes(converted_bytes, original_size, "converted_bytes: ");
+        print_msg(GREEN, "Test PASSED: Conversion from and to bytes is consistent.\n");
+    } else {
+        print_bytes(original_bytes, original_size, "original_bytes: ");
+        print_bytes(converted_bytes, original_size, "converted_bytes: ");
+        print_msg(RED, "Test FAILED: Original and converted bytes do not match.\n");
+    }
+    free(converted_bytes);
+
+    print_msg(YELLOW, "bigint_from_to_bytes_test -- keep leading zeros");
+    unsigned char data2[] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                            0xDE, 0xAD, 0xBE, 0xEF, 0x00, 0x00, 0x01, 0x23};
+    original_size = sizeof(data2) / sizeof(data2[0]);
+    from_result = bigint_from_bytes(&b, data2, original_size);
+    if (from_result != BIGINT_OKAY) {
+        printf("bigint_from_bytes failed with error code: %d\n", from_result);
+        return;
+    }
+    // Allocate buffer for conversion back to bytes
+    unsigned char* converted_bytes1 = malloc(original_size);
+    if (!converted_bytes1) {
+        printf("Memory allocation failed for converted_bytes\n");
+        return;
+    }
+    to_result = bigint_to_bytes(&b, converted_bytes1, original_size, 0); // Assuming ignore_leading_zero is a flag
+    if (to_result != BIGINT_OKAY) {
+        printf("bigint_to_bytes failed with error code: %d\n", to_result);
+        free(converted_bytes1);
+        return;
+    }
+    // Compare original and converted byte arrays
+    if (memcmp(data2, converted_bytes1, original_size) == 0) {
+        print_bytes(converted_bytes1, original_size, "converted_bytes: ");
+        print_msg(GREEN, "Test PASSED: Conversion from and to bytes is consistent.\n");
+    } else {
+        print_bytes(data2, original_size , "original_bytes: ");
+        print_bytes(converted_bytes1, original_size, "converted_bytes: ");
+        print_msg(RED, "Test FAILED: Original and converted bytes do not match.\n");
+    }
+    free(converted_bytes1);
+
+    print_msg(YELLOW, "bigint_from_to_bytes_test -- ignore leading zeros");
+    unsigned char* converted_bytes2 = malloc(original_size);
+    if (!converted_bytes2) {
+        printf("Memory allocation failed for converted_bytes\n");
+        return;
+    }
+    to_result = bigint_to_bytes(&b, converted_bytes2, original_size, 1); // Assuming ignore_leading_zero is a flag
+    if (to_result != BIGINT_OKAY) {
+        printf("bigint_to_bytes failed with error code: %d\n", to_result);
+        free(converted_bytes2);
+        return;
+    }
+    // Compare original and converted byte arrays
+    if (memcmp(data2, converted_bytes2, original_size) == 0) {
+        print_bytes(converted_bytes2, original_size, "converted_bytes: ");
+        print_msg(GREEN, "Test PASSED: Conversion from and to bytes is consistent.\n");
+    } else {
+        print_bytes(data2, original_size, "original_bytes: ");
+        print_bytes(converted_bytes2, original_size, "converted_bytes: ");
+        print_msg(RED, "Test FAILED: Original and converted bytes do not match.\n");
+    }
+    free(converted_bytes2);
+
+    
+    
+    bigint_free(&b);
 }

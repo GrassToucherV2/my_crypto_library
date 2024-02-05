@@ -19,6 +19,7 @@ bool assert_eq(int a, int b);
 bool cmp_str(char *a, char *b, int len);
 
 void print_msg(int color, char *msg);
+void print_bytes(const unsigned char* bytes, size_t size, const char* str);
 
 /* utils unit tests */
 typedef struct {
