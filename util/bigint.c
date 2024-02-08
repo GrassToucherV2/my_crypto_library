@@ -88,7 +88,7 @@ bigint_err bigint_copy(const bigint *src, bigint *dest){
         CHECK_OKAY(bigint_expand(dest, src->MSD+1));
     }
     CHECK_OKAY(bigint_set_zero(dest));
-       
+    
     memcpy(dest->digits, src->digits, src->num_of_digit * sizeof(digit));
     dest->MSD = src->MSD;
 
@@ -105,7 +105,6 @@ bigint_err bigint_from_small_int(bigint *b, digit a){
     return BIGINT_OKAY;    
 }
 
-// TODO: unit test for this function
 int bigint_cmp_zero(const bigint *a){
     if(!a){
         printf("The given bigint is NULL\n");
@@ -116,8 +115,34 @@ int bigint_cmp_zero(const bigint *a){
     for(int i = a->MSD; i >= 0; i--){
         b |= a->digits[i];
     }
+    /*
+        if a != 0, then the lower 32 bits of b will be nonzero, when negated using 2's complement
+        all of its upper 32 bits will be set to 1.
+        if a == 0, then all 64 bits of b will be 0, and when negated using 2's complement, it will
+        still be 0
+    */
+    return (-b >> (sizeof(digit) * 8)) & 1 ; 
+}
 
-    return ((-b) >> (sizeof(digit) * 8)) & 1 ;
+int bigint_cmp(const bigint *a, const bigint *b){
+    if(!a || !b) return BIGINT_ERROR_NULLPTR;
+
+    int64_t c = 0;
+    unsigned int msd_a = a->MSD;
+    unsigned int msd_b = b->MSD;
+    int i = 0;
+
+    if(msd_a > msd_b){
+        i = msd_a;
+    } else{
+        i = msd_b;
+    }
+    // run the loop anyway, in case 
+    for(; i >= 0; i--){
+        c |= a->digits[i] ^ b->digits[i];
+    }
+
+    return (-c >> (sizeof(digit) * 8)) & 1;
 }
 
 /* 

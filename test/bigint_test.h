@@ -13,5 +13,7 @@ void bigint_clamp_test();
 void bigint_set_zero_test();
 void bigint_left_shift_test();
 void bigint_from_to_bytes_test();
+void bigint_cmp_zero_test();
+void bigint_cmp_test();
 
 #endif /* BIGINT_TEST_H */

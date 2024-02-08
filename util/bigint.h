@@ -69,8 +69,12 @@ bigint_err bigint_to_bytes(const bigint *a, unsigned char *output,
 bigint_err bigint_left_shift(bigint *a);
 
 /* This function compares the given bigint to 0, returns 0 if the given bigint = 0 
-    and some other numbers otherwise */
+    and 1 otherwise */
 int bigint_cmp_zero(const bigint *a);
+
+
+/* This function compares two bigints */
+int bigint_cmp(const bigint *a, const bigint *b);
 
 /* bigint arithmetic */
 // a += 1
