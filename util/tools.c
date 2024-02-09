@@ -154,4 +154,14 @@ void print_hex(char *hex_str, int len){
     printf("\n");
 }
 
+void printBinary(int number) {
+    unsigned int mask = 1 << (sizeof(int) * 8 - 1); // Create a mask with a 1 in the leftmost position
+
+    for (size_t i = 0; i < sizeof(int) * 8; ++i) {
+        putchar((number & mask) ? '1' : '0'); // Check if the current bit is 1 or 0
+        mask >>= 1; // Move the mask one position to the right
+    }
+    printf("\n");
+}
+
 

@@ -3,13 +3,16 @@
 
 /*
     My attempt at creating a big integer library, heavily inspired by
-    BigNum Math - Implementing Cryptographic Multiple Precision Arithmetic
-    and Mozilla NSS library
+    BigNum Math - Implementing Cryptographic Multiple Precision Arithmetic,
+    Mozilla NSS library and cryptographic coding rules from 
+    https://web.archive.org/web/20160525230135/https://cryptocoding.net/index.php/Coding_rules
 */
 
 #include <stdint.h>
 
-#define BASE 0x3B9ACA00 /* 10^9 = 0x3B9ACA00 */ /* 2^31 = 2147483648*/
+// #define BASE 0x3B9ACA00 /* 10^9 = 0x3B9ACA00 */ /* 2^31 = 2147483648*/
+#define BASE 0xFFFFFFFF // max value of unsigned int - also the max value of a digit
+#define DIGIT_BIT sizeof(digit) * 8
 
 #define CHECK_OKAY(a) do {if (a != BIGINT_OKAY) return a; } while(0) 
 typedef uint32_t digit;
@@ -24,8 +27,8 @@ typedef struct {
 
 typedef enum {
     BIGINT_OKAY = 0,
-    BIGINT_ERROR_NULLPTR,
     BIGINT_ERROR_OVERFLOW,
+    BIGINT_ERROR_NULLPTR,
     BIGINT_REALLOC_FAILURE, 
     BIGINT_ERROR_SET_ZERO, 
     BIGINT_ERROR_INSUFFICIENT_BUF,
@@ -34,19 +37,23 @@ typedef enum {
 } bigint_err;
 
 /* bigint utils */
+
+/* Initialize a bigint and setting it to 0 */
 bigint_err bigint_init(bigint* b, unsigned int num_of_digit);
+
+/* Free a bigint */
 bigint_err bigint_free(bigint *b);
 
 /* This function expands the bigint so that it has at least "num" digits */
 bigint_err bigint_expand(bigint *a, unsigned int num);
 
-/* copy from src to dest */
+/* Copy from src to dest */
 bigint_err bigint_copy(const bigint *src, bigint *dest); 
 
-/* this function makes a temporary copy of src */
+/* This function makes a temporary copy of src */
 bigint_err bigint_clone(const bigint *src, bigint *dest); 
 
-/* this function removes the leading zeros */
+/* This function removes the leading zeros */
 bigint_err bigint_clamp(bigint *a); 
 
 /* This function sets the given bigint to 0 */
@@ -72,8 +79,7 @@ bigint_err bigint_left_shift(bigint *a);
     and 1 otherwise */
 int bigint_cmp_zero(const bigint *a);
 
-
-/* This function compares two bigints */
+/* This function compares two bigints returns 0 if a == b, -1 if a < b, 1 if a > b */
 int bigint_cmp(const bigint *a, const bigint *b);
 
 /* bigint arithmetic */

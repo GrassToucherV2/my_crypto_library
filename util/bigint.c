@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "tools.h"
 #include "bigint.h"
 
 void buffers_xor(const char *a, const char *b, int len, char *output){
@@ -69,9 +70,9 @@ bigint_err bigint_set_zero(bigint *a){
 */
 bigint_err bigint_clamp(bigint *a){
     if(!a) return BIGINT_ERROR_NULLPTR;
-    unsigned int i = a->MSD;
+
     int found_nonzero_mask = 0;
-    for(; i > 0; i--){
+    for(unsigned int i = a->MSD; i > 0; i--){
         found_nonzero_mask |= -(a->digits[i] != 0);
         a->MSD -= (~found_nonzero_mask) & 1;
         a->num_of_digit -= (~found_nonzero_mask) & 1;
@@ -126,23 +127,50 @@ int bigint_cmp_zero(const bigint *a){
 
 int bigint_cmp(const bigint *a, const bigint *b){
     if(!a || !b) return BIGINT_ERROR_NULLPTR;
-
-    int64_t c = 0;
+    
     unsigned int msd_a = a->MSD;
     unsigned int msd_b = b->MSD;
     int i = 0;
 
+    // is this part constant-time ???
     if(msd_a > msd_b){
         i = msd_a;
     } else{
         i = msd_b;
     }
-    // run the loop anyway, in case 
+
+    int a_lt_b_mask = 0;
+    int equal_mask = 0;
+    int64_t c = 0;
+    int64_t c1 = 0;
+    int c1_sign = 0;
+
+    /*
+        c is used to check whether a == b, just like how it is done in bigint_cmp_zero
+        c1 is the difference between each digits of a and b, from MSD to LSD, if we get 
+        a negative result, we know that a < b, so we extract the sign bit and negate it to set 
+        the a_lt_b_mask to all 1's.
+        equal_mask is the same as bigint_cmp_zero, except for that when a == b, equal_mask would be 0
+        so subtract 1, to make it -1 to set the mask
+    */
     for(; i >= 0; i--){
         c |= a->digits[i] ^ b->digits[i];
+        c1 = (int)a->digits[i] - (int)b->digits[i];
+        c1_sign = (c1 >> (8 * sizeof(int64_t) - 1)) & 1;
+        a_lt_b_mask |= -c1_sign;   
     }
 
-    return (-c >> (sizeof(digit) * 8)) & 1;
+    equal_mask = ((-c >> (sizeof(digit) * 8)) & 1) - 1;
+
+    /*
+        A magic trick learned during my internship from my mentor
+        It conditionally checks which value to return. The conditional part is the mask &,
+        if the mask is not set, it just makes (res ^ 0) and (res ^ -1) 0, so res remains 1 
+    */
+    int res = 1;
+    res ^= a_lt_b_mask & (res ^ -1);
+    res ^= equal_mask & (res ^ 0);
+    return res;
 }
 
 /* 
@@ -260,6 +288,58 @@ bigint_err bigint_to_bytes(const bigint *a, unsigned char *output,
         output[index] = 0;
     }
 
+    return BIGINT_OKAY;
+}
+
+bigint_err bigint_add(bigint *a, bigint *b, bigint *c){
+    if(!a || !b || !c) return BIGINT_ERROR_NULLPTR;
+
+    unsigned int a_msd = a->MSD;
+    unsigned int b_msd = b->MSD;
+    unsigned int min, max, old_num_digits_used_c;
+    bigint *x;
+
+    if(a_msd > b_msd){
+        min = b_msd;
+        max = a_msd;
+        x = a;
+    } else {
+        min = a_msd;
+        max = b_msd;
+        x = b;
+    }
+    old_num_digits_used_c = c->MSD + 1;
+    // making sure c can hold enough digits, max + 2 as MSD serves as the index for the MSD digit
+    if(c->num_of_digit < max + 2){
+        CHECK_OKAY(bigint_expand(c, max + 2));
+    }
+
+    uint64_t tmp = 0;
+    int carry = 0;
+    int i = 0;
+    // compute lower min digits 
+    for(; i < min; i++){
+        tmp = (uint64_t)a->digits[i] + (uint64_t)b->digits[i] + carry;
+        carry = (tmp >> DIGIT_BIT) & 1;
+        c->digits[i] = tmp & BASE;  // only keeping the lower 32 bits, works like tmp mod BASE
+    }
+
+    // compute the rest of digits
+    if(min != max){
+        for(int i = min; i < max; i++){
+            tmp = x->digits[i] + carry;
+            carry = (tmp >> DIGIT_BIT) & 1;
+            c->digits[i] = tmp & BASE; 
+        }
+    }
+
+    // in case there is still carry leftover 
+    if(carry){
+        i++;
+        c->digits[i] += carry;
+    }
+    c->MSD = i;
+    
     return BIGINT_OKAY;
 }
 

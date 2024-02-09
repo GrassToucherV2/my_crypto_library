@@ -31,7 +31,8 @@ bigint_tests bigint_test[] = {
     {"bigint test - bigint_set_zero_test", &bigint_set_zero_test, 1},
     {"bigint test - bigint_from_bytes_test", &bigint_from_to_bytes_test, 1},
     {"bigint test - bigint_cmp_zero_test", &bigint_cmp_zero_test, 1},
-    {"bigint test - bigint_cmp_test", &bigint_cmp_test, 1}
+    {"bigint test - bigint_cmp_test", &bigint_cmp_test, 1},
+    {"bigint test - bigint_add_test", &bigint_add_test, 1}
 };
 
 void run_util_tests(){

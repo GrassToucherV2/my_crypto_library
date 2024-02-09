@@ -37,41 +37,7 @@ void bigint_expand_test() {
 }
 
 void bigint_inc_test(){
-//     print_msg(YELLOW, "bigint_inc_test");
-//     bigint b;
-//     bigint_init(&b, 1); // Initialize bigint with one digit.
-//     bigint_from_int(&b, 0); // Set bigint to 0.
-//     bigint_inc(&b); // Increment bigint.
-//     bigint_print(&b); // Expected output: 1
-//     // bigint_free(&b); // Cleanup.
 
-//     // print_msg(YELLOW, "bigint_int_test case 2");
-//     bigint_init(&b, 2); // Allocate two digits for potential carry over.
-//     b.digits[0] = BASE - 2; // Set the least significant digit to BASE - 1.
-//     bigint_inc(&b); // Increment bigint.
-//     bigint_print(&b); // Expected output: 10 (in base 2^31, visualized as decimal for simplicity)
-//     // unsigned char str[60] = {0};
-//     // // bigint_to_str(&b, str, 60);
-//     // for(int i = 0; i < 60; i++){
-//     //     printf("%c", str[i]);
-//     // }
-//     printf("\n");
-//     // bigint_free(&b); // Cleanup.
-
-//     // print_msg(YELLOW, "bigint_int_test case 3");
-//     bigint_init(&b, 2); // Assume we're working with 2 digits for this test.
-//     b.digits[0] = BASE - 1;
-//     b.digits[1] = BASE - 1;
-//     b.MSD = 1; // Manually set MSD to simulate a filled bigint.
-//     bigint_err result = bigint_inc(&b); // Attempt to increment.
-//     // Expected result: BIGINT_ERROR_OVERFLOW
-//     if (result == BIGINT_ERROR_OVERFLOW) {
-//         printf("Overflow detected as expected.\n");
-//     } else {
-//         printf("Unexpected behavior.\n");
-//     }
-//     bigint_free(&b); // Cleanup.
-//     printf("end of bigint_inc_test\n");
 }
 
 void bigint_clamp_test() {
@@ -386,5 +352,65 @@ void bigint_cmp_test(){
         print_msg(RED, "bigint_cmp_test -  python generated random bigint failed\n");
     }
 
+    print_msg(YELLOW, "bigint_cmp_test -  python generated random 2 bigint");
+    res = 0;
+    unsigned char data4[] = {0xC3, 0x1F, 0x98, 0xAC, 0x19, 0xAB, 0xB1, 0xC5, 
+                            0xFB, 0xA1, 0x00, 0x9D, 0xEF, 0xEE, 0x12, 0x96};
+    unsigned char datab4[] = {0xFF, 0xFF, 0x01, 0x02, 0x03, 0x04, 0x05, 0x00,
+                            0x00, 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06};
+    bigint_from_bytes(&a, data4, 16);
+    bigint_from_bytes(&b, datab4, 16);
+    res = bigint_cmp(&a, &b);
+    if(res == -1){
+        print_msg(GREEN, "bigint_cmp_test -  python generated random bigint 2 passed\n");
+    } else{
+        print_msg(RED, "bigint_cmp_test -  python generated random bigint 2 failed\n");
+        printf("res = %d\n", res);
+    }
+}
 
+void bigint_add_test(){
+    print_msg(YELLOW, "bigint_add_test - python generated random bigint");
+    bigint a, b, c, res;
+    bigint_err rv = 0;
+    bigint_init(&a, 4);
+    bigint_init(&b, 4);
+    bigint_init(&c, 4);
+    bigint_init(&res, 4);
+
+    unsigned char dataa[] = {0x79, 0xEE, 0x36, 0xD7, 0xBC, 0x26, 0xB3, 0xBC, 
+                            0x9A, 0x60, 0x4E, 0x98, 0xEA, 0xEB, 0x7C, 0xBB};
+    unsigned char datab[] = {0x59, 0x25, 0xA9, 0x03, 0x60, 0x40, 0xED, 0x3D, 
+                            0xCE, 0x91, 0xD2, 0xBB, 0x8B, 0x95, 0x1C, 0xE7};
+    unsigned char exp_res[] = {0xD3, 0x13, 0xDF, 0xDB, 0x1C, 0x67, 0xA0, 0xFA, 
+                            0x68, 0xF2, 0x21, 0x54, 0x76, 0x80, 0x99, 0xA2};
+
+    bigint_from_bytes(&a, dataa, 16);
+    bigint_from_bytes(&b, datab, 16);
+    bigint_from_bytes(&res, exp_res, 16);
+
+    rv = bigint_add(&a, &b, &c);
+    if(rv != BIGINT_OKAY){
+        print_msg(RED, "bigint_add failed - encountered an error\n");
+        bigint_free(&a);
+        bigint_free(&b);
+        bigint_free(&c);
+        bigint_free(&res);
+    }
+    
+    int r = bigint_cmp(&c, &res);
+    if(!r){
+        print_msg(GREEN, "bigint_add_test - python generated random bigint passed");
+    }
+    else {
+        print_msg(RED, "bigint_add_test - python generated random bigint failed");
+        bigint_print(&c);
+        print_bytes(&exp_res, 16, "expected output: ");
+    }
+
+    bigint_free(&a);
+    bigint_free(&b);
+    bigint_free(&c);
+    bigint_free(&res);
+    
 }

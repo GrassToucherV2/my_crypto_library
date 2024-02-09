@@ -35,7 +35,7 @@ void print_hex(char *hex_str, int len);
 int hex_to_bytes_conv(const char *input, int input_size, char *output);
 int three_bytes_to_base64(int24 *num, char *output);
 int bytes_to_base64(const char *input, int input_len, char *output);
-
+void printBinary(int number) ;
 int read_b64(const char *bytes, int len, char *output); // read bytes array into output buffer
 
 #endif /* TOOLS_H */
