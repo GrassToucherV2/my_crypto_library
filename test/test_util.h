@@ -19,6 +19,13 @@ bool assert_eq(int a, int b);
 bool cmp_str(char *a, char *b, int len);
 
 void print_msg(int color, char *msg);
+
+// print msg in color without new line
+void print_msg_n(int color, char *msg);
+
+void print_passed(char *msg);
+void print_failed(char *msg);
+
 void print_bytes(const unsigned char* bytes, size_t size, const char* str);
 
 /* utils unit tests */

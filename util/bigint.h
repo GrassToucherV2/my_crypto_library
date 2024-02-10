@@ -20,9 +20,9 @@ typedef uint32_t digit;
 void buffers_xor(const char *a, const char *b, int len, char *output);
 
 typedef struct {
-    unsigned int num_of_digit; /* number of digits allocated */
-    digit *digits; /* the digits themselves */
-    unsigned int MSD;       /* index of most significant digit */
+    unsigned int num_of_digit;  /* number of digits allocated */
+    digit *digits;              /* the digits themselves */
+    unsigned int MSD;           /* index of most significant digit */
 } bigint;
 
 typedef enum {
@@ -85,7 +85,11 @@ int bigint_cmp(const bigint *a, const bigint *b);
 /* bigint arithmetic */
 // a += 1
 bigint_err bigint_inc(bigint *a);
-// c = a + b
+
+// c = a + b, may results in leading zeros in c
 bigint_err bigint_add(bigint *a, bigint *b, bigint *c);
+
+// c = |a - b|
+bigint_err bigint_sub(bigint *a, bigint *b, bigint *c);
 
 #endif /* BIGINT_H  */

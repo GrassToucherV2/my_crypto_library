@@ -4,7 +4,8 @@
 #include <assert.h>
 #include <stdlib.h>
 
-void bigint_expand_test() {
+int bigint_expand_test() {
+    int failed = 0;
     print_msg(YELLOW, "bigint_expand test");
     bigint a;
     bigint_init(&a, 5); // Initialize bigint with 5 digits
@@ -23,7 +24,7 @@ void bigint_expand_test() {
 
     // Check if the original values are still intact
     for (int i = 0; i < 5; ++i) {
-        assert(a.digits[i] == (uint64_t)i);
+        assert(a.digits[i] == (uint64_t)i); 
     }
 
     // Check if the new digits are initialized to zero (or as per your implementation)
@@ -33,14 +34,64 @@ void bigint_expand_test() {
 
     // Cleanup
     bigint_free(&a);
-    print_msg(GREEN, "test_bigint_expand passed\n");
+    print_passed("test_bigint_expand passed");
+    return failed;
 }
 
-void bigint_inc_test(){
+int bigint_inc_test(){
+    int failed = 0;
+    print_msg(YELLOW, "bigint_inc_test");
+    bigint b, c;
+    int res = 0;
 
+    bigint_init(&b, 1); 
+    bigint_init(&c, 1);
+    bigint_from_small_int(&c, 1);
+    bigint_inc(&b); 
+    res = bigint_cmp(&b, &c);
+    if(!res){
+        print_passed("bigint_inc_test 1 passed");
+    } else {
+        print_failed("bigint_inc_test 1 failed");
+        failed = 1;
+    }
+    bigint_free(&b); // Cleanup.
+    bigint_free(&c);
+
+    bigint_init(&b, 2); // Allocate two digits for potential carry over.
+    bigint_init(&c, 1);
+    b.digits[0] = BASE - 1; 
+    c.digits[0] = BASE;
+    bigint_inc(&b); // Increment bigint.
+    res = bigint_cmp(&b, &c);
+    if(!res){
+        print_passed("bigint_inc_test 2 passed");
+    } else {
+        print_failed("bigint_inc_test 2 failed");
+        failed = 1;
+    }
+    bigint_free(&b); // Cleanup.
+    bigint_free(&c);
+
+    bigint_init(&b, 2); // Assume we're working with 2 digits for this test.
+    b.digits[0] = BASE - 1;
+    b.digits[1] = BASE - 1;
+    b.MSD = 1; // Manually set MSD to simulate a filled bigint.
+    bigint_err result = bigint_inc(&b); // Attempt to increment.
+
+    // Expected result: BIGINT_ERROR_OVERFLOW
+    if (result == BIGINT_ERROR_OVERFLOW) {
+        print_passed("Overflow detected as expected");
+    } else {
+        print_failed("Unexpected behavior");
+        failed = 1;
+    }
+    bigint_free(&b); // Cleanup.
+    return failed;
 }
 
-void bigint_clamp_test() {
+int bigint_clamp_test() {
+    int failed = 0;
     print_msg(YELLOW, "bigint_clamp_test");
     bigint a;
     // Test with a non-zero bigint
@@ -73,11 +124,12 @@ void bigint_clamp_test() {
     bigint_clamp(&a);
     assert(a.MSD == 0); // MSD should be updated to 0
     bigint_free(&a);
-
-    print_msg(GREEN, "All bigint_clamp tests passed\n");
+    print_passed("All bigint_clamp tests passed");
+    return failed;
 }
 
-void bigint_set_zero_test(){
+int bigint_set_zero_test(){
+    int failed = 0;
     print_msg(YELLOW, "bigint_set_zero test");
 
     bigint b;
@@ -96,10 +148,13 @@ void bigint_set_zero_test(){
 
     // Clean up
     bigint_free(&b);
-    print_msg(GREEN, "bigint_set_zero test passed.\n");
+    print_passed("bigint_set_zero test passed");
+
+    return failed;
 }
 
-void bigint_left_shift_test(){
+int bigint_left_shift_test(){
+    int failed = 0;
     print_msg(YELLOW, "bigint_left_shift test");
     bigint b;
     bigint_err err;
@@ -128,12 +183,13 @@ void bigint_left_shift_test(){
 
     // Clean up
     bigint_free(&b);
-
-    print_msg(GREEN, "bigint_left_shift_test passed.\n");
+    print_passed("bigint_left_shift_test passed");
+    return failed;
 }
 
-void bigint_from_to_bytes_test() {
-    print_msg(YELLOW, "bigint_from_to_bytes_test -- no leading zeros");
+int bigint_from_to_bytes_test() {
+    int failed = 0;
+    print_msg(YELLOW, "bigint_from_to_bytes_test");
     unsigned char original_bytes[] = {0xDE, 0xAD, 0xBE, 0xEF, 0x00, 0x00, 0x01, 0x23};
     size_t original_size = sizeof(original_bytes) / sizeof(original_bytes[0]);
 
@@ -143,148 +199,171 @@ void bigint_from_to_bytes_test() {
     // Convert byte array to bigint
     bigint_err from_result = bigint_from_bytes(&b, original_bytes, original_size);
     if (from_result != BIGINT_OKAY) {
+        print_msg_n(RED, "[:(   ] ");
         printf("bigint_from_bytes failed with error code: %d\n", from_result);
-        return;
+        failed = 1;
+        return failed;
     }
 
     // Allocate buffer for conversion back to bytes
     unsigned char* converted_bytes = malloc(original_size);
     if (!converted_bytes) {
+        print_msg_n(RED, "[:(   ] ");
         printf("Memory allocation failed for converted_bytes\n");
-        return;
+        failed = 1;
+        return failed;
     }
 
     // Convert bigint back to byte array
     bigint_err to_result = bigint_to_bytes(&b, converted_bytes, original_size, 1); // Assuming ignore_leading_zero is a flag
     if (to_result != BIGINT_OKAY) {
+        print_msg_n(RED, "[:(   ] ");
         printf("bigint_to_bytes failed with error code: %d\n", to_result);
         free(converted_bytes);
-        return;
+        failed = 1;
+        return failed;
     }
 
     // Compare original and converted byte arrays
     if (memcmp(original_bytes, converted_bytes, original_size) == 0) {
         print_bytes(converted_bytes, original_size, "converted_bytes: ");
-        print_msg(GREEN, "Test PASSED: Conversion from and to bytes is consistent.\n");
+        print_passed("Test PASSED: Conversion from and to bytes is consistent");
     } else {
         print_bytes(original_bytes, original_size, "original_bytes: ");
         print_bytes(converted_bytes, original_size, "converted_bytes: ");
-        print_msg(RED, "Test FAILED: Original and converted bytes do not match.\n");
+        print_failed("Test FAILED: Original and converted bytes do not match");
+        failed = 1;
     }
     free(converted_bytes);
 
-    print_msg(YELLOW, "bigint_from_to_bytes_test -- keep leading zeros");
     unsigned char data2[] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                             0xDE, 0xAD, 0xBE, 0xEF, 0x00, 0x00, 0x01, 0x23};
     original_size = sizeof(data2) / sizeof(data2[0]);
     from_result = bigint_from_bytes(&b, data2, original_size);
     if (from_result != BIGINT_OKAY) {
+        print_msg_n(RED, "[:(   ] ");
         printf("bigint_from_bytes failed with error code: %d\n", from_result);
-        return;
+        failed = 1;
+        return failed;
     }
     // Allocate buffer for conversion back to bytes
     unsigned char* converted_bytes1 = malloc(original_size);
     if (!converted_bytes1) {
+        print_msg_n(RED, "[:(   ] ");
         printf("Memory allocation failed for converted_bytes\n");
-        return;
+        failed = 1;
+        return failed;
     }
     to_result = bigint_to_bytes(&b, converted_bytes1, original_size, 0); // Assuming ignore_leading_zero is a flag
     if (to_result != BIGINT_OKAY) {
+        print_msg_n(RED, "[:(   ] ");
         printf("bigint_to_bytes failed with error code: %d\n", to_result);
         free(converted_bytes1);
-        return;
+        failed = 1;
+        return failed;
     }
     // Compare original and converted byte arrays
     if (memcmp(data2, converted_bytes1, original_size) == 0) {
         print_bytes(converted_bytes1, original_size, "converted_bytes: ");
-        print_msg(GREEN, "Test PASSED: Conversion from and to bytes is consistent.\n");
+        print_passed("Test PASSED: Conversion from and to bytes is consistent");
+        // print_msg_n(GREEN, "[   OK] ");
+        // print_msg(GREEN, "Test PASSED: Conversion from and to bytes is consistent.\n");
     } else {
         print_bytes(data2, original_size , "original_bytes: ");
         print_bytes(converted_bytes1, original_size, "converted_bytes: ");
-        print_msg(RED, "Test FAILED: Original and converted bytes do not match.\n");
+        print_failed("Test FAILED: Original and converted bytes do not match");
+        // print_msg_n(RED, "[:(   ] ");
+        // print_msg(RED, "Test FAILED: Original and converted bytes do not match.\n");
+        failed = 1;
     }
     free(converted_bytes1);
 
-    print_msg(YELLOW, "bigint_from_to_bytes_test -- ignore leading zeros");
     unsigned char* converted_bytes2 = malloc(original_size);
     if (!converted_bytes2) {
         printf("Memory allocation failed for converted_bytes\n");
-        return;
+        failed = 1;
+        return failed;
     }
     to_result = bigint_to_bytes(&b, converted_bytes2, original_size, 1); // Assuming ignore_leading_zero is a flag
     if (to_result != BIGINT_OKAY) {
         printf("bigint_to_bytes failed with error code: %d\n", to_result);
         free(converted_bytes2);
-        return;
+        failed = 1;
+        return failed;
     }
     // Compare original and converted byte arrays
     if (memcmp(data2, converted_bytes2, original_size) == 0) {
         print_bytes(converted_bytes2, original_size, "converted_bytes: ");
-        print_msg(GREEN, "Test PASSED: Conversion from and to bytes is consistent.\n");
+        print_passed("Test PASSED: Conversion from and to bytes is consistent");
+        // print_msg(GREEN, "Test PASSED: Conversion from and to bytes is consistent.\n");
     } else {
         print_bytes(data2, original_size, "original_bytes: ");
         print_bytes(converted_bytes2, original_size, "converted_bytes: ");
-        print_msg(RED, "Test FAILED: Original and converted bytes do not match.\n");
+        print_failed("Test FAILED: Original and converted bytes do not match");
+        // print_msg(RED, "Test FAILED: Original and converted bytes do not match.\n");
+        failed = 1;
     }
     free(converted_bytes2);
-
-    
-    
     bigint_free(&b);
+    return failed;
 }
 
-void bigint_cmp_zero_test(){
-    print_msg(YELLOW, "bigint_cmp_zero_test - small bigint");
+int bigint_cmp_zero_test(){
+    int failed = 0;
+    print_msg(YELLOW, "bigint_cmp_zero_test");
     int res = 0;
     bigint a;
     bigint_init(&a, 1);
     bigint_from_small_int(&a, 2);
     res = bigint_cmp_zero(&a);
     if(res){
-        print_msg(GREEN, "bigint_cmp_zero_test - small bigint passed\n");
+        print_passed("bigint_cmp_zero_test - small bigint passed");
     } else{
-        print_msg(RED, "bigint_cmp_zero_test - small bigint failed\n");
+        print_failed("bigint_cmp_zero_test - small bigint failed");
+        failed = 1;
     }
 
-    print_msg(YELLOW, "bigint_cmp_zero_test -  normal bigint");
     res = 0;
     unsigned char data1[] = {0xFF, 0xFF, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 
                             0x00, 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06};
     bigint_from_bytes(&a, data1, 16);
     res = bigint_cmp_zero(&a);
     if(res){
-        print_msg(GREEN, "bigint_cmp_zero_test - normal bigint passed\n");
+        print_passed("bigint_cmp_zero_test - normal bigint passed");
     } else{
-        print_msg(RED, "bigint_cmp_zero_test - normal bigint failed\n");
+        print_failed("bigint_cmp_zero_test - normal bigint failed");
+        failed = 1;
     }
 
-    print_msg(YELLOW, "bigint_cmp_zero_test -  leading zero bigint");
     res = 0;
     unsigned char data2[] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
                             0x00, 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06};
     bigint_from_bytes(&a, data2, 16);
     res = bigint_cmp_zero(&a);
     if(res){
-        print_msg(GREEN, "bigint_cmp_zero_test - leading zero bigint passed\n");
+        print_passed("bigint_cmp_zero_test - leading zero bigint passed");
     } else{
-        print_msg(RED, "bigint_cmp_zero_test - leading zero bigint failed\n");
+        print_failed("bigint_cmp_zero_test - leading zero bigint failed");
+        failed = 1;
     }
 
-    print_msg(YELLOW, "bigint_cmp_zero_test - zero");
     res = 0;
     unsigned char data3[] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
     bigint_from_bytes(&a, data3, 8);
     res = bigint_cmp_zero(&a);
     if(!res){
-        print_msg(GREEN, "bigint_cmp_zero_test - zero passed\n");
+        print_passed("bigint_cmp_zero_test - zero passed");
     } else{
-        print_msg(RED, "bigint_cmp_zero_test - zero failed\n");
+        print_failed("bigint_cmp_zero_test - zero failed");
+        failed = 1;
     }
     bigint_free(&a);
+    return failed;
 }
 
-void bigint_cmp_test(){
-    print_msg(YELLOW, "bigint_cmp_test - same small bigint");
+int bigint_cmp_test(){
+    int failed = 0;
+    print_msg(YELLOW, "bigint_cmp_test");
     int res = 0;
     bigint a;
     bigint b;
@@ -294,22 +373,22 @@ void bigint_cmp_test(){
     bigint_from_small_int(&b, 2);
     res = bigint_cmp(&a, &b);
     if(!res){
-        print_msg(GREEN, "bigint_cmp_test - same small bigint passed\n");
+        print_passed("bigint_cmp_test - same small bigint passed");
     } else{
-        print_msg(RED, "bigint_cmp_test - same small bigint failed\n");
+        print_failed("bigint_cmp_test - same small bigint failed");
+        failed = 1;
     }
 
-    print_msg(YELLOW, "bigint_cmp_test - different small bigint");
     bigint_from_small_int(&a, 2);
     bigint_from_small_int(&b, 3);
     res = bigint_cmp(&a, &b);
     if(res){
-        print_msg(GREEN, "bigint_cmp_test - different small bigint passed\n");
+        print_passed("bigint_cmp_test - different small bigint passed");
     } else{
-        print_msg(RED, "bigint_cmp_test - different small bigint failed\n");
+        print_failed("bigint_cmp_test - different small bigint failed");
+        failed = 1;
     }
 
-    print_msg(YELLOW, "bigint_cmp_test -  same normal bigint");
     res = 0;
     unsigned char data1[] = {0xFF, 0xFF, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 
                             0x00, 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06};
@@ -319,12 +398,12 @@ void bigint_cmp_test(){
     bigint_from_bytes(&b, datab, 16);
     res = bigint_cmp(&a, &b);
     if(!res){
-        print_msg(GREEN, "bigint_cmp_test -  same normal bigint passed\n");
+        print_passed("bigint_cmp_test -  same normal bigint passed");
     } else{
-        print_msg(RED, "bigint_cmp_test -  same normal bigint failed\n");
+        print_failed("bigint_cmp_test -  same normal bigint failed");
+        failed = 1;
     }
 
-    print_msg(YELLOW, "bigint_cmp_test -  different normal bigint");
     res = 0;
     unsigned char data2[] = {0xFE, 0xFF, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 
                             0x00, 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06};
@@ -334,12 +413,12 @@ void bigint_cmp_test(){
     bigint_from_bytes(&b, datab2, 15);
     res = bigint_cmp(&a, &b);
     if(res){
-        print_msg(GREEN, "bigint_cmp_test -  same normal bigint passed\n");
+        print_passed("bigint_cmp_test -  same normal bigint passed");
     } else{
-        print_msg(RED, "bigint_cmp_test -  same normal bigint failed\n");
+        print_failed("bigint_cmp_test -  same normal bigint failed");
+        failed = 1;
     }
 
-    print_msg(YELLOW, "bigint_cmp_test -  python generated random bigint");
     res = 0;
     unsigned char data3[] = {0xC3, 0x1F, 0x98, 0xAC, 0x19, 0xAB, 0xB1, 0xC5, 
                             0xFB, 0xA1, 0x00, 0x9D, 0xEF, 0xEE, 0x12, 0x96};
@@ -347,12 +426,12 @@ void bigint_cmp_test(){
     bigint_from_small_int(&b, 0);
     res = bigint_cmp(&a, &b);
     if(res){
-        print_msg(GREEN, "bigint_cmp_test -  python generated random bigint passed\n");
+        print_passed("bigint_cmp_test -  python generated random bigint passed");
     } else{
-        print_msg(RED, "bigint_cmp_test -  python generated random bigint failed\n");
+        print_failed("bigint_cmp_test -  python generated random bigint failed");
+        failed = 1;
     }
 
-    print_msg(YELLOW, "bigint_cmp_test -  python generated random 2 bigint");
     res = 0;
     unsigned char data4[] = {0xC3, 0x1F, 0x98, 0xAC, 0x19, 0xAB, 0xB1, 0xC5, 
                             0xFB, 0xA1, 0x00, 0x9D, 0xEF, 0xEE, 0x12, 0x96};
@@ -362,15 +441,18 @@ void bigint_cmp_test(){
     bigint_from_bytes(&b, datab4, 16);
     res = bigint_cmp(&a, &b);
     if(res == -1){
-        print_msg(GREEN, "bigint_cmp_test -  python generated random bigint 2 passed\n");
+        print_passed("bigint_cmp_test -  python generated random bigint 2 passed");
     } else{
-        print_msg(RED, "bigint_cmp_test -  python generated random bigint 2 failed\n");
+        print_failed("bigint_cmp_test -  python generated random bigint 2 failed");
         printf("res = %d\n", res);
+        failed = 1;
     }
+    return failed;
 }
 
-void bigint_add_test(){
-    print_msg(YELLOW, "bigint_add_test - python generated random bigint");
+int bigint_add_test(){
+    int failed = 0;
+    print_msg(YELLOW, "bigint_add_test");
     bigint a, b, c, res;
     bigint_err rv = 0;
     bigint_init(&a, 4);
@@ -382,7 +464,7 @@ void bigint_add_test(){
                             0x9A, 0x60, 0x4E, 0x98, 0xEA, 0xEB, 0x7C, 0xBB};
     unsigned char datab[] = {0x59, 0x25, 0xA9, 0x03, 0x60, 0x40, 0xED, 0x3D, 
                             0xCE, 0x91, 0xD2, 0xBB, 0x8B, 0x95, 0x1C, 0xE7};
-    unsigned char exp_res[] = {0xD3, 0x13, 0xDF, 0xDB, 0x1C, 0x67, 0xA0, 0xFA, 
+    const unsigned char exp_res[] = {0xD3, 0x13, 0xDF, 0xDB, 0x1C, 0x67, 0xA0, 0xFA, 
                             0x68, 0xF2, 0x21, 0x54, 0x76, 0x80, 0x99, 0xA2};
 
     bigint_from_bytes(&a, dataa, 16);
@@ -391,21 +473,50 @@ void bigint_add_test(){
 
     rv = bigint_add(&a, &b, &c);
     if(rv != BIGINT_OKAY){
-        print_msg(RED, "bigint_add failed - encountered an error\n");
+        print_failed("bigint_add failed - encountered an error");
         bigint_free(&a);
         bigint_free(&b);
         bigint_free(&c);
         bigint_free(&res);
+        failed = 1;
+        return failed;
     }
-    
+    unsigned char c_bytes[16];
     int r = bigint_cmp(&c, &res);
     if(!r){
-        print_msg(GREEN, "bigint_add_test - python generated random bigint passed");
+        print_passed("bigint_add_test - python generated random bigint passed");
+        bigint_to_bytes(&c, c_bytes, 16, 1);
+        print_bytes(c_bytes, 16, "c = ");
     }
     else {
-        print_msg(RED, "bigint_add_test - python generated random bigint failed");
+        print_failed("bigint_add_test - python generated random bigint failed");
+        bigint_to_bytes(&c, c_bytes, 16, 1);
+        print_bytes(c_bytes, 16, "c = ");
+        print_bytes(exp_res, 16, "expected output: ");
+        failed = 1;
+    }
+
+    bigint_set_zero(&c);
+    bigint_from_small_int(&b, 1);
+    bigint_add(&a, &b, &c);
+
+    const unsigned char exp_res1[] = {0x79, 0xEE, 0x36, 0xD7, 0xBC, 0x26, 0xB3, 0xBC, 
+                                    0x9A, 0x60, 0x4E, 0x98, 0xEA, 0xEB, 0x7C, 0xBC};
+    bigint_from_bytes(&res, exp_res1, 16);
+    bigint_print(&res);
+    r = bigint_cmp(&c, &res);
+    if(!r){
+        print_passed("bigint_add_test - python generated random bigint 2 passed");
+        bigint_to_bytes(&c, c_bytes, 16, 1);
+        print_bytes(c_bytes, 16, "c = ");
         bigint_print(&c);
-        print_bytes(&exp_res, 16, "expected output: ");
+    }
+    else {
+        print_failed("bigint_add_test - python generated random bigint 2 failed");
+        bigint_to_bytes(&c, c_bytes, 16, 1);
+        print_bytes(c_bytes, 16, "c = ");
+        print_bytes(exp_res1, 16, "expected output: ");
+        failed = 1;
     }
 
     bigint_free(&a);
@@ -413,4 +524,5 @@ void bigint_add_test(){
     bigint_free(&c);
     bigint_free(&res);
     
+    return failed;
 }

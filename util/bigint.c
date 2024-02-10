@@ -101,7 +101,8 @@ bigint_err bigint_from_small_int(bigint *b, digit a){
 
     CHECK_OKAY(bigint_set_zero(b));
 
-    b->digits[b->MSD] = a;
+    b->digits[0] = a;
+    b->MSD = 0;  
 
     return BIGINT_OKAY;    
 }
@@ -297,7 +298,7 @@ bigint_err bigint_add(bigint *a, bigint *b, bigint *c){
     unsigned int a_msd = a->MSD;
     unsigned int b_msd = b->MSD;
     unsigned int min, max, old_num_digits_used_c;
-    bigint *x;
+    bigint *x;      // used to hold the bigger bigint, which will be used later to finish addition
 
     if(a_msd > b_msd){
         min = b_msd;
@@ -308,6 +309,7 @@ bigint_err bigint_add(bigint *a, bigint *b, bigint *c){
         max = b_msd;
         x = b;
     }
+
     old_num_digits_used_c = c->MSD + 1;
     // making sure c can hold enough digits, max + 2 as MSD serves as the index for the MSD digit
     if(c->num_of_digit < max + 2){
@@ -316,17 +318,17 @@ bigint_err bigint_add(bigint *a, bigint *b, bigint *c){
 
     uint64_t tmp = 0;
     int carry = 0;
-    int i = 0;
-    // compute lower min digits 
-    for(; i < min; i++){
+    unsigned int i = 0;
+    // compute lower "min" digits 
+    for(; i <= min; i++){
         tmp = (uint64_t)a->digits[i] + (uint64_t)b->digits[i] + carry;
         carry = (tmp >> DIGIT_BIT) & 1;
-        c->digits[i] = tmp & BASE;  // only keeping the lower 32 bits, works like tmp mod BASE
+        c->digits[i] = tmp & BASE;  // only keeping the lower 32 bits, works like "tmp mod BASE"
     }
 
     // compute the rest of digits
     if(min != max){
-        for(int i = min; i < max; i++){
+        for(; i <= max; i++){
             tmp = x->digits[i] + carry;
             carry = (tmp >> DIGIT_BIT) & 1;
             c->digits[i] = tmp & BASE; 
@@ -339,6 +341,7 @@ bigint_err bigint_add(bigint *a, bigint *b, bigint *c){
         c->digits[i] += carry;
     }
     c->MSD = i;
+    // bigint_clamp(c);
     
     return BIGINT_OKAY;
 }

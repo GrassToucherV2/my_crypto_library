@@ -3,18 +3,18 @@
 
 typedef struct {
     char *name;
-    void (*unit_test_fn)();
+    int (*unit_test_fn)();
     int enabled;
 } bigint_tests;
 
-void bigint_inc_test();
-void bigint_expand_test();
-void bigint_clamp_test();
-void bigint_set_zero_test();
-void bigint_left_shift_test();
-void bigint_from_to_bytes_test();
-void bigint_cmp_zero_test();
-void bigint_cmp_test();
-void bigint_add_test();
+int bigint_inc_test();
+int bigint_expand_test();
+int bigint_clamp_test();
+int bigint_set_zero_test();
+int bigint_left_shift_test();
+int bigint_from_to_bytes_test();
+int bigint_cmp_zero_test();
+int bigint_cmp_test();
+int bigint_add_test();
 
 #endif /* BIGINT_TEST_H */

@@ -21,10 +21,26 @@ bool cmp_str(char *a, char *b, int len){
     return false;
 }
 
+void print_msg_n(int color, char *msg){
+    printf("\033[1;%dm", color);  
+    printf("%s", msg);
+    printf("\033[0m");
+}
+
 void print_msg(int color, char *msg){
     printf("\033[1;%dm", color);  
     printf("%s\n", msg);
     printf("\033[0m");
+}
+
+void print_passed(char *msg){
+    print_msg_n(GREEN, "  [   OK] ");
+    print_msg(GREEN, msg);
+}
+
+void print_failed(char *msg){
+    print_msg_n(RED, "  [:(   ] ");
+    print_msg(RED, msg);
 }
 
 void print_bytes(const unsigned char* bytes, size_t size, const char* str){

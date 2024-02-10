@@ -24,7 +24,6 @@ challeng1_test set1_test[] = {
 };
 
 bigint_tests bigint_test[] = {
-    {"bigint test - bigint_inc_test", &bigint_inc_test, 0},
     {"bigint test - bigint_expand_test", &bigint_expand_test, 1},
     {"bigint test - bigint_clamp_test", &bigint_clamp_test, 1},
     {"bigint test - bigint_left_shift_test", &bigint_left_shift_test, 1},
@@ -32,6 +31,7 @@ bigint_tests bigint_test[] = {
     {"bigint test - bigint_from_bytes_test", &bigint_from_to_bytes_test, 1},
     {"bigint test - bigint_cmp_zero_test", &bigint_cmp_zero_test, 1},
     {"bigint test - bigint_cmp_test", &bigint_cmp_test, 1},
+    {"bigint test - bigint_inc_test", &bigint_inc_test, 1},
     {"bigint test - bigint_add_test", &bigint_add_test, 1}
 };
 
@@ -55,13 +55,19 @@ void run_challenge_test(){
 }
 
 void run_bigint_test(){
+    printf("========== bigint library tests ==========\n");
     int num = sizeof(bigint_test) / sizeof(bigint_test[0]);
+    int num_failed = 0;
     for(int i = 0; i < num; i++){
         if(bigint_test[i].enabled){
-            bigint_test[i].unit_test_fn();
+            num_failed += bigint_test[i].unit_test_fn();
             printf("\n");
         }
     }
+    printf("========== Summary ==========\n");
+    printf("Total tests: %d\n", num);
+    printf("Passed: %d\n", num - num_failed);
+    printf("Failed: %d\n", num_failed);
 }
 int main(int argc, char *argv[]){
     if(argc == 1){
