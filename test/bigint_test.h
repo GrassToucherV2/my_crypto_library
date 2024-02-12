@@ -16,5 +16,6 @@ int bigint_from_to_bytes_test();
 int bigint_cmp_zero_test();
 int bigint_cmp_test();
 int bigint_add_test();
+int bigint_sub_test();
 
 #endif /* BIGINT_TEST_H */

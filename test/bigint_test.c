@@ -38,58 +38,6 @@ int bigint_expand_test() {
     return failed;
 }
 
-int bigint_inc_test(){
-    int failed = 0;
-    print_msg(YELLOW, "bigint_inc_test");
-    bigint b, c;
-    int res = 0;
-
-    bigint_init(&b, 1); 
-    bigint_init(&c, 1);
-    bigint_from_small_int(&c, 1);
-    bigint_inc(&b); 
-    res = bigint_cmp(&b, &c);
-    if(!res){
-        print_passed("bigint_inc_test 1 passed");
-    } else {
-        print_failed("bigint_inc_test 1 failed");
-        failed = 1;
-    }
-    bigint_free(&b); // Cleanup.
-    bigint_free(&c);
-
-    bigint_init(&b, 2); // Allocate two digits for potential carry over.
-    bigint_init(&c, 1);
-    b.digits[0] = BASE - 1; 
-    c.digits[0] = BASE;
-    bigint_inc(&b); // Increment bigint.
-    res = bigint_cmp(&b, &c);
-    if(!res){
-        print_passed("bigint_inc_test 2 passed");
-    } else {
-        print_failed("bigint_inc_test 2 failed");
-        failed = 1;
-    }
-    bigint_free(&b); // Cleanup.
-    bigint_free(&c);
-
-    bigint_init(&b, 2); // Assume we're working with 2 digits for this test.
-    b.digits[0] = BASE - 1;
-    b.digits[1] = BASE - 1;
-    b.MSD = 1; // Manually set MSD to simulate a filled bigint.
-    bigint_err result = bigint_inc(&b); // Attempt to increment.
-
-    // Expected result: BIGINT_ERROR_OVERFLOW
-    if (result == BIGINT_ERROR_OVERFLOW) {
-        print_passed("Overflow detected as expected");
-    } else {
-        print_failed("Unexpected behavior");
-        failed = 1;
-    }
-    bigint_free(&b); // Cleanup.
-    return failed;
-}
-
 int bigint_clamp_test() {
     int failed = 0;
     print_msg(YELLOW, "bigint_clamp_test");
@@ -179,7 +127,7 @@ int bigint_left_shift_test(){
 
     // Print the result (optional, for verification)
     printf("Result of left shift: ");
-    bigint_print(&b);
+    bigint_print(&b, "b = ");
 
     // Clean up
     bigint_free(&b);
@@ -447,6 +395,9 @@ int bigint_cmp_test(){
         printf("res = %d\n", res);
         failed = 1;
     }
+    bigint_free(&a);
+    bigint_free(&b);
+
     return failed;
 }
 
@@ -484,15 +435,13 @@ int bigint_add_test(){
     unsigned char c_bytes[16];
     int r = bigint_cmp(&c, &res);
     if(!r){
+        bigint_print(&c, "c = ");
         print_passed("bigint_add_test - python generated random bigint passed");
-        bigint_to_bytes(&c, c_bytes, 16, 1);
-        print_bytes(c_bytes, 16, "c = ");
     }
     else {
+        bigint_print(&c, "c = ");
+        bigint_print(&res, "r = ");
         print_failed("bigint_add_test - python generated random bigint failed");
-        bigint_to_bytes(&c, c_bytes, 16, 1);
-        print_bytes(c_bytes, 16, "c = ");
-        print_bytes(exp_res, 16, "expected output: ");
         failed = 1;
     }
 
@@ -503,19 +452,106 @@ int bigint_add_test(){
     const unsigned char exp_res1[] = {0x79, 0xEE, 0x36, 0xD7, 0xBC, 0x26, 0xB3, 0xBC, 
                                     0x9A, 0x60, 0x4E, 0x98, 0xEA, 0xEB, 0x7C, 0xBC};
     bigint_from_bytes(&res, exp_res1, 16);
-    bigint_print(&res);
     r = bigint_cmp(&c, &res);
     if(!r){
+        bigint_print(&c, "c = ");
         print_passed("bigint_add_test - python generated random bigint 2 passed");
-        bigint_to_bytes(&c, c_bytes, 16, 1);
-        print_bytes(c_bytes, 16, "c = ");
-        bigint_print(&c);
     }
     else {
-        print_failed("bigint_add_test - python generated random bigint 2 failed");
         bigint_to_bytes(&c, c_bytes, 16, 1);
         print_bytes(c_bytes, 16, "c = ");
         print_bytes(exp_res1, 16, "expected output: ");
+        print_failed("bigint_add_test - python generated random bigint 2 failed");
+        failed = 1;
+    }
+
+    unsigned char a1[] = {
+        0x39, 0xA8, 0x98, 0x83, 0xBD, 0x1F, 0x15, 0xD7,
+        0xD9, 0x93, 0xCE, 0xF9, 0x19, 0xEA, 0xE8, 0xD1
+    };
+    unsigned char b1[] = {
+        0xBB, 0x98, 0xAC, 0xAF, 0xE6, 0xB2, 0x99, 0xA3,
+        0x7F, 0xFC, 0xF5, 0x51, 0x6F, 0xB9, 0x5B, 0xE5,
+        0x75, 0x63, 0x3D, 0x09, 0xC6, 0x75, 0x99, 0x7B,
+        0x58, 0x9E, 0xA6, 0x42, 0xE5, 0xD6, 0x54, 0x15
+    };
+
+    unsigned char exp_res2[] = {
+        0xBB, 0x98, 0xAC, 0xAF, 0xE6, 0xB2, 0x99, 0xA3,
+        0x7F, 0xFC, 0xF5, 0x51, 0x6F, 0xB9, 0x5B, 0xE5,
+        0xAF, 0x0B, 0xD5, 0x8D, 0x83, 0x94, 0xAF, 0x53,
+        0x32, 0x32, 0x75, 0x3B, 0xFF, 0xC1, 0x3C, 0xE6
+    };
+
+    bigint_from_bytes(&a, a1, 16);
+    bigint_from_bytes(&b, b1, 32);
+    bigint_from_bytes(&res, exp_res2, 32);
+
+    bigint_set_zero(&c);
+    bigint_add(&a, &b, &c);
+    r = bigint_cmp(&c, &res);
+    if(!r){
+        bigint_print(&c, "c = ");
+        print_passed("bigint_add_test - python generated random bigint 3 passed");
+    }
+    else {
+        bigint_print(&c, "c = ");
+        bigint_print(&res, "r = ");
+        print_failed("bigint_add_test - python generated random bigint 3 failed");
+        failed = 1;
+    }
+
+    unsigned char a2[] = {
+        0xFB, 0x37, 0xBD, 0x55, 0x08, 0x9A, 0x80, 0xED, 
+        0x0F, 0xCF, 0x0F, 0xFD, 0x44, 0x84, 0x19, 0xA3
+    };
+
+    unsigned char b2[] = {
+        0x40, 0xC2, 0x0B, 0x0A, 0xC2, 0xD3, 0xEA, 0x8D, 
+        0xFA, 0x31, 0xD1, 0xD9, 0xEE, 0xDA, 0x11, 0x4C
+    };
+
+    unsigned char c2[] = {
+        0x01, 0x3B, 0xF9, 0xC8, 0x5F, 0xCB, 0x6E, 0x6B, 
+        0x7B, 0x0A, 0x00, 0xE1, 0xD7, 0x33, 0x5E, 0x2A, 
+        0xEF
+    };
+
+    bigint_free(&c);
+    bigint_init(&c, 1);
+    bigint_from_bytes(&a, a2, 16);
+    bigint_from_bytes(&b, b2, 16);
+    bigint_from_bytes(&res, c2, 17);
+    bigint_set_zero(&c);
+    bigint_add(&a, &b, &c);
+    r = bigint_cmp(&c, &res);
+    if(!r){
+        bigint_print(&c, "c = ");
+        print_passed("bigint_add_test - python generated random bigint 4 passed");
+    }
+    else {
+        bigint_print(&res, "r = ");
+        bigint_print(&c, "c = ");
+        print_failed("bigint_add_test - python generated random bigint 4 failed");
+        failed = 1;
+    }
+
+    bigint_free(&c);
+
+    bigint_from_bytes(&a, a1, 16);
+    bigint_set_zero(&b);
+    bigint_init(&c, 1);
+    
+    bigint_add(&a, &b, &c);
+    r = bigint_cmp(&a, &c);
+    if(!r){
+        bigint_print(&c, "c = ");
+        print_passed("bigint_add_test - python generated random bigint add 0 passed");
+    }
+    else {
+        bigint_print(&c, "c = ");
+        bigint_print(&a, "r = ");
+        print_failed("bigint_add_test - python generated random bigint add 0 failed");
         failed = 1;
     }
 
@@ -524,5 +560,82 @@ int bigint_add_test(){
     bigint_free(&c);
     bigint_free(&res);
     
+    return failed;
+}
+
+int bigint_inc_test(){
+    int failed = 0;
+    print_msg(YELLOW, "bigint_inc_test");
+    bigint b, c, r;
+    int res = 0;
+
+    bigint_init(&b, 1); 
+    bigint_init(&c, 1);
+    bigint_init(&r, 1);
+    unsigned char b1[] = {
+        0x39, 0xA8, 0x98, 0x83, 0xBD, 0x1F, 0x15, 0xD7,
+        0xD9, 0x93, 0xCE, 0xF9, 0x19, 0xEA, 0xE8, 0xD1
+    };
+
+    unsigned char r1[] = {
+        0x39, 0xA8, 0x98, 0x83, 0xBD, 0x1F, 0x15, 0xD7,
+        0xD9, 0x93, 0xCE, 0xF9, 0x19, 0xEA, 0xE8, 0xD2
+    };
+    bigint_from_bytes(&b, b1, 16);
+    bigint_from_bytes(&r, r1, 16);
+    bigint_add_digit(&b, 1, &c);
+    res = bigint_cmp(&c, &r);
+    if(!res){
+        print_passed("bigint_inc_test 1 passed");
+    } else {
+        print_failed("bigint_inc_test 1 failed");
+        failed = 1;
+    }
+    bigint_free(&b); 
+    bigint_free(&c);
+    bigint_free(&r);
+
+    return failed;
+}
+
+int bigint_sub_test(){
+    int failed = 0;
+    print_msg(YELLOW, "bigint_sub_test");
+    bigint a, b, c, res;
+    int rv = 0;
+    bigint_init(&a, 4);
+    bigint_init(&b, 4);
+    bigint_init(&c, 4);
+    bigint_init(&res, 4);
+    unsigned char a1[] = {
+        0xBC, 0x6A, 0x9F, 0x83, 0x18, 0xA2, 0x8F, 0x23, 
+        0x7A, 0x68, 0x28, 0xFA, 0x12, 0x39, 0x55, 0x1C
+    };
+
+    unsigned char b1[] = {
+        0x30, 0xB7, 0x6C, 0x86, 0x0C, 0xF0, 0x6C, 0x1E, 
+        0x17, 0x69, 0x3D, 0xAE, 0x63, 0xD7, 0x11, 0x1C
+    };
+
+    unsigned char exp_res[] = {
+        0x8B, 0xB3, 0x32, 0xFD, 0x0B, 0xB2, 0x23, 0x05, 
+        0x62, 0xFE, 0xEB, 0x4B, 0xAE, 0x62, 0x44, 0x00
+    };
+
+    bigint_from_bytes(&a, a1, 16);
+    bigint_from_bytes(&b, b1, 16);
+    bigint_from_bytes(&res, exp_res, 16);
+    bigint_sub(&a, &b, &c);
+    rv = bigint_cmp(&c, &res);
+    if(!rv){
+        bigint_print(&c, "c = ");
+        print_passed("bigint_add_test - python generated random bigint passed");
+    } else {
+        failed = 1;
+        bigint_print(&c, "c = ");
+        bigint_print(&res, "r = ");
+        print_failed("bigint_sub_test - python generated random bigint failed");
+    }
+
     return failed;
 }

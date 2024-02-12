@@ -199,12 +199,13 @@ bigint_err bigint_left_shift(bigint *a){
 
 }
 
-bigint_err bigint_print(const bigint *b){
+bigint_err bigint_print(const bigint *b, char *str){
     if (!b)
         return BIGINT_ERROR_NULLPTR;
     
+    printf("%s", str);
     for(int i = b->MSD; i >= 0; i--){
-        printf("%016X ", b->digits[i]);
+        printf("%08X ", b->digits[i]);
     }
     printf("\n");
     return BIGINT_OKAY;
@@ -297,7 +298,7 @@ bigint_err bigint_add(bigint *a, bigint *b, bigint *c){
 
     unsigned int a_msd = a->MSD;
     unsigned int b_msd = b->MSD;
-    unsigned int min, max, old_num_digits_used_c;
+    unsigned int min, max;
     bigint *x;      // used to hold the bigger bigint, which will be used later to finish addition
 
     if(a_msd > b_msd){
@@ -310,12 +311,10 @@ bigint_err bigint_add(bigint *a, bigint *b, bigint *c){
         x = b;
     }
 
-    old_num_digits_used_c = c->MSD + 1;
     // making sure c can hold enough digits, max + 2 as MSD serves as the index for the MSD digit
     if(c->num_of_digit < max + 2){
         CHECK_OKAY(bigint_expand(c, max + 2));
     }
-
     uint64_t tmp = 0;
     int carry = 0;
     unsigned int i = 0;
@@ -334,15 +333,91 @@ bigint_err bigint_add(bigint *a, bigint *b, bigint *c){
             c->digits[i] = tmp & BASE; 
         }
     }
-
-    // in case there is still carry leftover 
+    // in case there is still carry leftover, no need to increment i, as it should be max + 1 at this point 
+    // if above loops ran successfully
     if(carry){
-        i++;
         c->digits[i] += carry;
     }
     c->MSD = i;
-    // bigint_clamp(c);
+    bigint_clamp(c);
     
+    return BIGINT_OKAY;
+}
+
+bigint_err bigint_add_digit(bigint *a, digit b, bigint *c){
+    if(!a || !c) return BIGINT_ERROR_NULLPTR;
+
+    bigint b1;
+    CHECK_OKAY(bigint_init(&b1, 1));
+    CHECK_OKAY(bigint_from_small_int(&b1, b));
+    CHECK_OKAY(bigint_add(a, &b1, c));
+
+    bigint_free(&b1);
+
+    return BIGINT_OKAY;
+}
+
+bigint_err bigint_sub(bigint *a, bigint *b, bigint *c){
+    if(!a || !b || !c) return BIGINT_ERROR_NULLPTR;
+
+    int r = bigint_cmp(a, b);
+    unsigned int max_msd = 0;
+    unsigned int min_msd = 0;
+    bigint *bigger;
+    bigint *smaller;
+    if(r){
+        max_msd = a->MSD;
+        bigger = a;
+        min_msd = b->MSD;
+        smaller = b;
+        
+    } else {
+        max_msd = b->MSD;
+        bigger = b;
+        min_msd = a->MSD;
+        smaller = a;
+    }
+
+    if(c->MSD < max_msd){
+        CHECK_OKAY(bigint_expand(c, max_msd));
+    }
+
+    unsigned int i = 0;
+    int borrowed = 0;
+    int sign = 0;
+    int64_t borrow = 0;
+    int tmp = 0;
+
+
+    // turning negative number into positive: 1. subtract 1 then flip all bits
+    for(; i <= min_msd; i++){
+        tmp = bigger->digits[i] - smaller->digits[i] - borrowed;
+        sign = tmp >> (sizeof(int) * 8 - 1) & 1;
+        if(sign){
+            borrow = BASE;
+        } else {
+            borrow = 0;
+        }
+        c->digits[i] = tmp + borrow;
+        borrowed = sign;
+    }
+
+    if(min_msd != max_msd){
+        for(; i <= max_msd; i++){
+            tmp = bigger->digits[i] - borrowed;
+            sign = tmp >> (sizeof(int) * 8 - 1) & 1;
+            if(sign){
+                borrow = BASE;
+            } else {
+                borrow = 0;
+            }
+            c->digits[i] = tmp + borrow;
+            borrowed = sign;
+        }
+    }
+
+    c->MSD = i;
+    bigint_clamp(c);
     return BIGINT_OKAY;
 }
 

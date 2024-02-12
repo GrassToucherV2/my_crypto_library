@@ -4,7 +4,7 @@
 /*
     My attempt at creating a big integer library, heavily inspired by
     BigNum Math - Implementing Cryptographic Multiple Precision Arithmetic,
-    Mozilla NSS library and cryptographic coding rules from 
+    Mozilla NSS library, the HAC and cryptographic coding rules from 
     https://web.archive.org/web/20160525230135/https://cryptocoding.net/index.php/Coding_rules
 */
 
@@ -60,7 +60,7 @@ bigint_err bigint_clamp(bigint *a);
 bigint_err bigint_set_zero(bigint *a);
 
 /* This function prints the given bigint */
-bigint_err bigint_print(const bigint *b);
+bigint_err bigint_print(const bigint *b, char *str);
 
 /* This function sets the given bigint b to 0, then set the first digit to a */
 bigint_err bigint_from_small_int(bigint *b, digit a); 
@@ -86,8 +86,10 @@ int bigint_cmp(const bigint *a, const bigint *b);
 // a += 1
 bigint_err bigint_inc(bigint *a);
 
-// c = a + b, may results in leading zeros in c
+/* c = a + b, may results in leading zeros in c */
 bigint_err bigint_add(bigint *a, bigint *b, bigint *c);
+/* c = a + b, where b is a small integer */
+bigint_err bigint_add_digit(bigint *a, digit b, bigint *c);
 
 // c = |a - b|
 bigint_err bigint_sub(bigint *a, bigint *b, bigint *c);
