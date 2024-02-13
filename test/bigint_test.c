@@ -1,6 +1,7 @@
 #include "bigint_test.h"
 #include "../util/bigint.h"
 #include "test_util.h"
+#include <valgrind/memcheck.h>
 #include <assert.h>
 #include <stdlib.h>
 
@@ -603,7 +604,7 @@ int bigint_sub_test(){
     print_msg(YELLOW, "bigint_sub_test");
     bigint a, b, c, res;
     int rv = 0;
-    bigint_init(&a, 4);
+    bigint_init(&a, 1);
     bigint_init(&b, 4);
     bigint_init(&c, 4);
     bigint_init(&res, 4);
@@ -626,16 +627,162 @@ int bigint_sub_test(){
     bigint_from_bytes(&b, b1, 16);
     bigint_from_bytes(&res, exp_res, 16);
     bigint_sub(&a, &b, &c);
+
     rv = bigint_cmp(&c, &res);
     if(!rv){
         bigint_print(&c, "c = ");
-        print_passed("bigint_add_test - python generated random bigint passed");
+        print_passed("bigint_sub_test - python generated random bigint passed");
     } else {
         failed = 1;
+        bigint_print(&a, "a = ");
+        bigint_print(&b, "b = ");
         bigint_print(&c, "c = ");
         bigint_print(&res, "r = ");
         print_failed("bigint_sub_test - python generated random bigint failed");
     }
 
+    unsigned char a2[] = {
+        0x10, 0xC9, 0xF8, 0x2C, 0x81, 0x64, 0x3E, 0xEB,
+        0xBE, 0x7E, 0x74, 0x86, 0xDA, 0x35, 0x64, 0x4D,
+        0x95, 0x12, 0xA1, 0xA8, 0xF8, 0xA6, 0xFA, 0xE6,
+        0xC5, 0x52, 0xC7, 0x48, 0x6B, 0x9C, 0x70, 0xAD
+    };
+
+    unsigned char b2[] = {
+        0x79, 0x21, 0x8E, 0x52, 0x39, 0x80, 0xC3, 0xC2,
+        0xB9, 0x7F, 0x37, 0xE8, 0xC1, 0xDE, 0x36, 0x0A
+    };
+
+    unsigned char exp_res2[] = {
+        0x10, 0xC9, 0xF8, 0x2C, 0x81, 0x64, 0x3E, 0xEB,
+        0xBE, 0x7E, 0x74, 0x86, 0xDA, 0x35, 0x64, 0x4D,
+        0x1B, 0xF1, 0x13, 0x56, 0xBF, 0x26, 0x37, 0x24,
+        0x0B, 0xD3, 0x8F, 0x5F, 0xA9, 0xBE, 0x3A, 0xA3
+    };
+    bigint_free(&c);
+
+    bigint_init(&c, 1);
+    bigint_from_bytes(&a, a2, 32);
+    bigint_from_bytes(&b, b2, 16);
+    bigint_from_bytes(&res, exp_res2, 32);
+    bigint_sub(&a, &b, &c);
+
+    rv = bigint_cmp(&c, &res);
+    if(!rv){
+        bigint_print(&c, "c = ");
+        print_passed("bigint_sub_test - random bigint with different size passed");
+    } else {
+        failed = 1;
+        bigint_print(&a, "a = ");
+        bigint_print(&b, "b = ");
+        bigint_print(&c, "c = ");
+        bigint_print(&res, "r = ");
+        print_failed("bigint_sub_test - random bigint with different size failed");
+    }
+
+    unsigned char a3[] = {
+        0x01, 0x7A, 0x2F, 0x55, 0x2F, 0xA9, 0x31, 0xB3,
+        0x74, 0xCE, 0xFB, 0x10, 0x63, 0x80, 0xCC, 0x2E,
+        0xCD, 0xD2, 0x05, 0xE9, 0x17, 0xF5, 0x98, 0x6D,
+        0xB4, 0x5C, 0x80, 0xF6, 0xF3, 0x15, 0x7C, 0x41,
+        0xC8, 0xBA, 0x02, 0x5E, 0x62
+    };
+
+    unsigned char b3[] = {
+        0x04, 0xFB, 0xE6, 0xBA, 0x2D, 0xAB, 0x46, 0x6C,
+        0xF0, 0x90, 0xCF, 0xFD, 0x9B, 0xF0, 0x42, 0xAA
+    };
+
+    unsigned char exp_res3[] = {
+        0x01, 0x7A, 0x2F, 0x55, 0x2F, 0xA9, 0x31, 0xB3,
+        0x74, 0xCE, 0xFB, 0x10, 0x63, 0x80, 0xCC, 0x2E,
+        0xCD, 0xD2, 0x05, 0xE9, 0x17, 0xF0, 0x9C, 0x86,
+        0xFA, 0x2E, 0xD5, 0xB0, 0x86, 0x24, 0xEB, 0x71,
+        0xCB, 0x1E, 0x12, 0x1B, 0xB8
+    };
+    bigint_free(&c);
+    bigint_init(&c, 1);
+    bigint_from_bytes(&a, a3, 37);
+    bigint_from_bytes(&b, b3, 16);
+    bigint_from_bytes(&res, exp_res3, 37);
+    bigint_sub(&a, &b, &c);
+
+    rv = bigint_cmp(&c, &res);
+    if(!rv){
+        bigint_print(&c, "c = ");
+        print_passed("bigint_sub_test - random bigint with different size 2 passed");
+    } else {
+        failed = 1;
+        bigint_print(&a, "a = ");
+        bigint_print(&b, "b = ");
+        bigint_print(&c, "c = ");
+        bigint_print(&res, "r = ");
+        print_failed("bigint_sub_test - random bigint with different size 2 failed");
+    }
+    bigint_free(&c);
+
+    bigint_init(&c, 1);
+    bigint_set_zero(&b);
+    bigint_sub(&a, &b, &c);
+    rv = bigint_cmp(&c, &a);
+    if(!rv){
+        bigint_print(&c, "c = ");
+        print_passed("bigint_sub_test - random bigint sub 0 passed");
+    } else {
+        failed = 1;
+        bigint_print(&a, "a = ");
+        bigint_print(&b, "b = ");
+        bigint_print(&c, "c = ");
+        bigint_print(&a, "r = ");
+        print_failed("bigint_sub_test - random bigint sub 0 failed");
+    }
+
+    bigint_free(&a);
+    bigint_free(&b);
+    bigint_free(&c);
+    bigint_free(&res);
+    return failed;
+}
+
+int bigint_sub_digit_test(){
+    int failed = 0;
+    print_msg(YELLOW, "bigint_sub_digit_test");
+
+    unsigned char a1[] = {
+        0x04, 0x94, 0xF7, 0x07, 0xF5, 0xF2, 0xC9, 0x87,
+        0x98, 0xE2, 0x19, 0x23, 0x5A, 0x87, 0xF9, 0x27
+    };
+    digit b = 0x05D58E;
+    unsigned char exp_res[] = {
+        0x04, 0x94, 0xF7, 0x07, 0xF5, 0xF2, 0xC9, 0x87,
+        0x98, 0xE2, 0x19, 0x23, 0x5A, 0x82, 0x23, 0x99
+    };
+
+    int rv = 0;
+    bigint a, c, r;
+    bigint_init(&a, 1);
+    bigint_init(&c, 1);
+    bigint_init(&r, 1);
+
+    bigint_from_bytes(&a, a1, 16);
+    bigint_from_bytes(&r, exp_res, 16);
+    bigint_sub_digit(&a, b, &c);
+    rv = bigint_cmp(&c, &r);
+    if(!rv){
+        bigint_print(&c, "c = ");
+        print_passed("bigint_sub_digit_test - random bigint passed");
+    } else {
+        failed = 1;
+        bigint_print(&a, "a = ");
+        printf("b = %08X\n", b);
+        // bigint_print(&b, "b = ");
+        bigint_print(&c, "c = ");
+        bigint_print(&r, "r = ");
+        print_failed("bigint_sub_digit_test - random bigint failed");
+    }
+
+    bigint_free(&a);
+    bigint_free(&r);
+    bigint_free(&c);
     return failed;
 }

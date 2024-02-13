@@ -33,7 +33,8 @@ bigint_tests bigint_test[] = {
     {"bigint test - bigint_cmp_test", &bigint_cmp_test, 1},
     {"bigint test - bigint_inc_test", &bigint_inc_test, 1},
     {"bigint test - bigint_add_test", &bigint_add_test, 1},
-    {"bigint test - bigint_sub_test", &bigint_sub_test, 1}
+    {"bigint test - bigint_sub_test", &bigint_sub_test, 1},
+    {"bigint test - bigint_sub_digit_test", &bigint_sub_digit_test, 1}
 };
 
 void run_util_tests(){

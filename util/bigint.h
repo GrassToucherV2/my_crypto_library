@@ -83,15 +83,19 @@ int bigint_cmp_zero(const bigint *a);
 int bigint_cmp(const bigint *a, const bigint *b);
 
 /* bigint arithmetic */
-// a += 1
+// a += 1 ---> will probably be removed, since bigint_add_digit is a better alternative
 bigint_err bigint_inc(bigint *a);
 
 /* c = a + b, may results in leading zeros in c */
-bigint_err bigint_add(bigint *a, bigint *b, bigint *c);
+bigint_err bigint_add(const bigint *a, const bigint *b, bigint *c);
 /* c = a + b, where b is a small integer */
-bigint_err bigint_add_digit(bigint *a, digit b, bigint *c);
+bigint_err bigint_add_digit(const bigint *a, digit b, bigint *c);
 
-// c = |a - b|
-bigint_err bigint_sub(bigint *a, bigint *b, bigint *c);
+/* c = |a - b| */
+bigint_err bigint_sub(const bigint *a, const bigint *b, bigint *c);
+bigint_err bigint_sub_digit(const bigint *a, digit b, bigint *c);
+
+/* c = |a * b| */
+bigint_err bigint_mul(const bigint *a, const bigint *b, bigint *c);
 
 #endif /* BIGINT_H  */

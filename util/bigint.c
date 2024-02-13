@@ -126,6 +126,7 @@ int bigint_cmp_zero(const bigint *a){
     return (-b >> (sizeof(digit) * 8)) & 1 ; 
 }
 
+/* This function assumes there is no leading zeros */
 int bigint_cmp(const bigint *a, const bigint *b){
     if(!a || !b) return BIGINT_ERROR_NULLPTR;
     
@@ -293,13 +294,13 @@ bigint_err bigint_to_bytes(const bigint *a, unsigned char *output,
     return BIGINT_OKAY;
 }
 
-bigint_err bigint_add(bigint *a, bigint *b, bigint *c){
+bigint_err bigint_add(const bigint *a, const bigint *b, bigint *c){
     if(!a || !b || !c) return BIGINT_ERROR_NULLPTR;
 
     unsigned int a_msd = a->MSD;
     unsigned int b_msd = b->MSD;
     unsigned int min, max;
-    bigint *x;      // used to hold the bigger bigint, which will be used later to finish addition
+    const bigint *x;      // used to hold the bigger bigint, which will be used later to finish addition
 
     if(a_msd > b_msd){
         min = b_msd;
@@ -344,7 +345,7 @@ bigint_err bigint_add(bigint *a, bigint *b, bigint *c){
     return BIGINT_OKAY;
 }
 
-bigint_err bigint_add_digit(bigint *a, digit b, bigint *c){
+bigint_err bigint_add_digit(const bigint *a, digit b, bigint *c){
     if(!a || !c) return BIGINT_ERROR_NULLPTR;
 
     bigint b1;
@@ -357,14 +358,14 @@ bigint_err bigint_add_digit(bigint *a, digit b, bigint *c){
     return BIGINT_OKAY;
 }
 
-bigint_err bigint_sub(bigint *a, bigint *b, bigint *c){
+bigint_err bigint_sub(const bigint *a, const bigint *b, bigint *c){
     if(!a || !b || !c) return BIGINT_ERROR_NULLPTR;
 
     int r = bigint_cmp(a, b);
     unsigned int max_msd = 0;
     unsigned int min_msd = 0;
-    bigint *bigger;
-    bigint *smaller;
+    const bigint *bigger;
+    const bigint *smaller;
     if(r){
         max_msd = a->MSD;
         bigger = a;
@@ -378,46 +379,68 @@ bigint_err bigint_sub(bigint *a, bigint *b, bigint *c){
         smaller = a;
     }
 
-    if(c->MSD < max_msd){
-        CHECK_OKAY(bigint_expand(c, max_msd));
+    if(c->num_of_digit < max_msd + 1){
+        CHECK_OKAY(bigint_expand(c, max_msd + 1));
     }
 
     unsigned int i = 0;
     int borrowed = 0;
     int sign = 0;
-    int64_t borrow = 0;
-    int tmp = 0;
+    int64_t base = 0;
+    int64_t tmp = 0;
 
-
-    // turning negative number into positive: 1. subtract 1 then flip all bits
+    // computing lower digits first
     for(; i <= min_msd; i++){
-        tmp = bigger->digits[i] - smaller->digits[i] - borrowed;
-        sign = tmp >> (sizeof(int) * 8 - 1) & 1;
+        /*
+            if the bigger->digits[i] - smaller->digits[i] < 0, we need to borrow BASE + 1 from the next digit
+            therefore we add BASE + 1 after confirming the sign of tmp is negative
+            borrow BASE + 1 because BASE = 0xFFFFFFFF, which is equivalent to 9 in decimal, hence plus 1 to get 10's equivalent 
+            in base 2^32 
+        */
+        tmp = (int64_t)bigger->digits[i] - (int64_t)smaller->digits[i] - (int64_t)borrowed;
+        sign = tmp >> (sizeof(int64_t) * 8 - 1) & 1;
         if(sign){
-            borrow = BASE;
+            base = BASE + 1;
         } else {
-            borrow = 0;
+            base = 0;
         }
-        c->digits[i] = tmp + borrow;
+        c->digits[i] = tmp + base;
         borrowed = sign;
     }
 
     if(min_msd != max_msd){
         for(; i <= max_msd; i++){
             tmp = bigger->digits[i] - borrowed;
-            sign = tmp >> (sizeof(int) * 8 - 1) & 1;
+            sign = tmp >> (sizeof(int64_t) * 8 - 1) & 1;
             if(sign){
-                borrow = BASE;
+                base = BASE + 1;
             } else {
-                borrow = 0;
+                base = 0;
             }
-            c->digits[i] = tmp + borrow;
+            c->digits[i] = tmp + base;
             borrowed = sign;
         }
     }
 
-    c->MSD = i;
+    c->MSD = i - 1;
+    if(borrowed){
+        c->digits[i] -= borrowed;
+    }
+
     bigint_clamp(c);
+    return BIGINT_OKAY;
+}
+
+bigint_err bigint_sub_digit(const bigint *a, digit b, bigint *c){
+    if(!a || !c) return BIGINT_ERROR_NULLPTR;
+
+    bigint b1;
+    CHECK_OKAY(bigint_init(&b1, 1));
+    CHECK_OKAY(bigint_from_small_int(&b1, b));
+    CHECK_OKAY(bigint_sub(a, &b1, c));
+
+    bigint_free(&b1);
+
     return BIGINT_OKAY;
 }
 
