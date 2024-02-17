@@ -132,6 +132,42 @@ int bigint_left_shift_test(){
     return failed;
 }
 
+int bigint_right_shift_test(){
+    int failed = 0;
+
+    bigint b, r;
+    bigint_init(&r, 4);
+    bigint_init(&b, 4); 
+    unsigned char b1[] = {
+        0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x02,
+        0x00, 0x00, 0x00, 0x03, 0x00, 0x00, 0x00, 0x04
+    };
+    unsigned char exp_res[] = {
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01,
+        0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00, 0x03
+    };
+
+    bigint_from_bytes(&b, b1, 16);
+    bigint_from_bytes(&r, exp_res, 16);
+
+    bigint_err err = bigint_right_shift(&b);
+    assert(err == BIGINT_OKAY);
+
+    int res = bigint_cmp(&b, &r);
+    if(res == 0){
+        print_passed("bigint_right_shift_test passed");
+    } else {
+        failed = 1;
+        bigint_print(&b, "b = ");
+        print_failed("bigint_right_shift_test failed");
+    }
+
+    // Clean up
+    bigint_free(&b);
+    bigint_free(&r);
+    return failed;
+}
+
 int bigint_from_to_bytes_test() {
     int failed = 0;
     unsigned char original_bytes[] = {0xDE, 0xAD, 0xBE, 0xEF, 0x00, 0x00, 0x01, 0x23};

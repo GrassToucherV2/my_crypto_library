@@ -27,6 +27,7 @@ bigint_tests bigint_test[] = {
     {"bigint_expand_test", &bigint_expand_test, 1},
     {"bigint_clamp_test", &bigint_clamp_test, 1},
     {"bigint_left_shift_test", &bigint_left_shift_test, 1},
+    {"bigint_right_shift_test", &bigint_right_shift_test, 1},
     {"bigint_set_zero_test", &bigint_set_zero_test, 1},
     {"bigint_from_bytes_test", &bigint_from_to_bytes_test, 1},
     {"bigint_cmp_zero_test", &bigint_cmp_zero_test, 1},

@@ -247,6 +247,20 @@ bigint_err bigint_left_shift(bigint *a){
 
 }
 
+bigint_err bigint_right_shift(bigint *a){
+    if(!a) return BIGINT_ERROR_NULLPTR;
+
+    digit tmp = 0;
+    for(int i = 0; i < a->MSD; i++){
+        a->digits[i] = a->digits[i + 1];
+    }
+    a->digits[a->MSD] = 0;
+    a->MSD--;
+
+    return BIGINT_OKAY;    
+
+}
+
 bigint_err bigint_print(const bigint *b, char *str){
     if (!b)
         return BIGINT_ERROR_NULLPTR;
@@ -568,35 +582,6 @@ bigint_err bigint_double(const bigint *a, bigint *c){
         c->MSD = i - 1;
     }
 
-    return BIGINT_OKAY;
-}
-
-bigint_err bigint_inc(bigint *a){
-    if(a == NULL) return BIGINT_ERROR_NULLPTR;
-
-    unsigned int carry = 1;
-    unsigned int i = 0;
-    while(carry && i <= a->MSD) { 
-        a->digits[i] += carry;
-        if(a->digits[i] >= BASE) { 
-            a->digits[i] = 0;
-            if (i == a->MSD && i < a->num_of_digit - 1) {
-                // If incrementing the MSD and there's room, increase MSD.
-                a->MSD++;
-                a->digits[a->MSD] = 1;
-                carry = 0; 
-            }
-        } else {
-            carry = 0;
-        }
-        i++;
-    }
-
-    if (carry) {
-        // If still have carry here, it means we've run out of digits.
-        return BIGINT_ERROR_OVERFLOW;
-    }
-    
     return BIGINT_OKAY;
 }
 

@@ -71,7 +71,7 @@ bigint_err bigint_from_bytes(bigint *a, const unsigned char *str, unsigned int l
 bigint_err bigint_to_bytes(const bigint *a, unsigned char *output, 
                             unsigned int len, int ignore_leading_zero);
 
-/* This function shifts the given bigint by one digit to the left */
+/* These functions shift the given bigint by one digit to the left or right */
 bigint_err bigint_left_shift(bigint *a);
 bigint_err bigint_right_shift(bigint *a);
 

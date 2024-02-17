@@ -11,6 +11,7 @@ int bigint_expand_test();
 int bigint_clamp_test();
 int bigint_set_zero_test();
 int bigint_left_shift_test();
+int bigint_right_shift_test();
 int bigint_from_to_bytes_test();
 int bigint_pad_zero_test();
 int bigint_cmp_zero_test();
