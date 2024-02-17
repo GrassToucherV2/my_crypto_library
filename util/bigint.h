@@ -10,7 +10,6 @@
 
 #include <stdint.h>
 
-// #define BASE 0x3B9ACA00 /* 10^9 = 0x3B9ACA00 */ /* 2^31 = 2147483648*/
 #define BASE 0xFFFFFFFF // max value of unsigned int - also the max value of a digit
 #define DIGIT_BIT sizeof(digit) * 8
 
@@ -74,6 +73,7 @@ bigint_err bigint_to_bytes(const bigint *a, unsigned char *output,
 
 /* This function shifts the given bigint by one digit to the left */
 bigint_err bigint_left_shift(bigint *a);
+bigint_err bigint_right_shift(bigint *a);
 
 /* This function compares the given bigint to 0, returns 0 if the given bigint = 0 
     and 1 otherwise */
@@ -81,6 +81,11 @@ int bigint_cmp_zero(const bigint *a);
 
 /* This function compares two bigints returns 0 if a == b, -1 if a < b, 1 if a > b */
 int bigint_cmp(const bigint *a, const bigint *b);
+
+/* Pad zeros to given bigint, and make sure MSD points to msd */
+bigint_err bigint_pad_zero(bigint *a, unsigned int msd);
+
+//////////////////////////////////////////////////////////////////////////////////////////////
 
 /* bigint arithmetic */
 // a += 1 ---> will probably be removed, since bigint_add_digit is a better alternative
@@ -97,5 +102,23 @@ bigint_err bigint_sub_digit(const bigint *a, digit b, bigint *c);
 
 /* c = |a * b| */
 bigint_err bigint_mul(const bigint *a, const bigint *b, bigint *c);
+bigint_err bigint_mul_digit(const bigint *a, digit b, bigint *c);
+/* c = a * 2 */
+bigint_err bigint_double(const bigint *a, bigint *c);
+
+/* c = |a / b| */
+bigint_err bigint_div(const bigint *a, const bigint *b, bigint *c);
+
+/////////////////////////////////////////////////////////////////////////////////////////
+
+/* bigint bitwise operation */
+/* c = a & b */
+bigint_err bigint_and(const bigint *a, const bigint *b, bigint *c);
+/* c = a | b */
+bigint_err bigint_or(const bigint *a, const bigint *b, bigint *c);
+/* c = a ^ b */
+bigint_err bigint_xor(const bigint *a, const bigint *b, bigint *c);
+/* c = ~a */
+bigint_err bigint_not(const bigint *a, bigint *c);
 
 #endif /* BIGINT_H  */

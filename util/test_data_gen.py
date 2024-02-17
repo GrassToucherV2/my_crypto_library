@@ -22,6 +22,8 @@ def perform_operation(num1, num2, op):
         return num1 - num2
     elif op == "mul":
         return num1 * num2
+    elif op == "dou":
+        return num1 * 2
     elif op == "div":
         if num2 == 0:
             return "ERORR, num2 = 0"
@@ -48,15 +50,14 @@ if __name__ == "__main__":
     random_number1 = 0
     random_number2 = 0
 
-    if len(sys.argv) != 4:
-        bits1 = 128
-        bits2 = 128
-        op = "add"
-    else:
+    if len(sys.argv) == 4:
         bits1 = int(sys.argv[1])
         bits2 = int(sys.argv[2])
         op = sys.argv[3].lower()
-    
+    elif len(sys.argv) == 3:
+        bits1 = int(sys.argv[1])
+        op = sys.argv[2].lower()
+        
     random_number1 = generate_random_numbers(bits1)
     random_number2 = generate_random_numbers(bits2)
 

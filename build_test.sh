@@ -10,6 +10,15 @@ FILES=("test/test_util.c" "util/tools.c" \
 CC=gcc
 CFLAGS="-Wall -Wextra"
 
+# --val argument add -g flag when compiling, which lets valgrind to pinpoint the line number 
+# of the problematic code
+for arg in "$@"
+do
+    if [ "$arg" == "--val" ]; then
+        CFLAGS="$CFLAGS -g"
+    fi
+done
+
 # Compile all files together
 echo "Building all files..."
 $CC $CFLAGS "${FILES[@]}"

@@ -7,7 +7,6 @@
 
 int bigint_expand_test() {
     int failed = 0;
-    print_msg(YELLOW, "bigint_expand test");
     bigint a;
     bigint_init(&a, 5); // Initialize bigint with 5 digits
 
@@ -41,7 +40,6 @@ int bigint_expand_test() {
 
 int bigint_clamp_test() {
     int failed = 0;
-    print_msg(YELLOW, "bigint_clamp_test");
     bigint a;
     // Test with a non-zero bigint
     bigint_init(&a, 10); // Initialize bigint with 10 digits, MSD at 5
@@ -79,7 +77,6 @@ int bigint_clamp_test() {
 
 int bigint_set_zero_test(){
     int failed = 0;
-    print_msg(YELLOW, "bigint_set_zero test");
 
     bigint b;
 
@@ -104,7 +101,6 @@ int bigint_set_zero_test(){
 
 int bigint_left_shift_test(){
     int failed = 0;
-    print_msg(YELLOW, "bigint_left_shift test");
     bigint b;
     bigint_err err;
 
@@ -138,7 +134,6 @@ int bigint_left_shift_test(){
 
 int bigint_from_to_bytes_test() {
     int failed = 0;
-    print_msg(YELLOW, "bigint_from_to_bytes_test");
     unsigned char original_bytes[] = {0xDE, 0xAD, 0xBE, 0xEF, 0x00, 0x00, 0x01, 0x23};
     size_t original_size = sizeof(original_bytes) / sizeof(original_bytes[0]);
 
@@ -257,9 +252,43 @@ int bigint_from_to_bytes_test() {
     return failed;
 }
 
+int bigint_pad_zero_test(){
+    int failed = 0;
+
+    unsigned char a1[] = {
+        0x10, 0x20, 0x30, 0x40
+    };
+
+    bigint a;
+    bigint_init(&a, 1);
+    bigint_from_bytes(&a, a1, 4);
+    bigint_pad_zero(&a, 4);
+    bigint_print(&a, "a = ");
+
+    if(a.MSD != 4){
+        print_failed("a.MSD should be 4");
+        failed = 1;
+    }
+
+    int check = 0;
+    for(int i = 1; i < 5; i++){
+        if(a.digits[i] != 0){
+            check = 1;
+        }
+    }
+    if(!check){
+        print_passed("bigint_pad_zero_test passed");
+    } else {
+        print_failed("bigint_pad_zero_test failed");
+        failed = 1;
+    }
+
+    bigint_free(&a);
+    return failed;
+}
+
 int bigint_cmp_zero_test(){
     int failed = 0;
-    print_msg(YELLOW, "bigint_cmp_zero_test");
     int res = 0;
     bigint a;
     bigint_init(&a, 1);
@@ -312,7 +341,6 @@ int bigint_cmp_zero_test(){
 
 int bigint_cmp_test(){
     int failed = 0;
-    print_msg(YELLOW, "bigint_cmp_test");
     int res = 0;
     bigint a;
     bigint b;
@@ -331,7 +359,7 @@ int bigint_cmp_test(){
     bigint_from_small_int(&a, 2);
     bigint_from_small_int(&b, 3);
     res = bigint_cmp(&a, &b);
-    if(res){
+    if(res == -1){
         print_passed("bigint_cmp_test - different small bigint passed");
     } else{
         print_failed("bigint_cmp_test - different small bigint failed");
@@ -346,7 +374,7 @@ int bigint_cmp_test(){
     bigint_from_bytes(&a, data1, 16);
     bigint_from_bytes(&b, datab, 16);
     res = bigint_cmp(&a, &b);
-    if(!res){
+    if(res == 0){
         print_passed("bigint_cmp_test -  same normal bigint passed");
     } else{
         print_failed("bigint_cmp_test -  same normal bigint failed");
@@ -374,7 +402,7 @@ int bigint_cmp_test(){
     bigint_from_bytes(&a, data3, 16);
     bigint_from_small_int(&b, 0);
     res = bigint_cmp(&a, &b);
-    if(res){
+    if(res == 1){
         print_passed("bigint_cmp_test -  python generated random bigint passed");
     } else{
         print_failed("bigint_cmp_test -  python generated random bigint failed");
@@ -382,6 +410,10 @@ int bigint_cmp_test(){
     }
 
     res = 0;
+    bigint_free(&a);
+    bigint_free(&b);
+    bigint_init(&a, 1);
+    bigint_init(&b, 1);
     unsigned char data4[] = {0xC3, 0x1F, 0x98, 0xAC, 0x19, 0xAB, 0xB1, 0xC5, 
                             0xFB, 0xA1, 0x00, 0x9D, 0xEF, 0xEE, 0x12, 0x96};
     unsigned char datab4[] = {0xFF, 0xFF, 0x01, 0x02, 0x03, 0x04, 0x05, 0x00,
@@ -392,8 +424,70 @@ int bigint_cmp_test(){
     if(res == -1){
         print_passed("bigint_cmp_test -  python generated random bigint 2 passed");
     } else{
+        bigint_print(&a, "a = ");
+        bigint_print(&b, "b = ");
         print_failed("bigint_cmp_test -  python generated random bigint 2 failed");
         printf("res = %d\n", res);
+        failed = 1;
+    }
+
+    unsigned char data5[] = {
+        0xC3, 0x1F, 0x98, 0xAC, 0x19, 0xAB, 0xB1, 0xC5, 
+        0xFB, 0xA1, 0x00, 0x9D, 0xEF, 0xEE, 0x12, 0x96
+    };
+
+    unsigned char datab5[] = {
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    };
+    
+    bigint_from_bytes(&a, data5, 16);
+
+    bigint_from_bytes(&b, datab5, 16);
+    res = bigint_cmp(&a, &b);
+    if(res == 1){
+        print_passed("bigint_cmp_test -  leading zeros passed");
+    } else{
+        bigint_print(&a, "a = ");
+        bigint_print(&b, "b = ");
+        print_failed("bigint_cmp_test -  leading zeros failed");
+        failed = 1;
+    }
+
+    unsigned char dataa1[] = {0x79, 0xEE, 0x36, 0xD7, 0xBC, 0x26, 0xB3, 0xBC, 
+                            0x9A, 0x60, 0x4E, 0x98, 0xEA, 0xEB, 0x7C, 0xBB};
+    unsigned char datab1[] = {0x59, 0x25, 0xA9, 0x03, 0x60, 0x40, 0xED, 0x3D};
+    bigint_from_bytes(&a, dataa1, 16);
+    bigint_from_bytes(&b, datab1, 8);
+    res = bigint_cmp(&a, &b);
+    if(res == 1){
+        print_passed("bigint_cmp_test -  diff length passed");
+    } else{
+        bigint_print(&a, "a = ");
+        bigint_print(&b, "b = ");
+        print_failed("bigint_cmp_test -  diff length failed");
+        failed = 1;
+    }
+
+    unsigned char a6[] = {
+        0xBC, 0x6A, 0x9F, 0x83, 0x18, 0xA2, 0x8F, 0x23, 
+        0x7A, 0x68, 0x28, 0xFA, 0x12, 0x39, 0x55, 0x1C
+    };
+
+    unsigned char b6[] = {
+        0x30, 0xB7, 0x6C, 0x86, 0x0C, 0xF0, 0x6C, 0x1E, 
+        0x17, 0x69, 0x3D, 0xAE, 0x63, 0xD7, 0x11, 0x1C
+    };
+    bigint_from_bytes(&a, a6, 16);
+    bigint_from_bytes(&b, b6, 16);
+    res = bigint_cmp(&a, &b);
+    if(res == 1){
+        print_passed("bigint_cmp_test -  random int passed");
+    } else{
+        bigint_print(&a, "a = ");
+        bigint_print(&b, "b = ");
+        printf("res = %d\n", res);
+        print_failed("bigint_cmp_test -  random int failed");
         failed = 1;
     }
     bigint_free(&a);
@@ -404,7 +498,7 @@ int bigint_cmp_test(){
 
 int bigint_add_test(){
     int failed = 0;
-    print_msg(YELLOW, "bigint_add_test");
+    // print_msg(YELLOW, "bigint_add_test");
     bigint a, b, c, res;
     bigint_err rv = 0;
     bigint_init(&a, 4);
@@ -564,9 +658,9 @@ int bigint_add_test(){
     return failed;
 }
 
-int bigint_inc_test(){
+int bigint_add_digit_test(){
     int failed = 0;
-    print_msg(YELLOW, "bigint_inc_test");
+    // print_msg(YELLOW, "bigint_inc_test");
     bigint b, c, r;
     int res = 0;
 
@@ -592,6 +686,18 @@ int bigint_inc_test(){
         print_failed("bigint_inc_test 1 failed");
         failed = 1;
     }
+
+    bigint_from_small_int(&b, 9999);
+    bigint_add_digit(&b, 1, &c);
+    bigint_from_small_int(&r, 10000);
+    res = bigint_cmp(&c, &r);
+    if(!res){
+        print_passed("bigint_inc_test 2 passed");
+    } else {
+        print_failed("bigint_inc_test 2 failed");
+        failed = 1;
+    }
+
     bigint_free(&b); 
     bigint_free(&c);
     bigint_free(&r);
@@ -601,13 +707,12 @@ int bigint_inc_test(){
 
 int bigint_sub_test(){
     int failed = 0;
-    print_msg(YELLOW, "bigint_sub_test");
     bigint a, b, c, res;
     int rv = 0;
     bigint_init(&a, 1);
-    bigint_init(&b, 4);
-    bigint_init(&c, 4);
-    bigint_init(&res, 4);
+    bigint_init(&b, 1);
+    bigint_init(&c, 1);
+    bigint_init(&res, 1);
     unsigned char a1[] = {
         0xBC, 0x6A, 0x9F, 0x83, 0x18, 0xA2, 0x8F, 0x23, 
         0x7A, 0x68, 0x28, 0xFA, 0x12, 0x39, 0x55, 0x1C
@@ -627,7 +732,6 @@ int bigint_sub_test(){
     bigint_from_bytes(&b, b1, 16);
     bigint_from_bytes(&res, exp_res, 16);
     bigint_sub(&a, &b, &c);
-
     rv = bigint_cmp(&c, &res);
     if(!rv){
         bigint_print(&c, "c = ");
@@ -746,7 +850,7 @@ int bigint_sub_test(){
 
 int bigint_sub_digit_test(){
     int failed = 0;
-    print_msg(YELLOW, "bigint_sub_digit_test");
+    // print_msg(YELLOW, "bigint_sub_digit_test");
 
     unsigned char a1[] = {
         0x04, 0x94, 0xF7, 0x07, 0xF5, 0xF2, 0xC9, 0x87,
@@ -785,4 +889,490 @@ int bigint_sub_digit_test(){
     bigint_free(&r);
     bigint_free(&c);
     return failed;
+}
+
+int bigint_mul_test(){
+    int failed = 0;
+    bigint a, b, c, r;
+    int res = 0;
+    unsigned char a1[] = {
+        0xC6, 0x0B, 0x2C, 0xFD, 0x16, 0x9D, 0x96, 0x84,
+        0xA1, 0xD9, 0x16, 0x5D, 0xBA, 0xA9, 0x9A, 0x43
+    };
+
+    unsigned char b1[] = {
+        0x0E, 0x43, 0xB0, 0x3C, 0xE1, 0xB4, 0xB0, 0x31,
+        0xA8, 0x9B, 0xCF, 0x2A, 0xA4, 0x41, 0x9C, 0xB7
+    };
+
+    unsigned char exp_res[] = {
+        0x0B, 0x08, 0xF9, 0xB9, 0x65, 0xA1, 0xAF, 0x0B,
+        0x76, 0x50, 0x94, 0x09, 0x96, 0x81, 0x74, 0xF8,
+        0xF7, 0x76, 0xBA, 0xB1, 0x34, 0x4E, 0xF3, 0xF1,
+        0xD7, 0x51, 0xA2, 0xA0, 0xE0, 0x41, 0x19, 0xE5
+    };
+
+    bigint_init(&a, 1);
+    bigint_init(&b, 1);
+    bigint_init(&c, 1);
+    bigint_init(&r, 1);
+
+    bigint_from_bytes(&a, a1, 16);
+    bigint_from_bytes(&b, b1, 16);
+    bigint_from_bytes(&r, exp_res, 32);
+
+    bigint_mul(&a, &b, &c);
+    res = bigint_cmp(&c, &r);
+    if(!res){
+        bigint_print(&c, "c = ");
+        print_passed("bigint_mul_test - random bigint passed");
+    } else{
+        failed = 1;
+        bigint_print(&a, "a = ");
+        bigint_print(&b, "b = ");
+        bigint_print(&c, "c = ");
+        bigint_print(&r, "r = ");
+        print_failed("bigint_mul_test - random bigint sub 0 failed");
+    }
+
+    bigint_free(&c);
+
+    unsigned char a2[] = {
+        0x2B, 0xD7, 0xE5, 0x45, 0x67, 0xAF, 0x8F, 0xE6,
+        0xBA, 0xC1, 0x89, 0xFE, 0xF6, 0xCF, 0x09, 0x7D
+    };
+
+    unsigned char b2[] = {
+        0x04, 0xAA, 0xAC, 0x5F, 0x05, 0x32, 0x1E, 0xCA,
+        0x6A, 0x9C, 0x52, 0x38, 0xAF, 0xDC, 0x11, 0x83
+    };
+
+    unsigned char exp_res2[] = {
+        0xCC, 0x9A, 0x78, 0xA9, 0xC2, 0x1C, 0x2B, 0xB3,
+        0x08, 0x5A, 0x5E, 0x45, 0xD2, 0x05, 0xBD, 0x4F,
+        0x5E, 0xE5, 0x20, 0xEB, 0x55, 0xDE, 0xAE, 0x25,
+        0x87, 0x4A, 0x9C, 0xA5, 0xFF, 0x27, 0xF7
+    };
+
+    bigint_from_bytes(&a, a2, 16);
+    bigint_from_bytes(&b, b2, 16);
+    bigint_from_bytes(&r, exp_res2, 31);
+
+    bigint_init(&c, 1);
+    bigint_mul(&a, &b, &c);
+    res = bigint_cmp(&c, &r);
+    if(!res){
+        bigint_print(&c, "c = ");
+        print_passed("bigint_mul_test - random bigint 2 passed");
+    } else{
+        failed = 1;
+        bigint_print(&a, "a = ");
+        bigint_print(&b, "b = ");
+        bigint_print(&c, "c = ");
+        bigint_print(&r, "r = ");
+        print_failed("bigint_mul_test - random bigint 2 failed");
+    }
+
+    bigint_free(&c);
+
+    unsigned char a3[65] = {
+        0xFC, 0xA9, 0xD0, 0xFE, 0xD9, 0x51, 0xCC, 0x3C,
+        0x54, 0x1E, 0x6D, 0xE5, 0x4D, 0x3E, 0x15, 0xE9,
+        0x30, 0x41, 0x92, 0xFC, 0x5E, 0xAA, 0xA6, 0x89,
+        0x35, 0xE3, 0x6A, 0x76, 0xA4, 0xBD, 0xE6, 0x17,
+        0x53, 0x6F, 0xEF, 0x86, 0x73, 0x0D, 0xE7, 0xC6,
+        0xA6, 0x63, 0x2A, 0x1F, 0xC9, 0xB5, 0x7B, 0xAE,
+        0x2E, 0x25, 0x7E, 0x5E, 0xF2, 0x5C, 0x70, 0x31,
+        0x76, 0x3C, 0x27, 0x80, 0x60, 0x14, 0xFA, 0x76,
+        0xA5
+    };
+
+    unsigned char b3[16] = {
+        0x5F, 0xB5, 0x46, 0xD1, 0x30, 0xAD, 0xE7, 0x3F,
+        0x4C, 0x39, 0x74, 0xB5, 0x89, 0x58, 0x0C, 0x17
+    }; 
+
+    unsigned char exp_res3[81] = {
+        0x5E, 0x75, 0xEE, 0x84, 0x3C, 0xA9, 0xCB, 0x49,
+        0x4D, 0x12, 0xB6, 0xFA, 0xB8, 0x39, 0x03, 0xED,
+        0x78, 0x4A, 0x99, 0x58, 0x1E, 0xF2, 0x97, 0x44,
+        0xA2, 0x0C, 0x9B, 0x64, 0xAF, 0xBD, 0xC1, 0xC6,
+        0x7C, 0x5D, 0x48, 0xC6, 0xFC, 0xE5, 0x93, 0xC7,
+        0x35, 0xE5, 0x0C, 0x4E, 0x83, 0x18, 0xBD, 0x05,
+        0x7F, 0x87, 0xB7, 0x9C, 0x82, 0x75, 0xFD, 0x97,
+        0x65, 0x73, 0x70, 0x45, 0xFD, 0x72, 0x78, 0xF1,
+        0x7E, 0xE2, 0x82, 0xC8, 0xB0, 0xA9, 0x27, 0x37,
+        0xC1, 0x87, 0x67, 0xEF, 0xDD, 0xB5, 0xC8, 0x64,
+        0xD3
+    };
+
+    bigint_from_bytes(&a, a3, 65);
+    bigint_from_bytes(&b, b3, 16);
+    bigint_from_bytes(&r, exp_res3, 81);
+
+    bigint_init(&c, 1);
+    bigint_mul(&a, &b, &c);
+    res = bigint_cmp(&c, &r);
+    if(!res){
+        bigint_print(&c, "c = ");
+        print_passed("bigint_mul_test - random bigint 3 passed");
+    } else{
+        failed = 1;
+        bigint_print(&a, "a = ");
+        bigint_print(&b, "b = ");
+        bigint_print(&c, "c = ");
+        bigint_print(&r, "r = ");
+        print_failed("bigint_mul_test - random bigint 3 failed");
+    }
+
+    bigint_free(&c);
+
+    unsigned char zeros[] = {
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+    };
+
+    bigint_from_bytes(&b, zeros, 8);
+    bigint_init(&c, 1); 
+
+    bigint_mul(&a, &b, &c);
+    res = bigint_cmp_zero(&c);
+
+    if(!res){
+        bigint_print(&c, "c = ");
+        print_passed("bigint_mul_test - random bigint mul zero passed");
+    } else{
+        failed = 1;
+        bigint_print(&a, "a = ");
+        bigint_print(&b, "b = ");
+        bigint_print(&c, "c = ");
+        bigint_print(&r, "r = ");
+        print_failed("bigint_mul_test - random bigint mul zero failed");
+    }
+
+    bigint_free(&c);
+
+    unsigned char a4[] = {
+        0x85, 0x1B, 0xD0, 0x7B, 0xA8, 0x84, 0x8B, 0x78,
+        0x72, 0x66, 0xE4, 0x9E, 0xBF, 0x99, 0x06, 0x2E
+    };
+
+    unsigned char b4[] = { 0x07, 0x83, 0xCF };
+
+    unsigned char exp_res4[] = {
+        0x03, 0xE8, 0x4B, 0x90, 0x8E, 0x76, 0xD8, 0xE6,
+        0xD6, 0x89, 0xBF, 0x68, 0x87, 0x55, 0x97, 0x66,
+        0x27, 0x89, 0x32
+    };
+
+    bigint_from_bytes(&a, a4, 16);
+    bigint_from_bytes(&b, b4, 3);
+    bigint_from_bytes(&r, exp_res4, 19);
+    bigint_init(&c, 1); 
+
+    bigint_mul(&a, &b, &c);
+    res = bigint_cmp(&c, &r);
+
+    if(!res){
+        bigint_print(&c, "c = ");
+        print_passed("bigint_mul_test - random bigint 4 passed");
+    } else{
+        failed = 1;
+        bigint_print(&a, "a = ");
+        bigint_print(&b, "b = ");
+        bigint_print(&c, "c = ");
+        bigint_print(&r, "r = ");
+        print_failed("bigint_mul_test - random bigint 4 failed");
+    }
+
+    bigint_free(&a);
+    bigint_free(&b);
+    bigint_free(&c);
+    bigint_free(&r);
+    return failed;
+}
+
+int bigint_double_test(){
+    int failed = 0;
+    bigint a, c, r;
+
+    unsigned char a1[] = {
+        0xEF, 0xBC, 0xEF, 0xE1, 0x21, 0x2F, 0xC6, 0x7E,
+        0xEA, 0x46, 0x1B, 0x98, 0x96, 0xB9, 0xC1, 0x97
+    };
+
+    unsigned char exp_res[] = {
+        0x01, 0xDF, 0x79, 0xDF, 0xC2, 0x42, 0x5F, 0x8C,
+        0xFD, 0xD4, 0x8C, 0x37, 0x31, 0x2D, 0x73, 0x83,
+        0x2E
+    };
+
+    bigint_init(&a, 1);
+    bigint_init(&c, 1);
+    bigint_init(&r, 1);
+
+    bigint_from_bytes(&a, a1, 16);
+    bigint_from_bytes(&r, exp_res, 17);
+    
+    bigint_double(&a, &c);
+    int res = bigint_cmp(&c, &r);
+    if(!res){
+        bigint_print(&c, "c = ");
+        print_passed("bigint_double_test - random bigint passed");
+    } else{
+        failed = 1;
+        bigint_print(&a, "a = ");
+        bigint_print(&c, "c = ");
+        bigint_print(&r, "r = ");
+        print_failed("bigint_double_test - random bigint failed");
+    }
+
+    bigint_set_zero(&a);
+    bigint_double(&a, &c);
+    res = bigint_cmp_zero(&c);
+
+    if(!res){
+        bigint_print(&c, "c = ");
+        print_passed("bigint_double_test - zero passed");
+    } else{
+        failed = 1;
+        bigint_print(&a, "a = ");
+        bigint_print(&c, "c = ");
+        bigint_print(&r, "r = ");
+        print_failed("bigint_double_test - zero failed");
+    }
+
+    bigint_free(&a);
+    bigint_free(&c);
+    bigint_free(&r);
+
+    return failed;
+}
+
+int bigint_bitwise_op_test(){
+    int failed = 0;
+
+    bigint a,b,c,r;
+    print_msg(YELLOW, "=== bitwise AND test ===");
+    unsigned char a_and1[] = {
+        0x32, 0x45, 0x63, 0x35, 0x97, 0x14, 0xF3, 0x4D,
+        0x6C, 0xBE, 0xEA, 0x00, 0x24, 0x83, 0x70, 0x6E
+    };
+
+    unsigned char b_and1[] = {
+        0x3C, 0x1B, 0xBF, 0x1C, 0xD1, 0xE2, 0x9D, 0x17,
+        0xF6, 0x67, 0x75, 0x23, 0xF7, 0x41, 0x70, 0xE7
+    };
+
+    unsigned char exp_res_and1[] = {
+        0x30, 0x01, 0x23, 0x14, 0x91, 0x00, 0x91, 0x05,
+        0x64, 0x26, 0x60, 0x00, 0x24, 0x01, 0x70, 0x66
+    };
+
+    bigint_init(&a, 1);
+    bigint_init(&b, 1);
+    bigint_init(&c, 1);
+    bigint_init(&r, 1);
+
+    bigint_from_bytes(&a, a_and1, 16);
+    bigint_from_bytes(&b, b_and1, 16);
+    bigint_from_bytes(&r, exp_res_and1, 16);
+
+    bigint_and(&a, &b, &c);
+    int res = bigint_cmp(&c, &r);
+    if(!res){
+        bigint_print(&c, "c = ");
+        print_passed("bigint_and_test - random bigint 4 passed");
+    } else{
+        failed = 1;
+        bigint_print(&a, "a = ");
+        bigint_print(&b, "b = ");
+        bigint_print(&c, "c = ");
+        bigint_print(&r, "r = ");
+        print_failed("bigint_and_test - random bigint 4 failed");
+    }
+
+    bigint_free(&c);
+    
+    unsigned char b_and2[] = {
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    };
+
+    bigint_init(&c, 1);
+    bigint_set_zero(&b);
+    bigint_from_bytes(&b, b_and2, 8);
+    bigint_and(&a, &b, &c);
+    res = bigint_cmp_zero(&c);
+
+    if(!res){
+        bigint_print(&c, "c = ");
+        print_passed("bigint_and_test - random bigint 4 passed");
+    } else{
+        failed = 1;
+        bigint_print(&a, "a = ");
+        bigint_print(&b, "b = ");
+        bigint_print(&c, "c = ");
+        bigint_print(&r, "r = ");
+        print_failed("bigint_and_test - random bigint 4 failed");
+    }
+
+    print_msg(YELLOW, "=== bitwise OR test ===");
+
+    unsigned char a_or1[] = {
+        0x88, 0x19, 0x3A, 0x31, 0x8B, 0xDC, 0xEF, 0x4F,
+        0x45, 0xBF, 0x79, 0xB4, 0xBE, 0x7B, 0x3E, 0x2D
+    };
+
+    unsigned char b_or1[] = {
+        0xCD, 0xC2, 0x82, 0x49, 0xC2, 0xFE, 0xF4, 0xC5,
+        0x6F, 0xE5, 0xD4, 0x4C, 0xD3, 0xB1, 0xB1, 0x15
+    };
+
+    unsigned char exp_res_or1[] = {
+        0xCD, 0xDB, 0xBA, 0x79, 0xCB, 0xFE, 0xFF, 0xCF,
+        0x6F, 0xFF, 0xFD, 0xFC, 0xFF, 0xFB, 0xBF, 0x3D
+    };
+
+    bigint_from_bytes(&a, a_or1, 16);
+    bigint_from_bytes(&b, b_or1, 16);
+    bigint_from_bytes(&r, exp_res_or1, 16);
+    bigint_set_zero(&c);
+    bigint_or(&a, &b, &c);
+    res = bigint_cmp(&c, &r);
+
+    if(res == 0){
+        bigint_print(&c, "c = ");
+        print_passed("bigint_or_test - random bigint 128 bits passed");
+    } else{
+        failed = 1;
+        bigint_print(&a, "a = ");
+        bigint_print(&b, "b = ");
+        bigint_print(&c, "c = ");
+        bigint_print(&r, "r = ");
+        print_failed("bigint_or_test - random bigint 128 bits failed");
+    }
+
+    unsigned char b_or2[] = {
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+    }; 
+    bigint_from_bytes(&b, b_or2, 8);
+    bigint_set_zero(&c);
+    bigint_or(&a, &b, &c);
+    res = bigint_cmp(&c, &a);
+
+    if(res == 0){
+        bigint_print(&c, "c = ");
+        print_passed("bigint_or_test - random bigint OR 0 passed");
+    } else{
+        failed = 1;
+        bigint_print(&a, "a = ");
+        bigint_print(&b, "b = ");
+        bigint_print(&c, "c = ");
+        bigint_print(&r, "r = ");
+        print_failed("bigint_or_test - random bigint OR 0 failed");
+    }
+
+    unsigned char b_or3[] = {
+        0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+        0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF
+    };
+
+    bigint_from_bytes(&b, b_or3, 16);
+    bigint_set_zero(&c);
+    bigint_or(&a, &b, &c);
+    res = bigint_cmp(&c, &b);
+
+    if(res == 0){
+        bigint_print(&c, "c = ");
+        print_passed("bigint_or_test - random bigint OR all 1 passed");
+    } else{
+        failed = 1;
+        bigint_print(&a, "a = ");
+        bigint_print(&b, "b = ");
+        bigint_print(&c, "c = ");
+        bigint_print(&r, "r = ");
+        print_failed("bigint_or_test - random bigint OR all 1 failed");
+    }
+
+    print_msg(YELLOW, "=== bitwise XOR test ===");
+
+    unsigned char a_xor1[] = {
+        0x58, 0x33, 0x33, 0xC9, 0x19, 0xCF, 0xD1, 0x4C,
+        0x9B, 0x35, 0x6D, 0xEC, 0x63, 0x2C, 0x9E, 0xF8
+    };
+
+    unsigned char b_xor1[] = {
+        0x57, 0xC5, 0x02, 0x4A, 0x06, 0x05, 0x62, 0x41,
+        0x8B, 0x8F, 0x09, 0xBA, 0x0B, 0x1B, 0x1C, 0xB6
+    };
+
+    unsigned char exp_res_xor1[] = {
+        0x0F, 0xF6, 0x31, 0x83, 0x1F, 0xCA, 0xB3, 0x0D,
+        0x10, 0xBA, 0x64, 0x56, 0x68, 0x37, 0x82, 0x4E
+    };
+
+    bigint_from_bytes(&a, a_xor1, 16);
+    bigint_from_bytes(&b, b_xor1, 16);
+    bigint_from_bytes(&r, exp_res_xor1, 16);
+    bigint_set_zero(&c);
+    bigint_xor(&a, &b, &c);
+    res = bigint_cmp(&c, &r);
+
+    if(res == 0){
+        bigint_print(&c, "c = ");
+        print_passed("bigint_xor_test - random bigint 128 bits passed");
+    } else{
+        failed = 1;
+        bigint_print(&a, "a = ");
+        bigint_print(&b, "b = ");
+        bigint_print(&c, "c = ");
+        bigint_print(&r, "r = ");
+        print_failed("bigint_xor_test - random bigint 128 bits failed");
+    }
+
+    unsigned char a_xor2[] = {
+        0xEF, 0x84, 0x29, 0x73, 0x75, 0x4A, 0xFD, 0xD0,
+        0x0D, 0xA3, 0x9A, 0x59, 0xB5, 0x51, 0xA8, 0xF0
+    };
+
+    unsigned char b_xor2[] = {
+        0x03, 0xEA, 0xE4, 0x14, 0x10, 0xEB, 0x27, 0xDB,
+        0xFF, 0x10, 0xC8, 0x1A, 0x19, 0x87, 0x68, 0xA3,
+        0x02, 0x7A, 0x40, 0x01, 0xB0, 0xC0, 0xEB, 0xF5,
+        0xBC, 0xE9, 0xD7, 0xA3, 0x86, 0xBE, 0xB1, 0x16,
+        0xBF
+    };
+
+    unsigned char exp_res_xor2[] = {
+        0x03, 0xEA, 0xE4, 0x14, 0x10, 0xEB, 0x27, 0xDB,
+        0xFF, 0x10, 0xC8, 0x1A, 0x19, 0x87, 0x68, 0xA3,
+        0x02, 0x95, 0xC4, 0x28, 0xC3, 0xB5, 0xA1, 0x08,
+        0x6C, 0xE4, 0x74, 0x39, 0xDF, 0x0B, 0xE0, 0xBE,
+        0x4F
+    };
+
+    bigint_from_bytes(&a, a_xor2, 16);
+    bigint_from_bytes(&b, b_xor2, 33);
+    bigint_from_bytes(&r, exp_res_xor2, 33);
+    bigint_set_zero(&c);
+    bigint_xor(&a, &b, &c);
+    res = bigint_cmp(&c, &r);
+
+    if(res == 0){
+        bigint_print(&c, "c = ");
+        print_passed("bigint_xor_test - random bigint passed");
+    } else{
+        failed = 1;
+        bigint_print(&a, "a = ");
+        bigint_print(&b, "b = ");
+        bigint_print(&c, "c = ");
+        bigint_print(&r, "r = ");
+        print_failed("bigint_xor_test - random bigint failed");
+    }
+
+    bigint_free(&a);
+    bigint_free(&b);
+    bigint_free(&c);
+    bigint_free(&r);
+    return failed;
+
 }

@@ -5,7 +5,7 @@
 
 #define NUM_UTIL_TEST 4
 #define NUM_CHAL_TEST 5
-#define NUM_BIGINT_TEST 3
+#define NUM_BIGINT_TEST (sizeof(bigint_test) / sizeof(bigint_test[0]))
 
 util_unit_test util_tests[] = {
     {"hex_to_bytes_conv_test", &hex_to_bytes_conv_test, 1},
@@ -24,17 +24,21 @@ challeng1_test set1_test[] = {
 };
 
 bigint_tests bigint_test[] = {
-    {"bigint test - bigint_expand_test", &bigint_expand_test, 1},
-    {"bigint test - bigint_clamp_test", &bigint_clamp_test, 1},
-    {"bigint test - bigint_left_shift_test", &bigint_left_shift_test, 1},
-    {"bigint test - bigint_set_zero_test", &bigint_set_zero_test, 1},
-    {"bigint test - bigint_from_bytes_test", &bigint_from_to_bytes_test, 1},
-    {"bigint test - bigint_cmp_zero_test", &bigint_cmp_zero_test, 1},
-    {"bigint test - bigint_cmp_test", &bigint_cmp_test, 1},
-    {"bigint test - bigint_inc_test", &bigint_inc_test, 1},
-    {"bigint test - bigint_add_test", &bigint_add_test, 1},
-    {"bigint test - bigint_sub_test", &bigint_sub_test, 1},
-    {"bigint test - bigint_sub_digit_test", &bigint_sub_digit_test, 1}
+    {"bigint_expand_test", &bigint_expand_test, 1},
+    {"bigint_clamp_test", &bigint_clamp_test, 1},
+    {"bigint_left_shift_test", &bigint_left_shift_test, 1},
+    {"bigint_set_zero_test", &bigint_set_zero_test, 1},
+    {"bigint_from_bytes_test", &bigint_from_to_bytes_test, 1},
+    {"bigint_cmp_zero_test", &bigint_cmp_zero_test, 1},
+    {"bigint_cmp_test", &bigint_cmp_test, 1},
+    {"bigint_pad_zero_test", &bigint_pad_zero_test, 1},
+    {"bigint_add_digit_test", &bigint_add_digit_test, 1},
+    {"bigint_add_test", &bigint_add_test, 1},
+    {"bigint_sub_test", &bigint_sub_test, 1},
+    {"bigint_sub_digit_test", &bigint_sub_digit_test, 1},
+    {"bigint_mul_test", &bigint_mul_test, 1},
+    {"bigint_double_test", &bigint_double_test, 1},
+    {"bigint_bitwise_op_test", &bigint_bitwise_op_test, 1},
 };
 
 void run_util_tests(){
@@ -62,6 +66,7 @@ void run_bigint_test(){
     int num_failed = 0;
     for(int i = 0; i < num; i++){
         if(bigint_test[i].enabled){
+            print_msg(YELLOW, bigint_test[i].name);
             num_failed += bigint_test[i].unit_test_fn();
             printf("\n");
         }
@@ -117,7 +122,7 @@ int main(int argc, char *argv[]){
             return 0;
         }
         else if(!strcmp(argv[1], "b")){
-            for(int i = 0; i < NUM_BIGINT_TEST; i++){
+            for(int i = 0; i < (int)NUM_BIGINT_TEST; i++){
                 if(!strcmp(argv[2], bigint_test[i].name)){
                     bigint_test[i].unit_test_fn();
                     printf("\n");
