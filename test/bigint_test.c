@@ -1184,6 +1184,88 @@ int bigint_double_test(){
     return failed;
 }
 
+int bigint_half_test(){
+    int failed = 0;
+
+    bigint a, c, r;
+
+    unsigned char a1[] = {
+        0xDA, 0x81, 0xFF, 0x99, 0x8B, 0x70, 0x29, 0x4F,
+        0xE1, 0x75, 0xA6, 0x55, 0xA9, 0xFA, 0xA1, 0x16
+    };
+
+    unsigned char r1[] = {
+        0x6D, 0x40, 0xFF, 0xCC, 0xC5, 0xB8, 0x14, 0xA7,
+        0xF0, 0xBA, 0xD3, 0x2A, 0xD4, 0xFD, 0x50, 0x8B
+    };
+
+    bigint_init(&a, 1);
+    bigint_init(&c, 1);
+    bigint_init(&r, 1);
+
+    bigint_from_bytes(&a, a1, 16);
+    bigint_from_bytes(&r, r1, 16);
+    
+    bigint_half(&a, &c);
+    int res = bigint_cmp(&r, &c);
+    if(!res){
+        bigint_print(&c, "c = ");
+        print_passed("bigint_half_test - random bigint passed");
+    } else{
+        failed = 1;
+        bigint_print(&a, "a = ");
+        bigint_print(&c, "c = ");
+        bigint_print(&r, "r = ");
+        print_failed("bigint_half_test - random bigint failed");
+    }
+
+    bigint_set_zero(&a);
+    bigint_half(&a, &c);
+    res = bigint_cmp_zero(&c);
+    if(!res){
+        bigint_print(&c, "c = ");
+        print_passed("bigint_half_test - zero passed");
+    } else{
+        failed = 1;
+        bigint_print(&a, "a = ");
+        bigint_print(&c, "c = ");
+        print_failed("bigint_half_test - zero failed");
+    }
+
+    unsigned char a2[] = {
+        0x1F, 0x7E, 0x77, 0x68, 0x2F, 0x15, 0x24, 0x9C,
+        0x9B, 0xD1, 0xD2, 0xED, 0xDE, 0x4C, 0xF4, 0x61
+    };
+
+    unsigned char r2[] = {
+        0x0F, 0xBF, 0x3B, 0xB4, 0x17, 0x8A, 0x92, 0x4E,
+        0x4D, 0xE8, 0xE9, 0x76, 0xEF, 0x26, 0x7A, 0x30
+    };
+
+    bigint_from_bytes(&a, a2, 16);
+    bigint_from_bytes(&r, r2, 16);
+
+    bigint_set_zero(&c);
+    bigint_half(&a, &c);
+    res = bigint_cmp(&c, &r);
+    if(!res){
+        bigint_print(&c, "c = ");
+        print_passed("bigint_half_test - odd number passed");
+    } else{
+        failed = 1;
+        bigint_print(&a, "a = ");
+        bigint_print(&c, "c = ");
+        bigint_print(&r, "r = ");
+        print_failed("bigint_half_test - odd number failed");
+    }
+
+    bigint_free(&a);
+    bigint_free(&c);
+    bigint_free(&r);
+
+    return failed;
+}
+
 int bigint_bitwise_op_test(){
     int failed = 0;
 

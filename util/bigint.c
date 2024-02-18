@@ -247,18 +247,48 @@ bigint_err bigint_left_shift(bigint *a){
 
 }
 
+bigint_err bigint_left_shift_digits(bigint *a, unsigned int b){
+    if(!a) return BIGINT_ERROR_NULLPTR;
+
+    if( (a->MSD + 1 + b) > a->num_of_digit){
+        CHECK_OKAY(bigint_expand(a, (a->MSD + 1 + b)));
+    }
+
+    for(unsigned int i = 0; i < b; i++){
+        CHECK_OKAY(bigint_left_shift(a));
+    }
+
+    return BIGINT_OKAY;
+}
+
 bigint_err bigint_right_shift(bigint *a){
     if(!a) return BIGINT_ERROR_NULLPTR;
 
-    digit tmp = 0;
-    for(int i = 0; i < a->MSD; i++){
+    unsigned int i = 0;
+
+    for(; i < a->MSD; i++){
         a->digits[i] = a->digits[i + 1];
     }
-    a->digits[a->MSD] = 0;
+    a->digits[i] = 0;
     a->MSD--;
 
     return BIGINT_OKAY;    
 
+}
+
+bigint_err bigint_right_shift_digits(bigint *a, unsigned int b){
+    if(!a) return BIGINT_ERROR_NULLPTR;
+
+    for(unsigned int i = 0; i < b; i++){
+        CHECK_OKAY(bigint_right_shift(a));
+    }
+
+    // conditionally set a.MSD to 0 if b is greater than a.MSD -> might be a better solution 
+    // to incorporate directly into bigint_right_shift 
+    a->MSD &= ~( -(b > a->MSD));
+
+    return BIGINT_OKAY;
+    
 }
 
 bigint_err bigint_print(const bigint *b, char *str){
@@ -581,6 +611,55 @@ bigint_err bigint_double(const bigint *a, bigint *c){
     } else {
         c->MSD = i - 1;
     }
+
+    return BIGINT_OKAY;
+}
+
+bigint_err bigint_mul_base(const bigint *a, bigint *c){
+    CHECK_OKAY(bigint_copy(a, c));
+    bigint_left_shift(c);
+
+    return BIGINT_OKAY;
+}
+
+bigint_err bigint_mul_base_b(const bigint *a, bigint *c, unsigned int b){
+    CHECK_OKAY(bigint_copy(a, c));
+    bigint_left_shift_digits(c, b);
+
+    return BIGINT_OKAY;
+}
+
+bigint_err bigint_half(const bigint *a, bigint *c){
+    if(!a || !c) return BIGINT_ERROR_NULLPTR;
+
+    if(c->num_of_digit < a->MSD + 1){
+        CHECK_OKAY(bigint_expand(c, a->MSD + 1));
+    }
+
+    int tmp_lsb = 0;
+    unsigned int i = 0;
+    for(; i < a->MSD; i++){
+        // extracting the LSB of the digit and it will become the MSD of the previous digit
+        tmp_lsb = a->digits[i + 1] & 1;
+        c->digits[i] = (a->digits[i] >> 1) | (tmp_lsb << ((sizeof(digit) * 8) - 1));
+    }
+
+    c->digits[i] = (a->digits[i] >> 1);
+    c->MSD = i;
+
+    return BIGINT_OKAY;
+}
+
+bigint_err bigint_div_base(const bigint *a, bigint *c){
+    CHECK_OKAY(bigint_copy(a, c));
+    bigint_right_shift(c);
+
+    return BIGINT_OKAY;
+}
+
+bigint_err bigint_div_base_b(const bigint *a, bigint *c, unsigned int b){
+    CHECK_OKAY(bigint_copy(a, c));
+    bigint_right_shift_digits(c, b);
 
     return BIGINT_OKAY;
 }

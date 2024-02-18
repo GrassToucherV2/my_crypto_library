@@ -39,6 +39,7 @@ bigint_tests bigint_test[] = {
     {"bigint_sub_digit_test", &bigint_sub_digit_test, 1},
     {"bigint_mul_test", &bigint_mul_test, 1},
     {"bigint_double_test", &bigint_double_test, 1},
+    {"bigint_half_test", &bigint_half_test, 1},
     {"bigint_bitwise_op_test", &bigint_bitwise_op_test, 1},
 };
 
@@ -82,6 +83,7 @@ int main(int argc, char *argv[]){
         printf("Running all tests\n\n");
         run_util_tests();
         run_challenge_test();
+        run_bigint_test();
     } else if(argc == 2){
         if(!strcmp(argv[1], "u")){
             printf("Running util tests\n\n");

@@ -24,11 +24,13 @@ def perform_operation(num1, num2, op):
         return num1 * num2
     elif op == "dou":
         return num1 * 2
+    elif op == "half":
+        return num1 >> 1
     elif op == "div":
         if num2 == 0:
             return "ERORR, num2 = 0"
         else: 
-            return num1 / num2
+            return num1 // num2  # // => integer division 
     elif op == "mod":
         if num2 == 0:
             return "ERORR, num2 = 0"
@@ -46,7 +48,7 @@ def perform_operation(num1, num2, op):
 if __name__ == "__main__":
     bits1 = 0
     bits2 = 0
-    op = ""
+    op = "add"
     random_number1 = 0
     random_number2 = 0
 

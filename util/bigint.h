@@ -71,9 +71,19 @@ bigint_err bigint_from_bytes(bigint *a, const unsigned char *str, unsigned int l
 bigint_err bigint_to_bytes(const bigint *a, unsigned char *output, 
                             unsigned int len, int ignore_leading_zero);
 
-/* These functions shift the given bigint by one digit to the left or right */
+/* 
+    These functions shift the given bigint by one digit to the left or right 
+    This is equivalent to multiplying or dividing by the base (2^32 for this library) 
+*/
 bigint_err bigint_left_shift(bigint *a);
 bigint_err bigint_right_shift(bigint *a);
+
+/* 
+    These functions shift the given bigint by b digits 
+    This is equivalent to multiplying or dividing by the base^b    
+*/
+bigint_err bigint_left_shift_digits(bigint *a, unsigned int b);
+bigint_err bigint_right_shift_digits(bigint *a, unsigned int b);
 
 /* This function compares the given bigint to 0, returns 0 if the given bigint = 0 
     and 1 otherwise */
@@ -88,8 +98,6 @@ bigint_err bigint_pad_zero(bigint *a, unsigned int msd);
 //////////////////////////////////////////////////////////////////////////////////////////////
 
 /* bigint arithmetic */
-// a += 1 ---> will probably be removed, since bigint_add_digit is a better alternative
-bigint_err bigint_inc(bigint *a);
 
 /* c = a + b, may results in leading zeros in c */
 bigint_err bigint_add(const bigint *a, const bigint *b, bigint *c);
@@ -105,11 +113,30 @@ bigint_err bigint_mul(const bigint *a, const bigint *b, bigint *c);
 bigint_err bigint_mul_digit(const bigint *a, digit b, bigint *c);
 /* c = a * 2 */
 bigint_err bigint_double(const bigint *a, bigint *c);
+/* Multiply the given bigint by the base - wrapper for bigint_right_shift */
+bigint_err bigint_mul_base(const bigint *a, bigint *c);
+/* Multiply the given bigint by the base^b - wrapper for bigint_right_shift_digits */
+bigint_err bigint_mul_base_b(const bigint *a, bigint *c, unsigned int b);
 
 /* c = |a / b| */
 bigint_err bigint_div(const bigint *a, const bigint *b, bigint *c);
+bigint_err bigint_div_digit(const bigint *a, digit b, bigint *c);
+/* c = a / 2 */
+bigint_err bigint_half(const bigint *a, bigint *c);
+/* Divide the given bigint by the base - wrapper for bigint_left_shift */
+bigint_err bigint_div_base(const bigint *a, bigint *c);
+/* Divide the given bigint by the base^b - wrapper for bigint_right_shift_digits */
+bigint_err bigint_div_base_b(const bigint *a, bigint *c, unsigned int b);
 
 /////////////////////////////////////////////////////////////////////////////////////////
+
+/* bigint number theory stuff */
+
+
+
+
+/////////////////////////////////////////////////////////////////////////////////////////
+
 
 /* bigint bitwise operation */
 /* c = a & b */
