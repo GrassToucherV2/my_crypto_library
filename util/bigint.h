@@ -111,22 +111,31 @@ bigint_err bigint_sub_digit(const bigint *a, digit b, bigint *c);
 /* c = |a * b| */
 bigint_err bigint_mul(const bigint *a, const bigint *b, bigint *c);
 bigint_err bigint_mul_digit(const bigint *a, digit b, bigint *c);
-/* c = a * 2 */
+/* c = a * 2 - wrapper for bigint_left_bit_shift  */
 bigint_err bigint_double(const bigint *a, bigint *c);
 /* Multiply the given bigint by the base - wrapper for bigint_right_shift */
 bigint_err bigint_mul_base(const bigint *a, bigint *c);
 /* Multiply the given bigint by the base^b - wrapper for bigint_right_shift_digits */
 bigint_err bigint_mul_base_b(const bigint *a, bigint *c, unsigned int b);
+/* Multiply the given bigint by 2^b */
+bigint_err bigint_mul_pow_2(const bigint *a, unsigned int b, bigint *c);
 
 /* c = |a / b| */
 bigint_err bigint_div(const bigint *a, const bigint *b, bigint *c);
 bigint_err bigint_div_digit(const bigint *a, digit b, bigint *c);
-/* c = a / 2 */
+/* c = a / 2 - wrapper for bigint_right_bit_shift */
 bigint_err bigint_half(const bigint *a, bigint *c);
 /* Divide the given bigint by the base - wrapper for bigint_left_shift */
 bigint_err bigint_div_base(const bigint *a, bigint *c);
 /* Divide the given bigint by the base^b - wrapper for bigint_right_shift_digits */
 bigint_err bigint_div_base_b(const bigint *a, bigint *c, unsigned int b);
+/* Divide the given bigint by 2^b */
+bigint_err bigint_div_pow_2(const bigint *a, unsigned int b, bigint *c);
+
+/* c = a % b */
+bigint_err bigint_mod(const bigint *a, const bigint *b, bigint *c);
+
+bigint_err bigint_mod_pow_2(const bigint *a, unsigned int b, bigint *c);
 
 /////////////////////////////////////////////////////////////////////////////////////////
 
@@ -139,6 +148,10 @@ bigint_err bigint_div_base_b(const bigint *a, bigint *c, unsigned int b);
 
 
 /* bigint bitwise operation */
+/* c = a >> 1 */
+bigint_err bigint_right_bit_shift(const bigint *a, bigint *c);
+/* c = a << 1 */
+bigint_err bigint_left_bit_shift(const bigint *a, bigint *c);
 /* c = a & b */
 bigint_err bigint_and(const bigint *a, const bigint *b, bigint *c);
 /* c = a | b */

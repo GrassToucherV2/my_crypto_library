@@ -41,6 +41,9 @@ bigint_tests bigint_test[] = {
     {"bigint_double_test", &bigint_double_test, 1},
     {"bigint_half_test", &bigint_half_test, 1},
     {"bigint_bitwise_op_test", &bigint_bitwise_op_test, 1},
+    {"bigint_div_base_test", &bigint_div_base_test, 1},
+    {"bigint_mul_base_test", &bigint_mul_base_test, 1},
+    {"bigint_mul_pow_2_test", &bigint_mul_pow_2_test, 1},
 };
 
 void run_util_tests(){

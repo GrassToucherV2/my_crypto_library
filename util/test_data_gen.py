@@ -44,6 +44,10 @@ def perform_operation(num1, num2, op):
         return num1 ^ num2
     elif op == "not":
         return ~num1
+    elif op == "lshift":
+        return num1 << num2
+    elif op == "rshift":
+        return num1 >> num2
 
 if __name__ == "__main__":
     bits1 = 0
@@ -67,6 +71,10 @@ if __name__ == "__main__":
         while random_number1 < random_number2:
             random_number1 = generate_random_numbers(bits1)
             random_number2 = generate_random_numbers(bits2)
+    
+    if op == "lshift" or op == "rshift":
+        random_number1 = generate_random_numbers(bits1)
+        random_number2 = bits2
 
     print("Random Number 1:")
     print_hex_format(random_number1)
