@@ -1724,31 +1724,32 @@ int bigint_mul_pow_2_test(){
     }
 
     unsigned char a2[] = {
-        0x1A, 0x40, 0x40, 0x4C, 0x73, 0xAE, 0x15, 0xB9,
-        0x85, 0x3E, 0xB7, 0x13, 0xED, 0x25, 0x71, 0x64
+        0x1C, 0x41, 0x33, 0x0A, 0x14, 0x6A, 0xBC, 0x70,
+        0x71, 0x3A, 0x1D, 0x1F, 0xF4, 0xEF, 0x96, 0x14
     };
 
     unsigned char r2[] = {
-        0x01, 0xA4, 0x04, 0x04, 0xC7, 0x3A, 0xE1, 0x5B,
-        0x98, 0x53, 0xEB, 0x71, 0x3E, 0xD2, 0x57, 0x16,
-        0x40, 0x00, 0x00, 0x00
+        0x01, 0xC4, 0x13, 0x30, 0xA1, 0x46, 0xAB, 0xC7,
+        0x07, 0x13, 0xA1, 0xD1, 0xFF, 0x4E, 0xF9, 0x61,
+        0x40, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00
     };
 
     bigint_from_bytes(&a, a2, 16);
-    bigint_from_bytes(&r, r2, 20);
+    bigint_from_bytes(&r, r2, 25);
 
     bigint_set_zero(&c);
-    bigint_mul_pow_2(&a, 28, &c);
+    bigint_mul_pow_2(&a, 68, &c);
     res = bigint_cmp(&c, &r);
     if(res == 0){
         bigint_print(&c, "c = ");
-        print_passed("bigint_mul_base_test - multiply by 2^28 passed");
+        print_passed("bigint_mul_base_test - multiply by 2^68 passed");
     } else{
         failed = 1;
         bigint_print(&a, "a = ");
         bigint_print(&c, "c = ");
         bigint_print(&r, "r = ");
-        print_failed("bigint_mul_base_test - multiply by 2^28 failed");
+        print_failed("bigint_mul_base_test - multiply by 2^68 failed");
     }
 
     bigint_from_small_int(&a, 1);
@@ -1757,20 +1758,151 @@ int bigint_mul_pow_2_test(){
     res = bigint_cmp(&c, &r);
     if(res == 0){
         bigint_print(&c, "c = ");
-        print_passed("bigint_mul_base_test - multiply by 2^28 passed");
+        print_passed("bigint_mul_base_test - multiply by 2^2 passed");
     } else{
         failed = 1;
         bigint_print(&a, "a = ");
         bigint_print(&c, "c = ");
         bigint_print(&r, "r = ");
-        print_failed("bigint_mul_base_test - multiply by 2^28 failed");
+        print_failed("bigint_mul_base_test - multiply by 2^2 failed");
     }
-
-
 
     bigint_free(&a);
     bigint_free(&c);
     bigint_free(&r);
 
+    return failed;
+}
+
+int bigint_div_pow_2_test(){
+    int failed = 0;
+    bigint a, c, r;
+    int res = 0;
+
+    unsigned char a1[] = {
+        0xDD, 0x68, 0xA1, 0x80, 0x9A, 0x03, 0xFE, 0xA1,
+        0xF5, 0x8B, 0x2B, 0x9D, 0xB1, 0x5E, 0x24, 0xB6
+    };
+
+    unsigned char r1[] = {
+        0x0D, 0xD6, 0x8A, 0x18, 0x09, 0xA0, 0x3F, 0xEA,
+        0x1F, 0x58, 0xB2, 0xB9, 0xDB 
+    };
+
+    bigint_init(&a, 1);
+    bigint_init(&c, 1);
+    bigint_init(&r, 1);
+
+    bigint_from_bytes(&a, a1, 16);
+    bigint_from_bytes(&r, r1, 13);
+
+    bigint_div_pow_2(&a, 28, &c);
+    res = bigint_cmp(&c, &r);
+    if(res == 0){
+        bigint_print(&c, "c = ");
+        print_passed("bigint_mul_base_test - divide by 2^28 passed");
+    } else{
+        failed = 1;
+        bigint_print(&a, "a = ");
+        bigint_print(&c, "c = ");
+        bigint_print(&r, "r = ");
+        print_failed("bigint_mul_base_test - divide by 2^28 failed");
+    }
+
+    unsigned char a2[] = {
+        0xDC, 0xAE, 0x9E, 0xEA, 0x8E, 0xCE, 0x7D, 0xC5,
+        0xE1, 0xAC, 0x61, 0x2B, 0x5D, 0xB1, 0x8F, 0x12
+    };
+
+    unsigned char r2[] = {
+        0xDC, 0xAE, 0x9E, 0xEA, 0x8E, 0xCE, 0x7D, 0xC5,
+        0xE1, 0xAC, 0x61, 0x2B
+    };
+
+    bigint_from_bytes(&a, a2, 16);
+    bigint_from_bytes(&r, r2, 12);
+
+    bigint_div_pow_2(&a, 32, &c);
+    res = bigint_cmp(&c, &r);
+    if(res == 0){
+        bigint_print(&c, "c = ");
+        print_passed("bigint_mul_base_test - divide by 2^32 passed");
+    } else{
+        failed = 1;
+        bigint_print(&a, "a = ");
+        bigint_print(&c, "c = ");
+        bigint_print(&r, "r = ");
+        print_failed("bigint_mul_base_test - divide by 2^32 failed");
+    }
+
+    unsigned char a3[] = {
+        0x05, 0xAF, 0x65, 0xFB, 0xFE, 0xF0, 0x9D, 0x0F,
+        0xC6, 0x24, 0xF2, 0x8A, 0x94, 0x3C, 0xFA, 0xA5,
+        0xFB, 0x80
+    };
+
+    unsigned char r3[] = {
+        0xB5
+    };
+
+    bigint_from_bytes(&a, a3, 18);
+    bigint_from_bytes(&r, r3, 1);
+
+    bigint_div_pow_2(&a, 131, &c);
+    res = bigint_cmp(&c, &r);
+    if(res == 0){
+        bigint_print(&c, "c = ");
+        print_passed("bigint_mul_base_test - divide by 2^131 passed");
+    } else{
+        failed = 1;
+        bigint_print(&a, "a = ");
+        bigint_print(&c, "c = ");
+        bigint_print(&r, "r = ");
+        print_failed("bigint_mul_base_test - divide by 2^131 failed");
+    }
+    
+    bigint_free(&a);
+    bigint_free(&c);
+    bigint_free(&r);
+    return failed;
+}
+
+int bigint_mod_pow_2_test(){
+    int failed = 0;
+    bigint a, c, r;
+    int res = 0;
+
+    unsigned char a1[] = {
+        0x43, 0x4F, 0x09, 0x01, 0x72, 0x5C, 0x98, 0xFA,
+        0x4E, 0x38, 0x4B, 0x9A, 0xC9, 0xAC, 0x2D, 0xF5
+    };
+
+    unsigned char r1[] = {
+        0x09, 0xAC, 0x2D, 0xF5
+    };
+
+    bigint_init(&a, 1);
+    bigint_init(&c, 1);
+    bigint_init(&r, 1);
+
+    bigint_from_bytes(&a, a1, 16);
+    bigint_from_bytes(&r, r1, 4);
+
+    bigint_mod_pow_2(&a, 28, &c);
+    res = bigint_cmp(&c, &r);
+    if(res == 0){
+        bigint_print(&c, "c = ");
+        print_passed("bigint_mul_base_test - divide by 2^131 passed");
+    } else{
+        failed = 1;
+        bigint_print(&a, "a = ");
+        bigint_print(&c, "c = ");
+        bigint_print(&r, "r = ");
+        print_failed("bigint_mul_base_test - divide by 2^131 failed");
+    }
+
+    bigint_free(&a);
+    bigint_free(&c);
+    bigint_free(&r);
     return failed;
 }

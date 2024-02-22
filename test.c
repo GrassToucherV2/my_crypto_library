@@ -14,7 +14,30 @@ void printBinary(int number) {
 
 
 int main(){
+    uint64_t a_digit = 12; 
+    uint64_t b_digit = 23;
+    int amsd = 10;
+    int bmsd = 6;
+    int max_asd = 10;
+    int i = 8;
+    if(i <= amsd){
+        a_digit = 12;
+    } else {
+        a_digit = 0;
+    }
 
+    printf("1. a_digit = %ld\n", a_digit);
+    a_digit &= ~( -(i > amsd) );
+    printf("1. a_digit = %ld\n", a_digit);
+    amsd = 0;
+    if(i <= amsd){
+        a_digit = 12;
+    } else {
+        a_digit = 0;
+    }
+    printf("2. a_digit = %lu\n", a_digit);
+    a_digit &= ~( -(i > amsd) );
+    printf("2. a_digit = %lu\n", a_digit);
     // int r = -1;
     // int a = r >> (sizeof(int) * 8 - 1) & 1;
     // printf("a = %d\n", a);

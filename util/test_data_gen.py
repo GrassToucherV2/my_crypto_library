@@ -48,6 +48,12 @@ def perform_operation(num1, num2, op):
         return num1 << num2
     elif op == "rshift":
         return num1 >> num2
+    elif op == "mul_pow_2":
+        return num1 * (2 ** num2)
+    elif op == "div_pow_2":
+        return num1 // (2 ** num2)
+    elif op == "mod_pow_2":
+        return num1 % (2 ** num2)
 
 if __name__ == "__main__":
     bits1 = 0
@@ -73,6 +79,10 @@ if __name__ == "__main__":
             random_number2 = generate_random_numbers(bits2)
     
     if op == "lshift" or op == "rshift":
+        random_number1 = generate_random_numbers(bits1)
+        random_number2 = bits2
+    
+    if op == "mul_pow_2" or op == "div_pow_2" or op == "mod_pow_2":
         random_number1 = generate_random_numbers(bits1)
         random_number2 = bits2
 

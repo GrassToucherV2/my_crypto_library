@@ -143,9 +143,47 @@ int bigint_cmp_zero(const bigint *a){
     return (-b >> (sizeof(digit) * 8)) & 1 ; 
 }
 
+// this is another comparison function I came up for Mozilla
+// NSS mpi library, possibly a better solution
+
+// int bigint_cmp(const bigint *a, const bigint *b) {
+//     if (!a || !b) return BIGINT_ERROR_NULLPTR;
+
+//     unsigned int max_msd = 0;
+//     // Ensure temporary bigints are padded to the same size, omitted for brevity...
+//     if(a->MSD > b->MSD){
+//         max_msd = a->MSD;
+//     } else {
+//         max_msd = b->MSD;
+//     }
+    
+//     int a_lt_b = 0; // Assume a == b initially.
+//     int a_gt_b = 0;
+//     uint64_t a_digit, b_digit; 
+//     for (int i = max_msd; i >= 0; i--) {
+//         a_digit = (i <= a->MSD) ? a->digits[i] : 0;
+//         b_digit = (i <= b->MSD) ? b->digits[i] : 0;
+
+//         // Use bitwise logic to set flags based on comparison.
+//         // These operations are constant-time.
+//         int diff_is_neg = ((a_digit - b_digit) >> 63) & 1;
+//         int diff_is_pos = ((b_digit - a_digit) >> 63) & 1;
+
+//         // Update flags if this is the first non-zero difference we've encountered.
+//         a_lt_b |= (diff_is_neg & ~(a_lt_b | a_gt_b));
+//         a_gt_b |= (diff_is_pos & ~(a_lt_b | a_gt_b));
+//     }
+
+//     int a_lt_b_mask = -a_lt_b;
+//     int a_gt_b_mask = -a_gt_b;
+
+//     int res = 0;
+//     res ^= a_lt_b_mask & (res ^ -1);
+//     res ^= a_gt_b_mask & (res ^ 1);
+//     return res;
+// }
 /* 
-   not truly constant-time, perhaps should pad a and b to
-   same length before comparing 
+   Aims to compare two bigints in constant-time
 */
 int bigint_cmp(const bigint *a, const bigint *b){
     if(!a || !b) return BIGINT_ERROR_NULLPTR;
@@ -161,7 +199,7 @@ int bigint_cmp(const bigint *a, const bigint *b){
     bigint_copy(a, &tmp_a);
     bigint_copy(b, &tmp_b);
     
-    // is this part constant-time ???
+    // This part may not be constant time
     if(msd_a > msd_b){
         max_msd = msd_a;
         CHECK_OKAY(bigint_pad_zero(&tmp_b, max_msd)); // this fixes valgrind errors, but im not sure if i like it 
@@ -185,7 +223,7 @@ int bigint_cmp(const bigint *a, const bigint *b){
         During subtraction process, if c1 > 0 appeared before first c1 < 0, then a_lt_b_mask
         should remain 0
     */
-   int positive_c1_seen = 0;
+   int positive_c1_seen_flag = 0;
    int a_lt_b_flag = 0;
     for(int i = max_msd; i >= 0; i--){
         c |= tmp_a.digits[i] ^ tmp_b.digits[i];
@@ -193,15 +231,19 @@ int bigint_cmp(const bigint *a, const bigint *b){
         c1_sign = (c1 >> (8 * sizeof(int64_t) - 1)) & 1;
         
         // set positive_c1_seen flag if we have seen a positive c1
-        if(!c1_sign){
-            positive_c1_seen = 1;
-        }
+        // if(!c1_sign){
+        //     positive_c1_seen_flag = 1;
+        // }
+        // 
+        positive_c1_seen_flag |= (~c1_sign & 1);
 
         // update a_lt_b_flag to indicate a < b, 
         // only if we haven't seen a positive c1 and we got a negative c1
-        if (c1_sign && !positive_c1_seen) {
-            a_lt_b_flag = 1;
-        }
+        // if (c1_sign && !positive_c1_seen_flag) {
+        //     a_lt_b_flag = 1;
+        // }
+        a_lt_b_flag |= (c1_sign && !positive_c1_seen_flag);
+        
     }
 
     bigint_free(&tmp_a);
@@ -292,6 +334,33 @@ bigint_err bigint_left_shift_digits(bigint *a, unsigned int b){
     return BIGINT_OKAY;
 }
 
+// This function assumes b <= 32, otherwise it returns an error
+bigint_err bigint_left_shift_bits(bigint *a, unsigned int b){
+    if(!a) return BIGINT_ERROR_NULLPTR;
+    if(b >= DIGIT_BIT)  return BIGINT_ERROR_SHIFTING;
+
+    if(a->num_of_digit < a->MSD + 2){
+        CHECK_OKAY(bigint_expand(a, a->MSD + 2));
+    }
+
+    digit carry = 0;
+    digit current_digit = 0;
+    for(unsigned int i = 0; i <= a->MSD; ++i){
+        // Store the current digit, basically same logic as left shift by 1 bit 
+        // promote "num_bits_to_shift" bits to the next digit
+        current_digit = a->digits[i];
+        a->digits[i] = (current_digit << b) | carry;
+        carry = current_digit >> ((sizeof(digit) * 8) - b);
+    }
+
+    if(carry){
+        a->digits[a->MSD + 1] = carry;
+        a->MSD++;
+    }
+
+    return BIGINT_OKAY;
+}
+
 bigint_err bigint_right_bit_shift(const bigint *a, bigint *c){
     if(!a || !c) return BIGINT_ERROR_NULLPTR;
 
@@ -341,12 +410,38 @@ bigint_err bigint_right_shift_digits(bigint *a, unsigned int b){
         CHECK_OKAY(bigint_right_shift(a));
     }
 
-    // conditionally set a.MSD to 0 if b is greater than a.MSD -> might be a better solution 
-    // to incorporate directly into bigint_right_shift 
+    // conditionally set a.MSD to 0 if b is greater than a.MSD. Note that this method
+    // is dependent on a->MSD's initial value
+    // There might be a better solution 
+    // to incorporate this check directly into bigint_right_shift 
     a->MSD &= ~( -(b > a->MSD + 1));
 
     return BIGINT_OKAY;
     
+}
+
+bigint_err bigint_right_shift_bits(bigint *a, unsigned int b){
+    if(!a) return BIGINT_ERROR_NULLPTR;
+    if(b >= DIGIT_BIT)  return BIGINT_ERROR_SHIFTING;
+
+    if(a->num_of_digit < a->MSD + 1){
+        CHECK_OKAY(bigint_expand(a, a->MSD + 1));
+    }
+
+    int tmp_lsb = 0;
+    unsigned int i = 0;
+    unsigned int mask = (1 << b) - 1; 
+    for(; i < a->MSD; i++){
+        // extracting the b LSB of the digit and it will become the b MSD of the previous digit
+        tmp_lsb = a->digits[i + 1] & mask;
+        a->digits[i] = (a->digits[i] >> b) | (tmp_lsb << ((sizeof(digit) * 8) - b));
+    }
+
+    a->digits[i] = (a->digits[i] >> b);
+    a->MSD = i;
+
+    return BIGINT_OKAY;
+
 }
 
 bigint_err bigint_print(const bigint *b, char *str){
@@ -653,7 +748,7 @@ bigint_err bigint_double(const bigint *a, bigint *c){
 
 bigint_err bigint_mul_base(const bigint *a, bigint *c){
     CHECK_OKAY(bigint_copy(a, c));
-    bigint_left_shift(c);
+    CHECK_OKAY(bigint_left_shift(c));
 
     return BIGINT_OKAY;
 }
@@ -665,29 +760,25 @@ bigint_err bigint_mul_base_b(const bigint *a, bigint *c, unsigned int b){
     return BIGINT_OKAY;
 }
 
+/* This function is constant-time, more work needed */
 bigint_err bigint_mul_pow_2(const bigint *a, unsigned int b, bigint *c){
     if(!a || !c) return BIGINT_ERROR_NULLPTR;
-    
-    // b is the number of bits -> dividing by 2^2 is equivalent to right shifting by 2 bits
-    int num_digit_to_shift = b / (sizeof(digit) * 8);
-    int num_bits_to_shift = b % (sizeof(digit) * 8);
-    printf("num_digits = %d; num_bits = %d\n", num_digit_to_shift, num_bits_to_shift);
-    unsigned int required_digits = a->MSD + 1 + num_digit_to_shift + 1;
-    unsigned int i = 0;
 
-    if(c->num_of_digit < required_digits){
+    unsigned int num_digit_to_shift = b / (sizeof(digit) * 8);
+    unsigned int num_bits_to_shift = b % (sizeof(digit) * 8);
+    unsigned int required_digits = a->MSD + 1 + num_digit_to_shift + 1;
+
+    if(a->num_of_digit < required_digits){
         CHECK_OKAY(bigint_expand(c, required_digits));
     }
-
-    CHECK_OKAY(bigint_mul_base_b(a, c, num_digit_to_shift));
-    for(int i = 0; i < num_bits_to_shift; i++){
-        printf("called here\n");
-        CHECK_OKAY(bigint_double(a, c));
-    }    
+    CHECK_OKAY(bigint_copy(a, c));
+    if(num_digit_to_shift)
+        CHECK_OKAY(bigint_left_shift_digits(c, num_digit_to_shift));
+    if(num_bits_to_shift)
+        CHECK_OKAY(bigint_left_shift_bits(c, num_bits_to_shift));
 
     bigint_clamp(c);
     return BIGINT_OKAY;
-
 }
 
 bigint_err bigint_half(const bigint *a, bigint *c){
@@ -707,6 +798,54 @@ bigint_err bigint_div_base_b(const bigint *a, bigint *c, unsigned int b){
     CHECK_OKAY(bigint_copy(a, c));
     bigint_right_shift_digits(c, b);
 
+    return BIGINT_OKAY;
+}
+
+bigint_err bigint_div_pow_2(const bigint *a, unsigned int b, bigint *c){
+    if(!a || !c) return BIGINT_ERROR_NULLPTR;
+
+    unsigned int num_digit_to_shift = b / (sizeof(digit) * 8);
+    unsigned int num_bits_to_shift = b % (sizeof(digit) * 8);
+    unsigned int required_digits = a->MSD + 1;
+
+    if(a->num_of_digit < required_digits){
+        CHECK_OKAY(bigint_expand(c, required_digits));
+    }
+    CHECK_OKAY(bigint_copy(a, c));
+    if(num_digit_to_shift)
+        CHECK_OKAY(bigint_right_shift_digits(c, num_digit_to_shift));
+    if(num_bits_to_shift)
+        CHECK_OKAY(bigint_right_shift_bits(c, num_bits_to_shift));
+
+    bigint_clamp(c);
+    return BIGINT_OKAY;
+}
+
+/*
+    this is essentially bitwise AND with 2^b - 1
+*/
+bigint_err bigint_mod_pow_2(const bigint *a, unsigned int b, bigint *c){
+    if(!a || !c) return BIGINT_ERROR_NULLPTR;
+
+    unsigned int num_whole_digits = b / (sizeof(digit) * 8);
+    unsigned int num_bits_in_last_digit = b % (sizeof(digit) * 8);
+    unsigned int required_digits = num_whole_digits + 1;
+    unsigned int i;
+
+    if(c->num_of_digit < num_whole_digits){
+        CHECK_OKAY(bigint_expand(c, required_digits));
+    }
+
+    for(i = 0; i < num_whole_digits; i++){
+        c->digits[i] = a->digits[i];
+    }
+
+    if(num_bits_in_last_digit){
+        digit mask = (1UL << num_bits_in_last_digit) - 1;
+        c->digits[num_whole_digits] = a->digits[num_whole_digits] & mask;
+    }
+
+    c->MSD = num_whole_digits; 
     return BIGINT_OKAY;
 }
 
@@ -785,7 +924,7 @@ bigint_err bigint_or(const bigint *a, const bigint *b, bigint *c){
             c->digits[i] = bigger.digits[i];  
         }
     }
-    
+
     c->MSD = bigger.MSD;
     bigint_free(&bigger);
     bigint_free(&smaller);
@@ -825,6 +964,7 @@ bigint_err bigint_xor(const bigint *a, const bigint *b, bigint *c){
             c->digits[i] = bigger.digits[i] ^ 0;  
         }
     }
+    
     c->MSD = bigger.MSD;
     bigint_free(&bigger);
     bigint_free(&smaller);

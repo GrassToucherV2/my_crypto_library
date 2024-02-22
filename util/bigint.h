@@ -32,6 +32,7 @@ typedef enum {
     BIGINT_ERROR_SET_ZERO, 
     BIGINT_ERROR_INSUFFICIENT_BUF,
     BIGINT_ERROR_GENERIC,
+    BIGINT_ERROR_SHIFTING,
 
 } bigint_err;
 
@@ -70,20 +71,6 @@ bigint_err bigint_from_bytes(bigint *a, const unsigned char *str, unsigned int l
 /* This function converts a bigint to a byte array */
 bigint_err bigint_to_bytes(const bigint *a, unsigned char *output, 
                             unsigned int len, int ignore_leading_zero);
-
-/* 
-    These functions shift the given bigint by one digit to the left or right 
-    This is equivalent to multiplying or dividing by the base (2^32 for this library) 
-*/
-bigint_err bigint_left_shift(bigint *a);
-bigint_err bigint_right_shift(bigint *a);
-
-/* 
-    These functions shift the given bigint by b digits 
-    This is equivalent to multiplying or dividing by the base^b    
-*/
-bigint_err bigint_left_shift_digits(bigint *a, unsigned int b);
-bigint_err bigint_right_shift_digits(bigint *a, unsigned int b);
 
 /* This function compares the given bigint to 0, returns 0 if the given bigint = 0 
     and 1 otherwise */
@@ -160,5 +147,28 @@ bigint_err bigint_or(const bigint *a, const bigint *b, bigint *c);
 bigint_err bigint_xor(const bigint *a, const bigint *b, bigint *c);
 /* c = ~a */
 bigint_err bigint_not(const bigint *a, bigint *c);
+
+
+// These shifting functions are not constant-time, more works needed
+/* 
+    These functions shift the given bigint by one digit to the left or right 
+    This is equivalent to multiplying or dividing by the base (2^32 for this library) 
+*/
+bigint_err bigint_left_shift(bigint *a);
+bigint_err bigint_right_shift(bigint *a);
+
+/* 
+    These functions shift the given bigint by b digits 
+    This is equivalent to multiplying or dividing by the base^b    
+*/
+bigint_err bigint_left_shift_digits(bigint *a, unsigned int b);
+bigint_err bigint_right_shift_digits(bigint *a, unsigned int b);
+
+/* 
+    These functions shift the given bigint by b bits 
+    This is equivalent to multiplying or dividing by the 2^b    
+*/
+bigint_err bigint_left_shift_bits(bigint *a, unsigned int b);
+bigint_err bigint_right_shift_bits(bigint *a, unsigned int b);
 
 #endif /* BIGINT_H  */
