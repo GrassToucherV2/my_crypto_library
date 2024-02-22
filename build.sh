@@ -18,6 +18,13 @@ do
         CFLAGS="$CFLAGS -g"
     fi
 
+    if [[ "$arg" == "--clear" || "$arg" == "-c" ]]; then
+        echo "Cleaning up..."
+        find . -type f \( -name "*.o" -o -name "*.out" \) -exec rm {} +
+        echo "Cleanup complete."
+        exit 0
+    fi
+
     if [[ "$arg" == "--disassemble" || "$arg" == "-d" ]]; then
         CFLAGS="$CFLAGS -g"
         if $CC $CFLAGS "${FILES[@]}"; then
@@ -42,14 +49,14 @@ do
         # Compile the C library
         gcc -c util/bigint.c -o bigint.o 
 
-        # Compile the C++ benchmark driver file
+        # Compile the C++ benchmark file
         g++ -c util/benchmark.cpp -o benchmark.o 
 
         # Compile the timer file 
         g++ -c util/benchmark_timer.cpp -o timer.o
 
         # Link them together
-        g++ bigint.o benchmark.o timer.o -o benchmark_bigint 
+        g++ bigint.o benchmark.o timer.o -o benchmark_bigint.o 
 
         # Check if benchmark compilation and linking succeeded
         if [ $? -eq 0 ]; then
