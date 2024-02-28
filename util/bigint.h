@@ -14,9 +14,9 @@
 #define DIGIT_BIT sizeof(digit) * 8
 
 #define CHECK_OKAY(a) do {if (a != BIGINT_OKAY) return a; } while(0) 
+#define MIN(a, b) ((a) < (b) ? (a) : (b)) // returns min(a, b)
+#define MAX(a, b) ((a) > (b) ? (a) : (b)) // returns max(a, b)
 typedef uint32_t digit;
-
-void buffers_xor(const char *a, const char *b, int len, char *output);
 
 typedef struct {
     unsigned int num_of_digit;  /* number of digits allocated */
@@ -33,9 +33,11 @@ typedef enum {
     BIGINT_ERROR_INSUFFICIENT_BUF,
     BIGINT_ERROR_GENERIC,
     BIGINT_ERROR_SHIFTING,
+    BIGINT_ERROR_DIVIDE_BY_ZERO,
 
 } bigint_err;
 
+void buffers_xor(const char *a, const char *b, int len, char *output);
 /* bigint utils */
 
 /* Initialize a bigint and setting it to 0 */
@@ -90,6 +92,8 @@ bigint_err bigint_pad_zero(bigint *a, unsigned int msd);
 bigint_err bigint_add(const bigint *a, const bigint *b, bigint *c);
 /* c = a + b, where b is a small integer */
 bigint_err bigint_add_digit(const bigint *a, digit b, bigint *c);
+/* a = a + 1 */
+bigint_err bigint_inc(bigint *a);
 
 /* c = |a - b| */
 bigint_err bigint_sub(const bigint *a, const bigint *b, bigint *c);
@@ -97,6 +101,7 @@ bigint_err bigint_sub_digit(const bigint *a, digit b, bigint *c);
 
 /* c = |a * b| */
 bigint_err bigint_mul(const bigint *a, const bigint *b, bigint *c);
+bigint_err bigint_mul_karatsuba(const bigint *a, const bigint *b, bigint *c);
 bigint_err bigint_mul_digit(const bigint *a, digit b, bigint *c);
 /* c = a * 2 - wrapper for bigint_left_bit_shift  */
 bigint_err bigint_double(const bigint *a, bigint *c);
@@ -108,7 +113,7 @@ bigint_err bigint_mul_base_b(const bigint *a, bigint *c, unsigned int b);
 bigint_err bigint_mul_pow_2(const bigint *a, unsigned int b, bigint *c);
 
 /* c = |a / b| */
-bigint_err bigint_div(const bigint *a, const bigint *b, bigint *c);
+bigint_err bigint_div(const bigint *a, const bigint *b, bigint *q, bigint *r);
 bigint_err bigint_div_digit(const bigint *a, digit b, bigint *c);
 /* c = a / 2 - wrapper for bigint_right_bit_shift */
 bigint_err bigint_half(const bigint *a, bigint *c);

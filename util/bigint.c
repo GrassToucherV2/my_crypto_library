@@ -184,6 +184,7 @@ int bigint_cmp_zero(const bigint *a){
 // }
 /* 
    Aims to compare two bigints in constant-time
+   This function compares two bigints returns 0 if a == b, -1 if a < b, 1 if a > b
 */
 int bigint_cmp(const bigint *a, const bigint *b){
     if(!a || !b) return BIGINT_ERROR_NULLPTR;
@@ -479,7 +480,7 @@ bigint_err bigint_from_bytes(bigint *a, const unsigned char *str, unsigned int l
         }
         a->digits[0] = d;
         len -= leftover_bytes;
-        if(len > sizeof(digit))
+        if(len >= sizeof(digit))
             CHECK_OKAY(bigint_left_shift(a));
     }
 
@@ -494,6 +495,7 @@ bigint_err bigint_from_bytes(bigint *a, const unsigned char *str, unsigned int l
         if(len > sizeof(digit))
             CHECK_OKAY(bigint_left_shift(a));
     }
+
     return BIGINT_OKAY;
 }
 
@@ -590,6 +592,28 @@ bigint_err bigint_add(const bigint *a, const bigint *b, bigint *c){
     return BIGINT_OKAY;
 }
 
+bigint_err bigint_inc(bigint *a){
+    if(!a) return BIGINT_ERROR_NULLPTR;
+
+    if(a->num_of_digit < a->MSD + 2){
+        CHECK_OKAY(bigint_expand(a, a->MSD + 2));
+    }
+    int64_t tmp;
+    unsigned int carry = 0;
+    for(unsigned int i = 0; i < a->MSD + 1; i++){
+        tmp = (int64_t)a->digits[i] + 1 + carry;
+        a->digits[i] = tmp & BASE;
+        carry = (tmp >> DIGIT_BIT) & 1;
+    }
+
+    if(carry){
+        a->digits[a->MSD + 1] = carry;
+        a->MSD++;
+    }
+
+    return BIGINT_OKAY;
+}
+
 bigint_err bigint_add_digit(const bigint *a, digit b, bigint *c){
     if(!a || !c) return BIGINT_ERROR_NULLPTR;
 
@@ -650,7 +674,7 @@ bigint_err bigint_sub(const bigint *a, const bigint *b, bigint *c){
         } else {
             base = 0;
         }
-        c->digits[i] = tmp + base;
+        c->digits[i] = (tmp + base) & BASE;
         borrowed = sign;
     }
 
@@ -727,6 +751,90 @@ bigint_err bigint_mul(const bigint *a, const bigint *b, bigint *c){
     return BIGINT_OKAY;
 }
 
+bigint_err bigint_mul_karatsuba(const bigint *a, const bigint *b, bigint *c){
+    if(!a || !b || !c) return BIGINT_ERROR_NULLPTR;
+
+    bigint x0, x1, y0, y1, t1, x0y0, x1y1;
+    unsigned int B;
+
+    // min number of digits 
+    B = MIN(a->MSD + 1, b->MSD + 1);
+    // divide B by 2
+    B >>= 1;
+
+    CHECK_OKAY(bigint_init(&x0, B));
+    CHECK_OKAY(bigint_init(&x1, a->MSD + 1 - B));
+    CHECK_OKAY(bigint_init(&y0, B));
+    CHECK_OKAY(bigint_init(&y1, b->MSD + 1 - B));
+    CHECK_OKAY(bigint_init(&t1, 2 * B));
+    CHECK_OKAY(bigint_init(&x0y0, 2 * B));
+    CHECK_OKAY(bigint_init(&x1y1, 2 * B));
+
+    // shift the digits
+    x0.MSD = x0.num_of_digit - 1;
+    y0.MSD = y0.num_of_digit - 1;
+    x1.MSD = x1.num_of_digit - 1;
+    y1.MSD = y1.num_of_digit - 1;
+
+    unsigned int i;
+    digit *tmpa, *tmpb, *tmpx, *tmpy;
+
+    tmpa = a->digits;
+    tmpb = b->digits;
+    tmpx = x0.digits;
+    tmpy = y0.digits;
+
+    for(i = 0; i < B; i++){
+        *tmpx++ = *tmpa++;
+        *tmpy++ = *tmpb++;
+    }
+
+    tmpx = x1.digits;
+    for(i = B; i < a->MSD + 1; i++){
+        *tmpx++ = *tmpa++;
+    }
+
+    tmpy = y1.digits;
+    for(i = B; i < b->MSD + 1; i++){
+        *tmpy++ = *tmpb++;
+    }
+
+    bigint_clamp(&x0);
+    bigint_clamp(&y0);
+
+    // computing the product of x0y0 and x1y1
+    CHECK_OKAY(bigint_mul(&x0, &y0, &x0y0));
+    CHECK_OKAY(bigint_mul(&x1, &y1, &x1y1));
+
+    // computing x1 + x0 and y1 + y0
+    CHECK_OKAY(bigint_add(&x1, &x0, &t1));
+    CHECK_OKAY(bigint_add(&y1, &y0, &x0));
+
+    CHECK_OKAY(bigint_mul(&t1, &x0, &t1));
+
+    // add x0y0
+    CHECK_OKAY(bigint_sub(&t1, &x0y0, &t1));
+    CHECK_OKAY(bigint_sub(&t1, &x1y1, &t1));
+
+    // shift by B
+    CHECK_OKAY(bigint_left_shift_digits(&t1, B));
+    CHECK_OKAY(bigint_left_shift_digits(&x1y1, B * 2));
+
+    CHECK_OKAY(bigint_add(&x0y0, &t1, &t1));
+    CHECK_OKAY(bigint_add(&t1, &x1y1, c));
+
+    bigint_free(&x0);
+    bigint_free(&x1);
+    bigint_free(&y0);
+    bigint_free(&y1);
+    bigint_free(&t1);
+    bigint_free(&x0y0);
+    bigint_free(&x1y1);
+
+    return BIGINT_OKAY;
+
+}
+
 bigint_err bigint_mul_digit(const bigint *a, digit b, bigint *c){
     if(!a || !b) return BIGINT_ERROR_NULLPTR;
 
@@ -781,6 +889,27 @@ bigint_err bigint_mul_pow_2(const bigint *a, unsigned int b, bigint *c){
     return BIGINT_OKAY;
 }
 
+/*
+    This function performs integer division, returns the quotient in q and remainder in r
+    very naive repeated subtraction
+    though I don't think integer division is commonly used in cryptography, a proper one
+    will be implemented if needed 
+*/
+bigint_err bigint_div(const bigint *a, const bigint *b, bigint *q, bigint *r){
+    if(!a || !b) return BIGINT_ERROR_NULLPTR; 
+
+    if(!bigint_cmp_zero(b)) return BIGINT_ERROR_DIVIDE_BY_ZERO;
+
+    CHECK_OKAY(bigint_copy(a, r));
+
+    while(bigint_cmp(r, b) != -1){
+        CHECK_OKAY(bigint_inc(q));
+        CHECK_OKAY(bigint_sub(r, b, r));
+    }
+
+    return BIGINT_OKAY;
+}
+
 bigint_err bigint_half(const bigint *a, bigint *c){
     CHECK_OKAY(bigint_right_bit_shift(a, c));
 
@@ -823,9 +952,15 @@ bigint_err bigint_div_pow_2(const bigint *a, unsigned int b, bigint *c){
 
 /*
     this is essentially bitwise AND with 2^b - 1
+    this function is not constant-time
 */
 bigint_err bigint_mod_pow_2(const bigint *a, unsigned int b, bigint *c){
     if(!a || !c) return BIGINT_ERROR_NULLPTR;
+
+    if(b >= (a->MSD + 1) * (sizeof(digit) * 8)){
+        CHECK_OKAY(bigint_copy(a, c));
+        return BIGINT_OKAY;
+    }
 
     unsigned int num_whole_digits = b / (sizeof(digit) * 8);
     unsigned int num_bits_in_last_digit = b % (sizeof(digit) * 8);
@@ -840,10 +975,8 @@ bigint_err bigint_mod_pow_2(const bigint *a, unsigned int b, bigint *c){
         c->digits[i] = a->digits[i];
     }
 
-    if(num_bits_in_last_digit){
-        digit mask = (1UL << num_bits_in_last_digit) - 1;
-        c->digits[num_whole_digits] = a->digits[num_whole_digits] & mask;
-    }
+    digit mask = (1UL << num_bits_in_last_digit) - 1;
+    c->digits[num_whole_digits] = a->digits[num_whole_digits] & mask;    
 
     c->MSD = num_whole_digits; 
     return BIGINT_OKAY;

@@ -13,11 +13,13 @@ CFLAGS="-Wall -Wextra"
 # --val and --disassemble argument add -g flag when compiling, which lets valgrind to pinpoint the line number 
 # of the problematic code, and objdump to print the source code corresponding to the asm block
 for arg in "$@"
-do
+do  
+    # adding -g flag to compile to facilitate debugging with valgrind
     if [[ "$arg" == "--val" || "$arg" == "-v" ]]; then
         CFLAGS="$CFLAGS -g"
     fi
 
+    # deletes all the built binaries 
     if [[ "$arg" == "--clear" || "$arg" == "-c" ]]; then
         echo "Cleaning up..."
         find . -type f \( -name "*.o" -o -name "*.out" \) -exec rm {} +
@@ -25,6 +27,7 @@ do
         exit 0
     fi
 
+    # objdump the binary 
     if [[ "$arg" == "--disassemble" || "$arg" == "-d" ]]; then
         CFLAGS="$CFLAGS -g"
         if $CC $CFLAGS "${FILES[@]}"; then
@@ -43,6 +46,12 @@ do
 
     fi
 
+    # build project for gprof 
+    if [[ "$arg" == "--gprof" || "$arg" == "-g" ]]; then
+        CFLAGS="$CFLAGS -pg"
+    fi
+
+    # build the project for benchmarking 
     if [[ "$arg" == "--benchmark" || "$arg" == "-b" ]]; then
         echo "Compiling and linking for benchmark..."
 

@@ -17,8 +17,11 @@ int bigint_pad_zero_test();
 int bigint_cmp_zero_test();
 int bigint_cmp_test();
 int bigint_add_test();
+int bigint_inc_test();
 int bigint_sub_test();
 int bigint_mul_test();
+int bigint_div_test();
+int bigint_mod_test();
 
 int bigint_double_test();
 int bigint_half_test();
@@ -27,6 +30,7 @@ int bigint_div_base_test();
 int bigint_div_pow_2_test();
 int bigint_mul_base_test();
 int bigint_mul_pow_2_test();
+int bigint_mul_karatsuba_test();
 int bigint_mod_pow_2_test();
 
 int bigint_bitwise_op_test();

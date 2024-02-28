@@ -101,34 +101,43 @@ int bigint_set_zero_test(){
 
 int bigint_left_shift_test(){
     int failed = 0;
-    bigint b;
+    bigint b, r;
     bigint_err err;
 
-    // Initialize bigint with a specific value, e.g., 123
     bigint_init(&b, 3); 
-    b.digits[0] = 3;
-    b.digits[1] = 2;
-    b.digits[2] = 1;
-    b.MSD = 2; // Since we manually set the number to 123
+    bigint_init(&r, 6); 
 
-    // Perform the left shift operation
-    err = bigint_left_shift(&b);
+    unsigned char b1[] = {
+        0x01, 0x01, 0x01, 0x01, 0x02, 0x02, 0x02, 0x02,
+        0x03, 0x03, 0x03, 0x03
+    };
+
+    unsigned char r1[] = {
+        0x01, 0x01, 0x01, 0x01, 0x02, 0x02, 0x02, 0x02,
+        0x03, 0x03, 0x03, 0x03, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+    };
+
+    bigint_from_bytes(&b, b1, 12);
+    bigint_from_bytes(&r, r1, 24);
+
+    err = bigint_left_shift_digits(&b, 3);
     assert(err == BIGINT_OKAY);
 
-    // Verify the result is as expected, i.e., 1230 in this example
-    assert(b.digits[0] == 0); // Least significant digit should be 0 after shift
-    assert(b.digits[1] == 3);
-    assert(b.digits[2] == 2);
-    assert(b.digits[3] == 1);
-    assert(b.MSD == 3); // MSD should have incremented by 1
-
-    // Print the result (optional, for verification)
-    printf("Result of left shift: ");
-    bigint_print(&b, "b = ");
+    int res = bigint_cmp(&b, &r);
+    if(res == 0){
+        bigint_print(&b, "b = ");
+        print_passed("bigint_left_shift_test passed");
+    } else{
+        bigint_print(&b, "b = ");
+        bigint_print(&r, "r = ");
+        print_failed("bigint_left_shift_test failed");
+        failed = 1;
+    }
 
     // Clean up
     bigint_free(&b);
-    print_passed("bigint_left_shift_test passed");
+    bigint_free(&r);
     return failed;
 }
 
@@ -700,9 +709,68 @@ int bigint_add_test(){
     return failed;
 }
 
+int bigint_inc_test(){
+    int failed = 0;
+
+    bigint a,r;
+    int res = 0;
+
+    unsigned char a1[] = {
+        0x00
+    };
+
+    unsigned char r1[] = {
+        0x01
+    };
+
+    bigint_init(&a, 1);
+    bigint_init(&r, 1);
+
+    bigint_from_bytes(&a, a1, 1);
+    bigint_from_bytes(&r, r1, 1);
+
+    bigint_inc(&a);
+    res = bigint_cmp(&a, &r);
+    if(res == 0){
+        bigint_print(&a, "a = ");
+        print_passed("bigint_inc_test 1 passed");
+    } else {
+        bigint_print(&a, "a = ");
+        bigint_print(&r, "r = ");
+        print_failed("bigint_inc_test 1 failed");
+        failed = 1;
+    }
+
+    unsigned char a2[] = {
+        0xFF, 0XFF, 0xFF, 0xFF
+    };
+
+    unsigned char r2[] = {
+        0x01, 0x00, 0x00, 0x00, 0x00
+    };
+    bigint_from_bytes(&a, a2, 4);
+    bigint_from_bytes(&r, r2, 5);
+
+    bigint_inc(&a);
+    res = bigint_cmp(&a, &r);
+    if(res == 0){
+        bigint_print(&a, "a = ");
+        print_passed("bigint_inc_test 2 passed");
+    } else {
+        bigint_print(&a, "a = ");
+        bigint_print(&r, "r = ");
+        print_failed("bigint_inc_test 2 failed");
+        failed = 1;
+    }
+
+    bigint_free(&a);
+    bigint_free(&r);
+    return failed;
+
+}
+
 int bigint_add_digit_test(){
     int failed = 0;
-    // print_msg(YELLOW, "bigint_inc_test");
     bigint b, c, r;
     int res = 0;
 
@@ -723,9 +791,9 @@ int bigint_add_digit_test(){
     bigint_add_digit(&b, 1, &c);
     res = bigint_cmp(&c, &r);
     if(!res){
-        print_passed("bigint_inc_test 1 passed");
+        print_passed("bigint_add_digit_test 1 passed");
     } else {
-        print_failed("bigint_inc_test 1 failed");
+        print_failed("bigint_add_digit_test 1 failed");
         failed = 1;
     }
 
@@ -963,7 +1031,7 @@ int bigint_mul_test(){
     bigint_from_bytes(&b, b1, 16);
     bigint_from_bytes(&r, exp_res, 32);
 
-    bigint_mul(&a, &b, &c);
+    bigint_mul_karatsuba(&a, &b, &c);
     res = bigint_cmp(&c, &r);
     if(!res){
         bigint_print(&c, "c = ");
@@ -1907,8 +1975,149 @@ int bigint_mod_pow_2_test(){
         print_failed("bigint_mod_pow_2_test - mod 2^28 failed");
     }
 
+    unsigned char a2[] = {
+        0xD8, 0x21, 0x1D, 0x92, 0x65, 0x24, 0x9D, 0xAA,
+        0xFE, 0xC9, 0xA9, 0xC2, 0xD6, 0x8C, 0x70
+    };
+
+    unsigned char r2[] = {
+        0x29, 0xC2, 0xD6, 0x8C, 0x70
+    };
+
+    bigint_from_bytes(&a, a2, 15);
+    bigint_from_bytes(&r, r2, 5);
+
+    bigint_mod_pow_2(&a, 39, &c);
+    res = bigint_cmp(&c, &r);
+    if(res == 0){
+        bigint_print(&c, "c = ");
+        print_passed("bigint_mod_pow_2_test - mod 2^39 passed");
+    } else{
+        failed = 1;
+        bigint_print(&a, "a = ");
+        bigint_print(&c, "c = ");
+        bigint_print(&r, "r = ");
+        print_failed("bigint_mod_pow_2_test - mod 2^39 failed");
+    }
+
+    unsigned char a3[] = {
+        0x6C, 0xEE, 0xEC, 0xEF, 0xCF, 0x9A, 0x29, 0x99,
+        0xD8, 0xAD, 0xE7, 0xD9, 0x02, 0xD0, 0x88, 0x62,
+        0xFF, 0xC6, 0xF0, 0x27, 0xEA, 0x3C, 0x86, 0xD1,
+        0xFD, 0x8C, 0x6A, 0x3E, 0x78, 0x23, 0xB4, 0x5D
+    };
+
+    unsigned char r3[] = {
+        0x6C, 0xEE, 0xEC, 0xEF, 0xCF, 0x9A, 0x29, 0x99,
+        0xD8, 0xAD, 0xE7, 0xD9, 0x02, 0xD0, 0x88, 0x62,
+        0xFF, 0xC6, 0xF0, 0x27, 0xEA, 0x3C, 0x86, 0xD1,
+        0xFD, 0x8C, 0x6A, 0x3E, 0x78, 0x23, 0xB4, 0x5D
+    };
+
+    bigint_from_bytes(&a, a3, 32);
+    bigint_from_bytes(&r, r3, 32);
+
+    bigint_mod_pow_2(&a, 267, &c);
+    res = bigint_cmp(&c, &r);
+    if(res == 0){
+        bigint_print(&c, "c = ");
+        print_passed("bigint_mod_pow_2_test - mod 2^267 passed");
+    } else{
+        failed = 1;
+        bigint_print(&a, "a = ");
+        bigint_print(&c, "c = ");
+        bigint_print(&r, "r = ");
+        print_failed("bigint_mod_pow_2_test - mod 2^267 failed");
+    }
+
+    unsigned char r4[] = {
+        0x01
+    };
+
+    bigint_from_bytes(&r, r4, 1);
+
+    bigint_mod_pow_2(&a, 1, &c);
+    res = bigint_cmp(&c, &r);
+    if(res == 0){
+        bigint_print(&c, "c = ");
+        print_passed("bigint_mod_pow_2_test - mod 2^1 passed");
+    } else{
+        failed = 1;
+        bigint_print(&a, "a = ");
+        bigint_print(&c, "c = ");
+        bigint_print(&r, "r = ");
+        print_failed("bigint_mod_pow_2_test - mod 2^1 failed");
+    }
+
+    unsigned char r5[] = {
+        0x00
+    };
+    
+    bigint_from_bytes(&r, r5, 1);
+    bigint_mod_pow_2(&a, 0, &c);
+    res = bigint_cmp_zero(&c);
+    if(res == 0){
+        bigint_print(&c, "c = ");
+        print_passed("bigint_mod_pow_2_test - mod 2^0 passed");
+    } else{
+        failed = 1;
+        bigint_print(&a, "a = ");
+        bigint_print(&c, "c = ");
+        bigint_print(&r, "r = ");
+        print_failed("bigint_mod_pow_2_test - mod 2^0 failed");
+    }
+
     bigint_free(&a);
     bigint_free(&c);
     bigint_free(&r);
     return failed;
 }
+
+int bigint_mul_karatsuba_test(){
+    int failed = 0;
+    bigint a, b, c, r;
+
+    unsigned char a1[] = {
+        0x03
+    };
+
+    unsigned char b1[] = {
+        0x04
+    };
+
+    unsigned char r1[] = {
+        0x0B
+    };
+
+    bigint_init(&a, 1);
+    bigint_init(&b, 1);
+    bigint_init(&r, 1);
+    bigint_init(&c, 1);
+
+    bigint_from_bytes(&a, a1, 1);
+    bigint_from_bytes(&b, b1, 1);
+    bigint_from_bytes(&r, r1, 1);
+    bigint_mul_karatsuba(&a, &b, &c);
+    int res = bigint_cmp(&c, &r);
+    if(res == 0){
+        bigint_print(&c, "c = ");
+        print_passed("bigint_mul_karatsuba_test - passed");
+    } else{
+        failed = 1;
+        bigint_print(&a, "a = ");
+        bigint_print(&c, "c = ");
+        bigint_print(&r, "r = ");
+        print_failed("bigint_mul_karatsuba_test - failed");
+    }
+
+    bigint_free(&a);
+    bigint_free(&b);
+    bigint_free(&r);
+    bigint_free(&c);
+    return failed;
+}
+
+// int bigint_div_test(){
+//     int failed = 0;
+//     int 
+// }
