@@ -88,7 +88,7 @@ bigint_err bigint_copy(const bigint *src, bigint *dest){
     if(src->num_of_digit > dest->num_of_digit){
         CHECK_OKAY(bigint_expand(dest, src->num_of_digit));
     }
-    CHECK_OKAY(bigint_set_zero(dest));
+    // CHECK_OKAY(bigint_set_zero(dest));
     
     memcpy(dest->digits, src->digits, (src->MSD + 1) * sizeof(digit));
     dest->MSD = src->MSD;
@@ -268,6 +268,32 @@ int bigint_cmp(const bigint *a, const bigint *b){
     return res;
 }
 
+int bigint_cmp_noCT(const bigint *a, const bigint *b){
+    if(!a || !b) return BIGINT_ERROR_NULLPTR;
+
+    bigint tmp_a, tmp_b;
+    CHECK_OKAY(bigint_init(&tmp_a, a->num_of_digit));
+    CHECK_OKAY(bigint_init(&tmp_b, b->num_of_digit));
+
+    CHECK_OKAY(bigint_copy(a, &tmp_a));
+    CHECK_OKAY(bigint_copy(b, &tmp_b));
+
+    CHECK_OKAY(bigint_clamp(&tmp_a));
+    CHECK_OKAY(bigint_clamp(&tmp_b));
+
+    if (tmp_a.MSD > tmp_b.MSD) return 1;
+    if (tmp_a.MSD < tmp_b.MSD) return -1;
+    
+    // If MSDs are equal, compare the digits from most significant to least significant
+    for (int i = a->MSD; i >= 0; i--) {
+        if (tmp_a.digits[i] > tmp_b.digits[i]) return 1;
+        if (tmp_a.digits[i] < tmp_b.digits[i]) return -1;
+    }
+    
+    // If all digits are equal, the numbers are equal
+    return 0;
+}
+
 bigint_err bigint_left_bit_shift(const bigint *a, bigint *c){
     if(!a || !c) return BIGINT_ERROR_NULLPTR;
 
@@ -277,13 +303,15 @@ bigint_err bigint_left_bit_shift(const bigint *a, bigint *c){
     }
 
     int carry = 0;
+    int next_carry = 0;
     unsigned int i = 0;
 
     for(; i <= a->MSD; i++){
+        next_carry = a->digits[i] >> ((sizeof(digit) * 8) - 1);
         c->digits[i] = (a->digits[i] << 1) | carry;
         // the MSB of each digit will be promoted and become the 
         // LSB of the next digit as a result of left shift
-        carry = a->digits[i] >> ((sizeof(digit) * 8) - 1);
+        carry = next_carry;
     }
 
     if(carry){
@@ -338,15 +366,26 @@ bigint_err bigint_left_shift_digits(bigint *a, unsigned int b){
 // This function assumes b <= 32, otherwise it returns an error
 bigint_err bigint_left_shift_bits(bigint *a, unsigned int b){
     if(!a) return BIGINT_ERROR_NULLPTR;
-    if(b >= DIGIT_BIT)  return BIGINT_ERROR_SHIFTING;
+    
+    if(b == 0) 
+        return BIGINT_OKAY;
+    
+    // unsigned int num_digits_to_shift = b / DIGIT_BIT;
+    // unsigned int num_bits_to_shift = b % DIGIT_BIT;
 
+    // printf("b = %u\n", b);
+    // printf("num_digits = %u\n", num_digits_to_shift);
+    // printf("num_bits = %u\n", num_bits_to_shift);
+    
     if(a->num_of_digit < a->MSD + 2){
         CHECK_OKAY(bigint_expand(a, a->MSD + 2));
     }
 
+    // CHECK_OKAY(bigint_left_shift_digits(a, num_digits_to_shift));
+
     digit carry = 0;
     digit current_digit = 0;
-    for(unsigned int i = 0; i <= a->MSD; ++i){
+    for(unsigned int i = 0; i <= a->MSD; i++){
         // Store the current digit, basically same logic as left shift by 1 bit 
         // promote "num_bits_to_shift" bits to the next digit
         current_digit = a->digits[i];
@@ -364,11 +403,9 @@ bigint_err bigint_left_shift_bits(bigint *a, unsigned int b){
 
 bigint_err bigint_right_bit_shift(const bigint *a, bigint *c){
     if(!a || !c) return BIGINT_ERROR_NULLPTR;
-
     if(c->num_of_digit < a->MSD + 1){
         CHECK_OKAY(bigint_expand(c, a->MSD + 1));
     }
-
     int tmp_lsb = 0;
     unsigned int i = 0;
     for(; i < a->MSD; i++){
@@ -632,21 +669,24 @@ bigint_err bigint_sub(const bigint *a, const bigint *b, bigint *c){
 
     unsigned int max_msd = 0;
     unsigned int min_msd = 0;
-    const bigint *bigger;
-    const bigint *smaller;
-
+    bigint bigger, smaller;
+    
     int r = bigint_cmp(a, b);
     if(r){
         max_msd = a->MSD;
-        bigger = a;
         min_msd = b->MSD;
-        smaller = b;
+        CHECK_OKAY(bigint_init(&bigger, a->num_of_digit));
+        CHECK_OKAY(bigint_init(&smaller, b->num_of_digit));
+        CHECK_OKAY(bigint_copy(a, &bigger));
+        CHECK_OKAY(bigint_copy(b, &smaller));
         
     } else {
         max_msd = b->MSD;
-        bigger = b;
         min_msd = a->MSD;
-        smaller = a;
+        CHECK_OKAY(bigint_init(&bigger, b->num_of_digit));
+        CHECK_OKAY(bigint_init(&smaller, a->num_of_digit));
+        CHECK_OKAY(bigint_copy(a, &smaller));
+        CHECK_OKAY(bigint_copy(b, &bigger));
     }
 
     if(c->num_of_digit < max_msd + 1){
@@ -667,7 +707,7 @@ bigint_err bigint_sub(const bigint *a, const bigint *b, bigint *c){
             borrow BASE + 1 because BASE = 0xFFFFFFFF, which is equivalent to 9 in decimal, hence plus 1 to get 10's equivalent 
             in base 2^32 
         */
-        tmp = (int64_t)bigger->digits[i] - (int64_t)smaller->digits[i] - (int64_t)borrowed;
+        tmp = (int64_t)bigger.digits[i] - (int64_t)smaller.digits[i] - (int64_t)borrowed;
         sign = tmp >> (sizeof(int64_t) * 8 - 1) & 1;
         if(sign){
             base = BASE + 1;
@@ -680,7 +720,7 @@ bigint_err bigint_sub(const bigint *a, const bigint *b, bigint *c){
 
     if(min_msd != max_msd){
         for(; i <= max_msd; i++){
-            tmp = bigger->digits[i] - borrowed;
+            tmp = bigger.digits[i] - borrowed;
             sign = tmp >> (sizeof(int64_t) * 8 - 1) & 1;
             if(sign){
                 base = BASE + 1;
@@ -698,6 +738,8 @@ bigint_err bigint_sub(const bigint *a, const bigint *b, bigint *c){
     }
 
     bigint_clamp(c);
+    bigint_free(&bigger);
+    bigint_free(&smaller);
     return BIGINT_OKAY;
 }
 
@@ -715,9 +757,9 @@ bigint_err bigint_sub_digit(const bigint *a, digit b, bigint *c){
 }
 
 /*
-    This is the naive elementary school multiplication algorithm
+    The elementary school multiplication algorithm
     from wikipedia
-    more performant ones are probably needed in the long run
+    Computes c = a * b
 */
 bigint_err bigint_mul(const bigint *a, const bigint *b, bigint *c){
     if(!a || !b || !c) return BIGINT_ERROR_NULLPTR;
@@ -729,32 +771,37 @@ bigint_err bigint_mul(const bigint *a, const bigint *b, bigint *c){
         CHECK_OKAY(bigint_expand(c, a_digits_used + b_digits_used));
     }
 
-    uint64_t tmp = 0;
-    uint64_t carry = 0;
-    unsigned int i = 0;
+    CHECK_OKAY(bigint_set_zero(c));
 
+    uint64_t tmp = 0;
+    uint32_t carry = 0;
+    unsigned int i = 0;
     for(; i < a_digits_used; i++){
         carry = 0;
         for(unsigned int j = 0; j < b_digits_used; j++){
             tmp = (uint64_t)a->digits[i] * (uint64_t)b->digits[j] + c->digits[i + j] + carry;
-            
             c->digits[i + j] = tmp & BASE;  
-
-            carry = tmp >> (sizeof(digit) * 8);
+            carry = tmp >> DIGIT_BIT;
         }
         c->digits[i + b_digits_used] = carry;
     }
 
     c->MSD = a_digits_used + b_digits_used - 1;
-    while(c->MSD > 0 && c->digits[c->MSD] == 0) c->MSD--;
+
+    // while(c->MSD > 0 && c->digits[c->MSD] == 0) c->MSD--;
 
     return BIGINT_OKAY;
 }
 
+/*
+    Simpler version of the Karatsuba algorithm as it only splits the bigint once
+    rather than doing it recursively
+    Computes c = a * b
+*/
 bigint_err bigint_mul_karatsuba(const bigint *a, const bigint *b, bigint *c){
     if(!a || !b || !c) return BIGINT_ERROR_NULLPTR;
 
-    bigint x0, x1, y0, y1, t1, x0y0, x1y1;
+    bigint x0, x1, y0, y1, t1, x0y0, x1y1, x1plusx0, y1plusy0;
     unsigned int B;
 
     // min number of digits 
@@ -769,6 +816,8 @@ bigint_err bigint_mul_karatsuba(const bigint *a, const bigint *b, bigint *c){
     CHECK_OKAY(bigint_init(&t1, 2 * B));
     CHECK_OKAY(bigint_init(&x0y0, 2 * B));
     CHECK_OKAY(bigint_init(&x1y1, 2 * B));
+    CHECK_OKAY(bigint_init(&x1plusx0, B + 1));
+    CHECK_OKAY(bigint_init(&y1plusy0, B + 1));
 
     // shift the digits
     x0.MSD = x0.num_of_digit - 1;
@@ -776,51 +825,36 @@ bigint_err bigint_mul_karatsuba(const bigint *a, const bigint *b, bigint *c){
     x1.MSD = x1.num_of_digit - 1;
     y1.MSD = y1.num_of_digit - 1;
 
-    unsigned int i;
-    digit *tmpa, *tmpb, *tmpx, *tmpy;
+    memcpy(x0.digits, a->digits, B * sizeof(digit));
+    memcpy(y0.digits, b->digits, B * sizeof(digit));
+    memcpy(x1.digits, a->digits + B, (a->MSD + 1 - B) * sizeof(digit));
+    memcpy(y1.digits, b->digits + B, (b->MSD + 1 - B) * sizeof(digit));
 
-    tmpa = a->digits;
-    tmpb = b->digits;
-    tmpx = x0.digits;
-    tmpy = y0.digits;
-
-    for(i = 0; i < B; i++){
-        *tmpx++ = *tmpa++;
-        *tmpy++ = *tmpb++;
-    }
-
-    tmpx = x1.digits;
-    for(i = B; i < a->MSD + 1; i++){
-        *tmpx++ = *tmpa++;
-    }
-
-    tmpy = y1.digits;
-    for(i = B; i < b->MSD + 1; i++){
-        *tmpy++ = *tmpb++;
-    }
-
-    bigint_clamp(&x0);
-    bigint_clamp(&y0);
-
-    // computing the product of x0y0 and x1y1
+    // bigint_clamp(&x0);
+    // bigint_clamp(&y0);
+    
+    // x0y0 = x0 * y0
+    // x1y1 = x1 * y1
     CHECK_OKAY(bigint_mul(&x0, &y0, &x0y0));
     CHECK_OKAY(bigint_mul(&x1, &y1, &x1y1));
 
     // computing x1 + x0 and y1 + y0
-    CHECK_OKAY(bigint_add(&x1, &x0, &t1));
-    CHECK_OKAY(bigint_add(&y1, &y0, &x0));
+    CHECK_OKAY(bigint_add(&x1, &x0, &x1plusx0));
+    CHECK_OKAY(bigint_add(&y1, &y0, &y1plusy0));
+    
+    // computing t1 = (x1 + x0) * (y1 + y0)
+    CHECK_OKAY(bigint_mul(&y1plusy0, &x1plusx0, &t1));
 
-    CHECK_OKAY(bigint_mul(&t1, &x0, &t1));
-
-    // add x0y0
+    // computing t1 = (x1 + x0) * (y1 + y0) - x0y0 - x1y1
     CHECK_OKAY(bigint_sub(&t1, &x0y0, &t1));
     CHECK_OKAY(bigint_sub(&t1, &x1y1, &t1));
 
-    // shift by B
+    // multiply by BASE and BASE/2 
     CHECK_OKAY(bigint_left_shift_digits(&t1, B));
     CHECK_OKAY(bigint_left_shift_digits(&x1y1, B * 2));
 
-    CHECK_OKAY(bigint_add(&x0y0, &t1, &t1));
+    // adding the results
+    CHECK_OKAY(bigint_add(&t1, &x0y0, &t1));
     CHECK_OKAY(bigint_add(&t1, &x1y1, c));
 
     bigint_free(&x0);
@@ -830,6 +864,8 @@ bigint_err bigint_mul_karatsuba(const bigint *a, const bigint *b, bigint *c){
     bigint_free(&t1);
     bigint_free(&x0y0);
     bigint_free(&x1y1);
+    bigint_free(&x1plusx0);
+    bigint_free(&y1plusy0);
 
     return BIGINT_OKAY;
 
@@ -868,7 +904,7 @@ bigint_err bigint_mul_base_b(const bigint *a, bigint *c, unsigned int b){
     return BIGINT_OKAY;
 }
 
-/* This function is constant-time, more work needed */
+/* This function is not constant-time, more work needed */
 bigint_err bigint_mul_pow_2(const bigint *a, unsigned int b, bigint *c){
     if(!a || !c) return BIGINT_ERROR_NULLPTR;
 
@@ -891,26 +927,104 @@ bigint_err bigint_mul_pow_2(const bigint *a, unsigned int b, bigint *c){
 
 /*
     This function performs integer division, returns the quotient in q and remainder in r
-    very naive repeated subtraction
-    though I don't think integer division is commonly used in cryptography, a proper one
-    will be implemented if needed 
+    optimized version of repeated subtraction.
+    First set r to the dividend, then repeatedly double b until it becomes greater than or
+    equal to r, then we halve it and subtract it from r.
+    Repeat this process until r < b
+
+    better division and modular algorithm needed 
 */
-bigint_err bigint_div(const bigint *a, const bigint *b, bigint *q, bigint *r){
-    if(!a || !b) return BIGINT_ERROR_NULLPTR; 
+// let r = a
+// let count = 0
+// while r >= b
+//     tmp_b = b
+//     tmp_q = 1
+//     while tmp_b <= r
+//         tmp_b *= 2;
+//         count++
+    
+//     if tmp_b > r
+//         tmp_b /= 2
+//         count --
+    
+//     r -= tmp_b
+//     tmp_q <<= count // tmp_q = 2^count
+//     q += tmp_q
+bigint_err bigint_div(const bigint *a, const bigint *b, bigint *q, bigint *r) {
+    if(!a || !b) return BIGINT_ERROR_NULLPTR;
 
     if(!bigint_cmp_zero(b)) return BIGINT_ERROR_DIVIDE_BY_ZERO;
 
-    CHECK_OKAY(bigint_copy(a, r));
-
-    while(bigint_cmp(r, b) != -1){
-        CHECK_OKAY(bigint_inc(q));
-        CHECK_OKAY(bigint_sub(r, b, r));
+    if(q->num_of_digit <= a->MSD + 1){
+        CHECK_OKAY(bigint_expand(q, a->MSD + 1));
+    }
+    if(r->num_of_digit <= a->MSD + 1){
+        CHECK_OKAY(bigint_expand(r, a->MSD + 1));
     }
 
+    CHECK_OKAY(bigint_set_zero(q));
+    CHECK_OKAY(bigint_set_zero(r));
+
+    CHECK_OKAY(bigint_copy(a, r));
+    int count = 0;
+
+    bigint tmp_b, tmp_q;
+    CHECK_OKAY(bigint_init(&tmp_b, b->num_of_digit + 1));
+    CHECK_OKAY(bigint_init(&tmp_q, q->num_of_digit + 1));
+
+    // while r >= b
+    while(bigint_cmp_noCT(r, b) != -1){
+        CHECK_OKAY(bigint_copy(b, &tmp_b));
+        CHECK_OKAY(bigint_from_small_int(&tmp_q, 1));
+        while(bigint_cmp(r, &tmp_b) != -1){
+            // printf("doubling\n");
+            // bigint_print(&tmp_b, "tmp_b = ");
+            CHECK_OKAY(bigint_double(&tmp_b, &tmp_b)); 
+            count++;
+            // printf("count = %d\n", count);
+        }
+        // bigint_print(&tmp_b, "after doubling tmp_b = ");
+        // bigint_print(r, "r = ");
+        while(bigint_cmp_noCT(r, &tmp_b) == -1){
+            // printf("halve\n");
+            CHECK_OKAY(bigint_halve(&tmp_b, &tmp_b));
+            count--;
+            // printf("count = %d\n", count);
+        }
+        // bigint_print(&tmp_b, "after halve tmp_b = ");
+        // bigint_print(r, "r = ");
+        CHECK_OKAY(bigint_sub(r, &tmp_b, r));
+        CHECK_OKAY(bigint_mul_pow_2(&tmp_q, count, &tmp_q));
+        
+        // bigint_print(&tmp_q, "tmp_q = ");
+        CHECK_OKAY(bigint_add(q, &tmp_q, q));
+        // bigint_print(q, "q = ");
+        CHECK_OKAY(bigint_set_zero(&tmp_q));
+        count = 0;
+    }
+
+    bigint_free(&tmp_b);
+    bigint_free(&tmp_q);
     return BIGINT_OKAY;
 }
 
-bigint_err bigint_half(const bigint *a, bigint *c){
+int bigint_bits_count(const bigint *a){
+    if(!a) return BIGINT_ERROR_NULLPTR;
+
+    // (number of digits - 1) * 32 bits 
+    int bits_count = a->MSD * DIGIT_BIT;
+
+    digit last_digit = a->digits[a->MSD];
+    while(last_digit != 0){
+        last_digit >>= 1;
+        bits_count++;
+    }
+
+    return bits_count;
+
+}
+
+bigint_err bigint_halve(const bigint *a, bigint *c){
     CHECK_OKAY(bigint_right_bit_shift(a, c));
 
     return BIGINT_OKAY;
@@ -950,6 +1064,10 @@ bigint_err bigint_div_pow_2(const bigint *a, unsigned int b, bigint *c){
     return BIGINT_OKAY;
 }
 
+// bigint_err bigint_mod(const bigint *a, const bigint *b, bigint *c){
+
+// }
+
 /*
     this is essentially bitwise AND with 2^b - 1
     this function is not constant-time
@@ -979,6 +1097,14 @@ bigint_err bigint_mod_pow_2(const bigint *a, unsigned int b, bigint *c){
     c->digits[num_whole_digits] = a->digits[num_whole_digits] & mask;    
 
     c->MSD = num_whole_digits; 
+    return BIGINT_OKAY;
+}
+
+bigint_err bigint_square(const bigint *a, bigint *c){
+    if(!a || !c) return BIGINT_ERROR_NULLPTR;
+
+    CHECK_OKAY(bigint_mul_karatsuba(a, a, c));
+
     return BIGINT_OKAY;
 }
 

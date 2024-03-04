@@ -30,7 +30,7 @@ def perform_operation(num1, num2, op):
         if num2 == 0:
             return "ERORR, num2 = 0"
         else: 
-            return num1 // num2  # // => integer division 
+            return (num1 // num2, num1 % num2)  # // => integer division, returns quotient and remainder
     elif op == "mod":
         if num2 == 0:
             return "ERORR, num2 = 0"
@@ -54,6 +54,8 @@ def perform_operation(num1, num2, op):
         return num1 // (2 ** num2)
     elif op == "mod_pow_2":
         return num1 % (2 ** num2)
+    elif op == "sqr":
+        return num1 * num1
 
 if __name__ == "__main__":
     bits1 = 0
@@ -96,5 +98,13 @@ if __name__ == "__main__":
     if isinstance(result, str):
         print(result)  # Error message
     else:
-        print_hex_format(result)
+        if op != "div":
+            print_hex_format(result)
+        else:
+            print("quotient:")
+            print_hex_format(result[0])
+            print("remainder:")
+            print_hex_format(result[1])
+    
+    
 

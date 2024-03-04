@@ -80,9 +80,13 @@ int bigint_cmp_zero(const bigint *a);
 
 /* This function compares two bigints returns 0 if a == b, -1 if a < b, 1 if a > b */
 int bigint_cmp(const bigint *a, const bigint *b);
+int bigint_cmp_noCT(const bigint *a, const bigint *b);
 
 /* Pad zeros to given bigint, and make sure MSD points to msd */
 bigint_err bigint_pad_zero(bigint *a, unsigned int msd);
+
+/* Counts the number of bits in a given bigint */
+int bigint_bits_count(const bigint *a);
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -112,11 +116,15 @@ bigint_err bigint_mul_base_b(const bigint *a, bigint *c, unsigned int b);
 /* Multiply the given bigint by 2^b */
 bigint_err bigint_mul_pow_2(const bigint *a, unsigned int b, bigint *c);
 
+/* c = a^2 */
+bigint_err bigint_square(const bigint *a, bigint *c);
+
 /* c = |a / b| */
 bigint_err bigint_div(const bigint *a, const bigint *b, bigint *q, bigint *r);
+bigint_err bigint_int_div(const bigint *a, const bigint *b, bigint *q, bigint *r);
 bigint_err bigint_div_digit(const bigint *a, digit b, bigint *c);
 /* c = a / 2 - wrapper for bigint_right_bit_shift */
-bigint_err bigint_half(const bigint *a, bigint *c);
+bigint_err bigint_halve(const bigint *a, bigint *c);
 /* Divide the given bigint by the base - wrapper for bigint_left_shift */
 bigint_err bigint_div_base(const bigint *a, bigint *c);
 /* Divide the given bigint by the base^b - wrapper for bigint_right_shift_digits */

@@ -39,15 +39,15 @@ bigint_tests bigint_test[] = {
     {"bigint_sub_test", &bigint_sub_test, 1},
     {"bigint_sub_digit_test", &bigint_sub_digit_test, 1},
     {"bigint_mul_test", &bigint_mul_test, 1},
-    // {"bigint_double_test", &bigint_double_test, 1},
-    // {"bigint_half_test", &bigint_half_test, 1},
-    // {"bigint_bitwise_op_test", &bigint_bitwise_op_test, 1},
-    // {"bigint_div_base_test", &bigint_div_base_test, 1},
-    // {"bigint_mul_base_test", &bigint_mul_base_test, 1},
-    // {"bigint_mul_pow_2_test", &bigint_mul_pow_2_test, 1},
-    // {"bigint_div_pow_2_test", &bigint_div_pow_2_test, 1},
-    // {"bigint_mod_pow_2_test", &bigint_mod_pow_2_test, 1},
-    // {"bigint_mul_karatsuba_test", &bigint_mul_karatsuba_test, 1},
+    {"bigint_double_test", &bigint_double_test, 1},
+    {"bigint_halve_test", &bigint_halve_test, 1},
+    {"bigint_bitwise_op_test", &bigint_bitwise_op_test, 1},
+    {"bigint_div_base_test", &bigint_div_base_test, 1},
+    {"bigint_mul_base_test", &bigint_mul_base_test, 1},
+    {"bigint_mul_pow_2_test", &bigint_mul_pow_2_test, 1},
+    {"bigint_div_pow_2_test", &bigint_div_pow_2_test, 1},
+    {"bigint_mod_pow_2_test", &bigint_mod_pow_2_test, 1},
+    {"bigint_div_test", &bigint_div_test, 1},
 };
 
 void run_util_tests(){
@@ -73,17 +73,21 @@ void run_bigint_test(){
     printf("========== bigint library tests ==========\n");
     int num = sizeof(bigint_test) / sizeof(bigint_test[0]);
     int num_failed = 0;
+    int num_skipped = 0;
     for(int i = 0; i < num; i++){
         if(bigint_test[i].enabled){
             print_msg(YELLOW, bigint_test[i].name);
             num_failed += bigint_test[i].unit_test_fn();
             printf("\n");
+        } else {
+            num_skipped++;
         }
     }
     printf("========== Summary ==========\n");
     printf("Total tests: %d\n", num);
-    printf("Passed: %d\n", num - num_failed);
+    printf("Passed: %d\n", num - num_failed - num_skipped);
     printf("Failed: %d\n", num_failed);
+    printf("Skipped: %d\n", num_skipped);
 }
 int main(int argc, char *argv[]){
     if(argc == 1){
