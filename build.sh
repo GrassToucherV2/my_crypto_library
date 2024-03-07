@@ -1,19 +1,46 @@
 #!/bin/bash
 
 # List of C source files
-FILES=("test/test_util.c" "util/tools.c" \
-         "main.c" "util/bigint.c"   "test/bigint_test.c"                    \
-         "set1/challenge1.c" "set1/challenge2.c" "set1/challenge3.c" "set1/challenge4.c"
-         "set1/challenge5.c")
+FILES=(
+    "test/test_util.c"       
+    "util/tools.c"          
+    "main.c"                
+    "util/bigint.c"            
+    "test/bigint_test.c"                       
+    "set1/challenge1.c"     
+    "set1/challenge2.c"     
+    "set1/challenge3.c"     
+    "set1/challenge4.c"     
+    "set1/challenge5.c"     
+)
 
 # Compiler options
 CC=gcc
 CFLAGS="-Wall -Wextra"
 
+# I am beginning to forget the options...
+function print_help() {
+    echo "Usage: $0 [OPTION]..."
+    echo "Options:"
+    echo "  -h, --help          Display this help and exit."
+    echo "  -v, --val           Add debugging information with -g flag for use with valgrind."
+    echo "  -c, --clear         Clean up all compiled binaries."
+    echo "  -d, --disassemble   Compile and disassemble the binary, saving the output to disassembly_with_source."
+    echo "  -g, --gprof         Compile with profiling information for use with gprof."
+    echo "  -b, --benchmark     Compile and link benchmark components, creating a benchmark binary."
+    echo ""
+    exit 0
+}
+
 # --val and --disassemble argument add -g flag when compiling, which lets valgrind to pinpoint the line number 
 # of the problematic code, and objdump to print the source code corresponding to the asm block
 for arg in "$@"
 do  
+
+    if [[ "$arg" == "--help" || "$arg" == "-h" ]]; then
+        print_help
+    fi
+
     # adding -g flag to compile to facilitate debugging with valgrind
     if [[ "$arg" == "--val" || "$arg" == "-v" ]]; then
         CFLAGS="$CFLAGS -g"

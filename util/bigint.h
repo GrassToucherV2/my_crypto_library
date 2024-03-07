@@ -134,8 +134,10 @@ bigint_err bigint_div_pow_2(const bigint *a, unsigned int b, bigint *c);
 
 /* c = a % b */
 bigint_err bigint_mod(const bigint *a, const bigint *b, bigint *c);
-
 bigint_err bigint_mod_pow_2(const bigint *a, unsigned int b, bigint *c);
+
+/* c = a^e mod m */
+bigint_err bigint_pow_mod(const bigint *a, const bigint *e, const bigint *m, bigint *c);
 
 /////////////////////////////////////////////////////////////////////////////////////////
 

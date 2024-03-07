@@ -11,6 +11,11 @@ void buffers_xor(const char *a, const char *b, int len, char *output){
     }
 }
 
+void print_bigint_ctx(const bigint *a){
+    printf("MSD              = %u\n", a->MSD);
+    printf("number of digits = %u\n", a->num_of_digit);
+}
+
 bigint_err bigint_init(bigint *b, unsigned int num_of_digit){
     b->digits = (digit *)malloc(num_of_digit * sizeof(digit));
     if(!b->digits){
@@ -37,6 +42,7 @@ bigint_err bigint_expand(bigint *a, unsigned int num){
     if(a->num_of_digit >= num)
         return BIGINT_OKAY;
 
+    unsigned msd = a->MSD;
     digit *tmp = (digit *)malloc(num * sizeof(digit));
     if(!tmp)
         return BIGINT_REALLOC_FAILURE;
@@ -44,6 +50,7 @@ bigint_err bigint_expand(bigint *a, unsigned int num){
     memcpy(tmp, a->digits, a->num_of_digit * sizeof(digit));
     bigint_free(a);
 
+    a->MSD = msd;
     a->digits = tmp;
     a->num_of_digit = num;
     return BIGINT_OKAY;
@@ -85,8 +92,8 @@ bigint_err bigint_copy(const bigint *src, bigint *dest){
 
     // if dest does not have enough digits allocated (src->MSD + 1) is the num of digits being used in src. 
     // Expand dest if necessary
-    if(src->num_of_digit > dest->num_of_digit){
-        CHECK_OKAY(bigint_expand(dest, src->num_of_digit));
+    if(src->MSD + 1 > dest->num_of_digit){
+        CHECK_OKAY(bigint_expand(dest, src->MSD + 1));
     }
     // CHECK_OKAY(bigint_set_zero(dest));
     
@@ -114,11 +121,14 @@ bigint_err bigint_pad_zero(bigint *a, unsigned int msd){
         return BIGINT_OKAY;
     }
 
-    if(msd > a->num_of_digit){
+    if(msd >= a->num_of_digit){
         CHECK_OKAY(bigint_expand(a, msd + 1));
     }
 
-    memset(&a->digits[a->MSD + 1], 0, (msd - a->MSD) * sizeof(digit));
+    for(unsigned int i = a->MSD + 1; i <= msd; i++){
+        a->digits[i] = 0;
+    }
+    // memset(&a->digits[a->MSD + 1], 0, (msd - a->MSD) * sizeof(digit));
     a->MSD = msd;
 
     return BIGINT_OKAY;
@@ -187,56 +197,57 @@ int bigint_cmp_zero(const bigint *a){
    This function compares two bigints returns 0 if a == b, -1 if a < b, 1 if a > b
 */
 int bigint_cmp(const bigint *a, const bigint *b){
-    if(!a || !b) return BIGINT_ERROR_NULLPTR;
+        if(!a || !b) return BIGINT_ERROR_NULLPTR;
 
-    unsigned int msd_a = a->MSD;
-    unsigned int msd_b = b->MSD;
-    unsigned int max_msd = 0;
-    bigint tmp_a, tmp_b;
+        unsigned int msd_a = a->MSD;
+        unsigned int msd_b = b->MSD;
+        unsigned int max_msd = 0;
+        bigint tmp_a, tmp_b;
+        
+        bigint_init(&tmp_a, a->MSD + 1);
+        bigint_init(&tmp_b, b->MSD + 1);
+        bigint_copy(a, &tmp_a);
+        bigint_copy(b, &tmp_b);
+        
+        // This part may not be constant time
+        if(msd_a > msd_b){
+            max_msd = msd_a;
+            CHECK_OKAY(bigint_pad_zero(&tmp_b, max_msd)); // this fixes valgrind errors, but im not sure if i like it 
+        } else{
+            max_msd = msd_b;
+            CHECK_OKAY(bigint_pad_zero(&tmp_a, max_msd));
+        }
+
+        int a_lt_b_mask = 0;
+        int equal_mask = 0;
+        int64_t c = 0;
+        int64_t c1 = 0;
+        int c1_sign = 0;
+        /*
+            c is used to check whether a == b, just like how it is done in bigint_cmp_zero
+            c1 is the difference between each digits of a and b, from MSD to LSD, if we get 
+            a negative result, we know that a < b, so we extract the sign bit and negate it to set 
+            the a_lt_b_mask to all 1's.
+            equal_mask is the same as bigint_cmp_zero, except for that when a == b, equal_mask would be 0
+            so subtract 1, to make it -1 to set the mask.
+            During subtraction process, if c1 > 0 appeared before first c1 < 0, then a_lt_b_mask
+            should remain 0
+        */
+    int positive_c1_seen_flag = 0;
+    int a_lt_b_flag = 0;
     
-    bigint_init(&tmp_a, a->MSD + 1);
-    bigint_init(&tmp_b, b->MSD + 1);
-
-    bigint_copy(a, &tmp_a);
-    bigint_copy(b, &tmp_b);
-    
-    // This part may not be constant time
-    if(msd_a > msd_b){
-        max_msd = msd_a;
-        CHECK_OKAY(bigint_pad_zero(&tmp_b, max_msd)); // this fixes valgrind errors, but im not sure if i like it 
-    } else{
-        max_msd = msd_b;
-        CHECK_OKAY(bigint_pad_zero(&tmp_a, max_msd));
-    }
-
-    int a_lt_b_mask = 0;
-    int equal_mask = 0;
-    int64_t c = 0;
-    int64_t c1 = 0;
-    int c1_sign = 0;
-    /*
-        c is used to check whether a == b, just like how it is done in bigint_cmp_zero
-        c1 is the difference between each digits of a and b, from MSD to LSD, if we get 
-        a negative result, we know that a < b, so we extract the sign bit and negate it to set 
-        the a_lt_b_mask to all 1's.
-        equal_mask is the same as bigint_cmp_zero, except for that when a == b, equal_mask would be 0
-        so subtract 1, to make it -1 to set the mask.
-        During subtraction process, if c1 > 0 appeared before first c1 < 0, then a_lt_b_mask
-        should remain 0
-    */
-   int positive_c1_seen_flag = 0;
-   int a_lt_b_flag = 0;
     for(int i = max_msd; i >= 0; i--){
         c |= tmp_a.digits[i] ^ tmp_b.digits[i];
         c1 = (int64_t)tmp_a.digits[i] - (int64_t)tmp_b.digits[i];
         c1_sign = (c1 >> (8 * sizeof(int64_t) - 1)) & 1;
         
-        // set positive_c1_seen flag if we have seen a positive c1
-        // if(!c1_sign){
+        // set positive_c1_seen flag if we have seen a positive, non zero c1
+        // if(!c1_sign && c != 0){
         //     positive_c1_seen_flag = 1;
         // }
-        // 
-        positive_c1_seen_flag |= (~c1_sign & 1);
+        // ANDing with c will reset the flag if c1 is 0
+        // the conditional !(c == 0) is fine hopefully as it is an accumulator of the difference between a and b's digit, so it is all jumbled up
+        positive_c1_seen_flag |= (~c1_sign & 1) & !(c == 0);
 
         // update a_lt_b_flag to indicate a < b, 
         // only if we haven't seen a positive c1 and we got a negative c1
@@ -244,7 +255,6 @@ int bigint_cmp(const bigint *a, const bigint *b){
         //     a_lt_b_flag = 1;
         // }
         a_lt_b_flag |= (c1_sign && !positive_c1_seen_flag);
-        
     }
 
     bigint_free(&tmp_a);
@@ -290,6 +300,8 @@ int bigint_cmp_noCT(const bigint *a, const bigint *b){
         if (tmp_a.digits[i] < tmp_b.digits[i]) return -1;
     }
     
+    bigint_free(&tmp_a);
+    bigint_free(&tmp_b);
     // If all digits are equal, the numbers are equal
     return 0;
 }
@@ -698,7 +710,6 @@ bigint_err bigint_sub(const bigint *a, const bigint *b, bigint *c){
     int sign = 0;
     int64_t base = 0;
     int64_t tmp = 0;
-
     // computing lower digits first
     for(; i <= min_msd; i++){
         /*
@@ -930,7 +941,9 @@ bigint_err bigint_mul_pow_2(const bigint *a, unsigned int b, bigint *c){
     optimized version of repeated subtraction.
     First set r to the dividend, then repeatedly double b until it becomes greater than or
     equal to r, then we halve it and subtract it from r.
-    Repeat this process until r < b
+    Repeat this process until r < b.
+
+    This function allows q to be NULL
 
     better division and modular algorithm needed 
 */
@@ -951,60 +964,69 @@ bigint_err bigint_mul_pow_2(const bigint *a, unsigned int b, bigint *c){
 //     tmp_q <<= count // tmp_q = 2^count
 //     q += tmp_q
 bigint_err bigint_div(const bigint *a, const bigint *b, bigint *q, bigint *r) {
-    if(!a || !b) return BIGINT_ERROR_NULLPTR;
+    if(!a || !b || !r) return BIGINT_ERROR_NULLPTR;
 
-    if(!bigint_cmp_zero(b)) return BIGINT_ERROR_DIVIDE_BY_ZERO;
+    if(!bigint_cmp_zero(b)){
+        return BIGINT_ERROR_DIVIDE_BY_ZERO;
+    }
 
-    if(q->num_of_digit <= a->MSD + 1){
+    if(q && q->num_of_digit <= a->MSD + 1){
         CHECK_OKAY(bigint_expand(q, a->MSD + 1));
     }
-    if(r->num_of_digit <= a->MSD + 1){
+    if(r && r->num_of_digit <= a->MSD + 1){
         CHECK_OKAY(bigint_expand(r, a->MSD + 1));
     }
 
-    CHECK_OKAY(bigint_set_zero(q));
-    CHECK_OKAY(bigint_set_zero(r));
-
-    CHECK_OKAY(bigint_copy(a, r));
-    int count = 0;
-
     bigint tmp_b, tmp_q;
     CHECK_OKAY(bigint_init(&tmp_b, b->num_of_digit + 1));
-    CHECK_OKAY(bigint_init(&tmp_q, q->num_of_digit + 1));
+    if(q){
+        CHECK_OKAY(bigint_set_zero(q));
+        CHECK_OKAY(bigint_init(&tmp_q, q->num_of_digit + 1));
+    }
+    if(r){ 
+        CHECK_OKAY(bigint_set_zero(r));
+    }
 
+    CHECK_OKAY(bigint_copy(a, r));
+    int count = 0;    
+    
     // while r >= b
-    while(bigint_cmp_noCT(r, b) != -1){
+    while(bigint_cmp(r, b) != -1){
         CHECK_OKAY(bigint_copy(b, &tmp_b));
-        CHECK_OKAY(bigint_from_small_int(&tmp_q, 1));
+
+        if(q){
+            CHECK_OKAY(bigint_from_small_int(&tmp_q, 1));
+        }
+        
+        // while r >= tmp_b
         while(bigint_cmp(r, &tmp_b) != -1){
-            // printf("doubling\n");
-            // bigint_print(&tmp_b, "tmp_b = ");
             CHECK_OKAY(bigint_double(&tmp_b, &tmp_b)); 
             count++;
-            // printf("count = %d\n", count);
         }
-        // bigint_print(&tmp_b, "after doubling tmp_b = ");
-        // bigint_print(r, "r = ");
-        while(bigint_cmp_noCT(r, &tmp_b) == -1){
-            // printf("halve\n");
+        
+        // while r < tmp_b
+        while(bigint_cmp(r, &tmp_b) == -1){
             CHECK_OKAY(bigint_halve(&tmp_b, &tmp_b));
             count--;
-            // printf("count = %d\n", count);
         }
-        // bigint_print(&tmp_b, "after halve tmp_b = ");
-        // bigint_print(r, "r = ");
+        // one of the lines above causes MSD to be aligned to leading zeros
+        // which causes bigint_sub confusion and subsequently, read/write out of bound
+        CHECK_OKAY(bigint_clamp(r));
+        CHECK_OKAY(bigint_clamp(&tmp_b));
         CHECK_OKAY(bigint_sub(r, &tmp_b, r));
-        CHECK_OKAY(bigint_mul_pow_2(&tmp_q, count, &tmp_q));
-        
-        // bigint_print(&tmp_q, "tmp_q = ");
-        CHECK_OKAY(bigint_add(q, &tmp_q, q));
-        // bigint_print(q, "q = ");
-        CHECK_OKAY(bigint_set_zero(&tmp_q));
+        if(q){
+            CHECK_OKAY(bigint_mul_pow_2(&tmp_q, count, &tmp_q));
+            CHECK_OKAY(bigint_add(q, &tmp_q, q));
+            CHECK_OKAY(bigint_set_zero(&tmp_q));
+        }
+
         count = 0;
     }
 
     bigint_free(&tmp_b);
-    bigint_free(&tmp_q);
+    if(q){
+        bigint_free(&tmp_q);
+    }
     return BIGINT_OKAY;
 }
 
@@ -1064,9 +1086,13 @@ bigint_err bigint_div_pow_2(const bigint *a, unsigned int b, bigint *c){
     return BIGINT_OKAY;
 }
 
-// bigint_err bigint_mod(const bigint *a, const bigint *b, bigint *c){
+bigint_err bigint_mod(const bigint *a, const bigint *b, bigint *r){
+    if(!a || !b || !r) return BIGINT_ERROR_NULLPTR;
 
-// }
+    CHECK_OKAY(bigint_div(a, b, NULL, r));
+
+    return BIGINT_OKAY;
+}
 
 /*
     this is essentially bitwise AND with 2^b - 1
@@ -1106,6 +1132,12 @@ bigint_err bigint_square(const bigint *a, bigint *c){
     CHECK_OKAY(bigint_mul_karatsuba(a, a, c));
 
     return BIGINT_OKAY;
+}
+
+bigint_err bigint_pow_mod(const bigint *a, const bigint *e, const bigint *m, bigint *c){
+    if(!a || !e || !m || !c) return BIGINT_ERROR_NULLPTR;
+    
+
 }
 
 bigint_err bigint_and(const bigint *a, const bigint *b, bigint *c){

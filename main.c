@@ -48,6 +48,7 @@ bigint_tests bigint_test[] = {
     {"bigint_div_pow_2_test", &bigint_div_pow_2_test, 1},
     {"bigint_mod_pow_2_test", &bigint_mod_pow_2_test, 1},
     {"bigint_div_test", &bigint_div_test, 1},
+    {"bigint_mod_test", &bigint_mod_test, 1},
 };
 
 void run_util_tests(){
