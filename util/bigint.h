@@ -16,6 +16,7 @@
 #define CHECK_OKAY(a) do {if (a != BIGINT_OKAY) return a; } while(0) 
 #define MIN(a, b) ((a) < (b) ? (a) : (b)) // returns min(a, b)
 #define MAX(a, b) ((a) > (b) ? (a) : (b)) // returns max(a, b)
+
 typedef uint32_t digit;
 
 typedef struct {
@@ -150,6 +151,13 @@ bigint_err bigint_inverse_mod(const bigint *a, const bigint *m, bigint *c);
 /////////////////////////////////////////////////////////////////////////////////////////
 
 /* bigint number theory stuff */
+
+/* c = gcd(a, b) */
+bigint_err bigint_gcd(const bigint *a, const bigint *b, bigint *c);
+
+/* c = lcm(a, b) */
+bigint_err bigint_lcm(const bigint *a, const bigint *b, bigint *c);
+
 
 
 

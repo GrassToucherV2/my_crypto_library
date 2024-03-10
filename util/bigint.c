@@ -1206,7 +1206,9 @@ bigint_err bigint_expt_mod(const bigint *a, const bigint *e, const bigint *m, bi
 
     CHECK_OKAY(bigint_from_small_int(c, 1));
     CHECK_OKAY(bigint_mod(&base, m, &base));
-    // while exponent != 0
+    // while exponent > 0, this should be okay even if digits are unsigned
+    // due to exponent being shifted by 1 bit at a time, so exponent will have to be 0
+    // which will terminate the loop before underflow happens
     while(bigint_cmp_zero(&exponent)){
         CHECK_OKAY(bigint_mod(&exponent, &two, &res));
         // if res = 1
@@ -1215,8 +1217,6 @@ bigint_err bigint_expt_mod(const bigint *a, const bigint *e, const bigint *m, bi
         }
 
         CHECK_OKAY(bigint_halve(&exponent, &exponent));
-        // CHECK_OKAY(bigint_square(&base, &base));
-        // CHECK_OKAY(bigint_mod(&base, m, &base));
         CHECK_OKAY(bigint_square_mod(&base, m, &base));
     }
 
@@ -1225,6 +1225,63 @@ bigint_err bigint_expt_mod(const bigint *a, const bigint *e, const bigint *m, bi
     bigint_free(&base);
     bigint_free(&res);
     bigint_free(&exponent);
+
+    return BIGINT_OKAY;
+}
+
+/*
+    This gcd functions implements Euclidean algorithm to finid the gcd(a, b)
+*/
+bigint_err bigint_gcd(const bigint *a, const bigint *b, bigint *c){
+    if(!a || !b || !c) return BIGINT_ERROR_NULLPTR;
+
+    if(c->num_of_digit <= a->MSD + 1){
+        CHECK_OKAY(bigint_expand(c, a->MSD + 1));
+    }
+
+    bigint tmp_a, tmp_b, tmp_r;
+    CHECK_OKAY(bigint_init(&tmp_a, a->num_of_digit));
+    CHECK_OKAY(bigint_init(&tmp_b, b->num_of_digit));
+    CHECK_OKAY(bigint_init(&tmp_r, a->num_of_digit));
+
+    CHECK_OKAY(bigint_copy(a, &tmp_a));
+    CHECK_OKAY(bigint_copy(b, &tmp_b));
+    // while b != 0
+    while(bigint_cmp_zero(&tmp_b)){
+        CHECK_OKAY(bigint_mod(&tmp_a, &tmp_b, &tmp_r)); 
+        CHECK_OKAY(bigint_copy(&tmp_b, &tmp_a)); 
+        CHECK_OKAY(bigint_copy(&tmp_r, &tmp_b)); 
+    }
+
+    CHECK_OKAY(bigint_copy(&tmp_a, c));
+
+    bigint_free(&tmp_a);
+    bigint_free(&tmp_b);
+    bigint_free(&tmp_r);
+    return BIGINT_OKAY;
+}
+
+// lcm(a, b) = (a * b) // gcd(a, b), where // denotes integer division
+bigint_err bigint_lcm(const bigint *a, const bigint *b, bigint *c){
+    if(!a || !b || !c) return BIGINT_ERROR_NULLPTR;
+
+    if(c->num_of_digit != a->num_of_digit + b->num_of_digit){
+        CHECK_OKAY(bigint_expand(c, a->num_of_digit + b->num_of_digit));
+    }
+
+    bigint gcd, remainder, quotient;
+    CHECK_OKAY(bigint_init(&gcd, a->num_of_digit));
+    CHECK_OKAY(bigint_init(&remainder, b->num_of_digit));
+    CHECK_OKAY(bigint_init(&quotient, a->num_of_digit));
+
+    CHECK_OKAY(bigint_mul_karatsuba(a, b, c));
+    CHECK_OKAY(bigint_gcd(a, b, &gcd));
+    CHECK_OKAY(bigint_div(c, &gcd, &quotient, &remainder));
+
+    CHECK_OKAY(bigint_copy(&quotient, c));
+
+    bigint_free(&gcd);
+    bigint_free(&remainder);
 
     return BIGINT_OKAY;
 }

@@ -36,5 +36,8 @@ int bigint_bitwise_op_test();
 int bigint_add_digit_test();
 int bigint_sub_digit_test();
 int bigint_mul_digit_test();
+int bigint_gcd_test();
+int bigint_lcm_test();
+
 
 #endif /* BIGINT_TEST_H */

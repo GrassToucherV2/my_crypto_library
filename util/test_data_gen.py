@@ -1,5 +1,6 @@
 import secrets
 import sys
+import math
 
 def print_hex_format(number, line_length=8):
     # Convert the number to a hexadecimal string, removing the '0x' prefix and padding with zeros to ensure byte alignment
@@ -94,6 +95,10 @@ def perform_operation(num1, num2, num3, op):
         return (num1 * num2) % num3
     elif op == "square_mod":
         return (num1 ** 2) % num2
+    elif op == "gcd":
+        return math.gcd(num1, num2)
+    elif op == "lcm":
+        return math.lcm(num1, num2)
 
 if __name__ == "__main__":
     bits1 = 0
