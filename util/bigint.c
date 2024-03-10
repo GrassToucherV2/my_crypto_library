@@ -1282,6 +1282,7 @@ bigint_err bigint_lcm(const bigint *a, const bigint *b, bigint *c){
 
     bigint_free(&gcd);
     bigint_free(&remainder);
+    bigint_free(&quotient);
 
     return BIGINT_OKAY;
 }
