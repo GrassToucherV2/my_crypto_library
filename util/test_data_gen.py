@@ -90,6 +90,10 @@ def perform_operation(num1, num2, num3, op):
         return num1 * num1
     elif op == "expt_mod":
         return pow(num1, num2, num3)
+    elif op == "mul_mod":
+        return (num1 * num2) % num3
+    elif op == "square_mod":
+        return (num1 ** 2) % num2
 
 if __name__ == "__main__":
     bits1 = 0
@@ -155,4 +159,3 @@ if __name__ == "__main__":
             print_hex_format(result[1])
     
     
-

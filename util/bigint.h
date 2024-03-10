@@ -40,6 +40,8 @@ typedef enum {
 void buffers_xor(const char *a, const char *b, int len, char *output);
 /* bigint utils */
 
+void print_bigint_ctx(const bigint *a);
+
 /* Initialize a bigint and setting it to 0 */
 bigint_err bigint_init(bigint* b, unsigned int num_of_digit);
 
@@ -136,8 +138,14 @@ bigint_err bigint_div_pow_2(const bigint *a, unsigned int b, bigint *c);
 bigint_err bigint_mod(const bigint *a, const bigint *b, bigint *c);
 bigint_err bigint_mod_pow_2(const bigint *a, unsigned int b, bigint *c);
 
+/* c = a * b (mod m) */
+bigint_err bigint_mul_mod(const bigint *a, const bigint *b, const bigint *m, bigint *c);
+/* c = a^2 (mod m) */
+bigint_err bigint_square_mod(const bigint *a, const bigint *m, bigint *c);
 /* c = a^e mod m */
-bigint_err bigint_pow_mod(const bigint *a, const bigint *e, const bigint *m, bigint *c);
+bigint_err bigint_expt_mod(const bigint *a, const bigint *e, const bigint *m, bigint *c);
+/* c = a^(-1) (mod m) */
+bigint_err bigint_inverse_mod(const bigint *a, const bigint *m, bigint *c);
 
 /////////////////////////////////////////////////////////////////////////////////////////
 

@@ -59,8 +59,9 @@ bigint_err bigint_expand(bigint *a, unsigned int num){
 
 bigint_err bigint_set_zero(bigint *a){
     if(!a) return BIGINT_ERROR_NULLPTR;
-    memset(a->digits, 0, a->num_of_digit);
+    memset(a->digits, 0, a->num_of_digit * sizeof(digit));
     a->MSD = 0;
+    // bigint_clamp(a);
     return BIGINT_OKAY;
 }
 
@@ -781,8 +782,11 @@ bigint_err bigint_mul(const bigint *a, const bigint *b, bigint *c){
     if(c->num_of_digit != a_digits_used + b_digits_used){
         CHECK_OKAY(bigint_expand(c, a_digits_used + b_digits_used));
     }
-
+    // bigint_print(c, "c in bigint_mul before setting to zero ");
+    // print_bigint_ctx(c);
     CHECK_OKAY(bigint_set_zero(c));
+    // bigint_print(c, "after setting to zero ");
+    // print_bigint_ctx(c);
 
     uint64_t tmp = 0;
     uint32_t carry = 0;
@@ -790,6 +794,7 @@ bigint_err bigint_mul(const bigint *a, const bigint *b, bigint *c){
     for(; i < a_digits_used; i++){
         carry = 0;
         for(unsigned int j = 0; j < b_digits_used; j++){
+            // printf("c at i = %u, j = %u is %u\n",i, j, c->digits[i + j]);
             tmp = (uint64_t)a->digits[i] * (uint64_t)b->digits[j] + c->digits[i + j] + carry;
             c->digits[i + j] = tmp & BASE;  
             carry = tmp >> DIGIT_BIT;
@@ -799,7 +804,7 @@ bigint_err bigint_mul(const bigint *a, const bigint *b, bigint *c){
 
     c->MSD = a_digits_used + b_digits_used - 1;
 
-    // while(c->MSD > 0 && c->digits[c->MSD] == 0) c->MSD--;
+    while(c->MSD > 0 && c->digits[c->MSD] == 0) c->MSD--;
 
     return BIGINT_OKAY;
 }
@@ -841,8 +846,8 @@ bigint_err bigint_mul_karatsuba(const bigint *a, const bigint *b, bigint *c){
     memcpy(x1.digits, a->digits + B, (a->MSD + 1 - B) * sizeof(digit));
     memcpy(y1.digits, b->digits + B, (b->MSD + 1 - B) * sizeof(digit));
 
-    // bigint_clamp(&x0);
-    // bigint_clamp(&y0);
+    bigint_clamp(&x0);
+    bigint_clamp(&y0);
     
     // x0y0 = x0 * y0
     // x1y1 = x1 * y1
@@ -936,6 +941,14 @@ bigint_err bigint_mul_pow_2(const bigint *a, unsigned int b, bigint *c){
     return BIGINT_OKAY;
 }
 
+bigint_err bigint_square(const bigint *a, bigint *c){
+    if(!a || !c) return BIGINT_ERROR_NULLPTR;
+
+    CHECK_OKAY(bigint_mul_karatsuba(a, a, c));
+
+    return BIGINT_OKAY;
+}
+
 /*
     This function performs integer division, returns the quotient in q and remainder in r
     optimized version of repeated subtraction.
@@ -983,9 +996,9 @@ bigint_err bigint_div(const bigint *a, const bigint *b, bigint *q, bigint *r) {
         CHECK_OKAY(bigint_set_zero(q));
         CHECK_OKAY(bigint_init(&tmp_q, q->num_of_digit + 1));
     }
-    if(r){ 
-        CHECK_OKAY(bigint_set_zero(r));
-    }
+    // if(r){ 
+    //     CHECK_OKAY(bigint_set_zero(r));
+    // }
 
     CHECK_OKAY(bigint_copy(a, r));
     int count = 0;    
@@ -1126,18 +1139,94 @@ bigint_err bigint_mod_pow_2(const bigint *a, unsigned int b, bigint *c){
     return BIGINT_OKAY;
 }
 
-bigint_err bigint_square(const bigint *a, bigint *c){
-    if(!a || !c) return BIGINT_ERROR_NULLPTR;
+bigint_err bigint_mul_mod(const bigint *a, const bigint *b, const bigint *m, bigint *c){
+    if(!a || !b || !m || !c) return BIGINT_ERROR_NULLPTR;
 
-    CHECK_OKAY(bigint_mul_karatsuba(a, a, c));
+    if(!bigint_cmp_zero(m)){
+        return BIGINT_ERROR_DIVIDE_BY_ZERO;
+    }
+
+    // bigint_mul doesn't work when c == a
+    bigint res;
+    CHECK_OKAY(bigint_init(&res, a->num_of_digit + b->num_of_digit));
+
+    CHECK_OKAY(bigint_mul(a, b, &res));
+    CHECK_OKAY(bigint_mod(&res, m, c));
+
+    bigint_free(&res);
+    return BIGINT_OKAY;
+}
+
+bigint_err bigint_square_mod(const bigint *a, const bigint *m, bigint *c){
+    if(!a || !m || !c) return BIGINT_ERROR_NULLPTR;
+
+    if(!bigint_cmp_zero(m)){
+        return BIGINT_ERROR_DIVIDE_BY_ZERO;
+    }
+
+    CHECK_OKAY(bigint_square(a, c));
+    CHECK_OKAY(bigint_mod(c, m, c));
 
     return BIGINT_OKAY;
 }
 
-bigint_err bigint_pow_mod(const bigint *a, const bigint *e, const bigint *m, bigint *c){
+/* 
+    Right-to-left shift binary method, algorithm based on Applied Cryptography by Bruce Schneier
+    https://en.wikipedia.org/wiki/Modular_exponentiation
+*/
+bigint_err bigint_expt_mod(const bigint *a, const bigint *e, const bigint *m, bigint *c){
     if(!a || !e || !m || !c) return BIGINT_ERROR_NULLPTR;
-    
 
+    if(!bigint_cmp_zero(m)){
+        return BIGINT_ERROR_DIVIDE_BY_ZERO;
+    }
+
+    if(c->num_of_digit < m->MSD + 1){
+        CHECK_OKAY(bigint_expand(c, m->MSD + 1));
+    }
+
+    CHECK_OKAY(bigint_set_zero(c));
+    
+    // if m = 1, then the result is always 0
+    bigint one, two;
+    CHECK_OKAY(bigint_init(&one, 1));
+    CHECK_OKAY(bigint_init(&two, 2));
+    CHECK_OKAY(bigint_from_small_int(&one, 1));
+    CHECK_OKAY(bigint_from_small_int(&two, 2));
+    if(!bigint_cmp(&one, m)){
+        return BIGINT_OKAY;    
+    }
+
+    bigint base, exponent, res;
+    CHECK_OKAY(bigint_init(&base, a->num_of_digit));
+    CHECK_OKAY(bigint_init(&exponent, e->num_of_digit));
+    CHECK_OKAY(bigint_init(&res, e->num_of_digit));
+    CHECK_OKAY(bigint_copy(a, &base));
+    CHECK_OKAY(bigint_copy(e, &exponent));
+
+    CHECK_OKAY(bigint_from_small_int(c, 1));
+    CHECK_OKAY(bigint_mod(&base, m, &base));
+    // while exponent != 0
+    while(bigint_cmp_zero(&exponent)){
+        CHECK_OKAY(bigint_mod(&exponent, &two, &res));
+        // if res = 1
+        if(!bigint_cmp(&res, &one)){
+            CHECK_OKAY(bigint_mul_mod(c, &base, m, c));
+        }
+
+        CHECK_OKAY(bigint_halve(&exponent, &exponent));
+        // CHECK_OKAY(bigint_square(&base, &base));
+        // CHECK_OKAY(bigint_mod(&base, m, &base));
+        CHECK_OKAY(bigint_square_mod(&base, m, &base));
+    }
+
+    bigint_free(&one);
+    bigint_free(&two);
+    bigint_free(&base);
+    bigint_free(&res);
+    bigint_free(&exponent);
+
+    return BIGINT_OKAY;
 }
 
 bigint_err bigint_and(const bigint *a, const bigint *b, bigint *c){
