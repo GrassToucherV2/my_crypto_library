@@ -35,6 +35,7 @@ typedef enum {
     BIGINT_ERROR_GENERIC,
     BIGINT_ERROR_SHIFTING,
     BIGINT_ERROR_DIVIDE_BY_ZERO,
+    BIGINT_ERROR_MUL_INVERSE_DOES_NOT_EXIST,
 
 } bigint_err;
 
@@ -158,7 +159,8 @@ bigint_err bigint_gcd(const bigint *a, const bigint *b, bigint *c);
 /* c = lcm(a, b) */
 bigint_err bigint_lcm(const bigint *a, const bigint *b, bigint *c);
 
-
+/* Extended Euclidean algorithm, used to find modular multiplicative inverse here */
+bigint_err bigint_extended_gcd(const bigint *a, const bigint *m, bigint *gcd, bigint *x);
 
 
 

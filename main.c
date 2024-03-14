@@ -51,6 +51,7 @@ bigint_tests bigint_test[] = {
     {"bigint_mod_test", &bigint_mod_test, 1},
     {"bigint_gcd_test", &bigint_gcd_test, 1},
     {"bigint_lcm_test", &bigint_lcm_test, 1},
+    {"bigint_inverse_mod_test", &bigint_inverse_mod_test, 1},
     {"bigint_mul_mod_test", &bigint_mul_mod_test, 1},
     {"bigint_square_mod_test", &bigint_square_mod_test, 1},
     {"bigint_expt_mod_test", &bigint_expt_mod_test, 1},

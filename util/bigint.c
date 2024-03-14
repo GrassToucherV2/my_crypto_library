@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdbool.h>
 #include "tools.h"
 #include "bigint.h"
 
@@ -54,7 +55,6 @@ bigint_err bigint_expand(bigint *a, unsigned int num){
     a->digits = tmp;
     a->num_of_digit = num;
     return BIGINT_OKAY;
-
 }
 
 bigint_err bigint_set_zero(bigint *a){
@@ -102,6 +102,16 @@ bigint_err bigint_copy(const bigint *src, bigint *dest){
     dest->MSD = src->MSD;
 
     return BIGINT_OKAY;
+}
+
+void bigint_swap(bigint *a, bigint *b){
+    printf("bigint_swap\n");
+    bigint tmp;
+    bigint_init(&tmp, a->num_of_digit);
+    bigint_copy(a, &tmp);
+    a = b;
+    b = &tmp;
+    bigint_free(&tmp);
 }
 
 bigint_err bigint_from_small_int(bigint *b, digit a){
@@ -638,7 +648,7 @@ bigint_err bigint_add(const bigint *a, const bigint *b, bigint *c){
     } else{
         c->MSD = i - 1;  
     }
-      
+    
     return BIGINT_OKAY;
 }
 
@@ -1287,6 +1297,168 @@ bigint_err bigint_lcm(const bigint *a, const bigint *b, bigint *c){
     return BIGINT_OKAY;
 }
 
+// not used, but keep it here in case it is needed in the future
+// bigint_err bigint_extended_gcd(const bigint *a, const bigint *m, bigint *gcd, bigint *x){
+//     if (!a || !m || !gcd || !x) return BIGINT_ERROR_NULLPTR;
+
+//     bigint x0, x1, y0, y1;
+//     bigint b;
+//     bigint q;
+//     bigint r;
+//     bigint tmp;
+
+//     CHECK_OKAY(bigint_init(&x0, 1));
+//     CHECK_OKAY(bigint_init(&x1, 1));
+//     CHECK_OKAY(bigint_init(&y0, 1));
+//     CHECK_OKAY(bigint_init(&y1, 1));
+//     CHECK_OKAY(bigint_init(&tmp, a->num_of_digit));
+//     CHECK_OKAY(bigint_init(&b, m->num_of_digit));
+//     CHECK_OKAY(bigint_init(&q, m->num_of_digit));
+//     CHECK_OKAY(bigint_init(&r, m->num_of_digit));
+
+//     CHECK_OKAY(bigint_from_small_int(&x0, 1));
+//     CHECK_OKAY(bigint_from_small_int(&x1, 0));
+//     CHECK_OKAY(bigint_from_small_int(&y0, 0));
+//     CHECK_OKAY(bigint_from_small_int(&x0, 1));
+//     CHECK_OKAY(bigint_copy(m, &b));
+//     CHECK_OKAY(bigint_copy(a, gcd));
+
+//     // while tmp_m != 0
+//     while(bigint_cmp_zero(&b)){
+//         CHECK_OKAY(bigint_div(gcd, &b, &q, &r));    // q = a // b, r = a % b 
+//         CHECK_OKAY(bigint_copy(&b, gcd));           // gcd or a = b 
+//         CHECK_OKAY(bigint_copy(&r, &b));            // b = r
+
+//         CHECK_OKAY(bigint_copy(&x1, &x0));          // x0 = x1
+//         CHECK_OKAY(bigint_mul(&q, &x1, &tmp));      // tmp = q * x1
+//         CHECK_OKAY(bigint_sub(&x0, &tmp, &x1));     // x1 = x0 - q * x1
+
+//         CHECK_OKAY(bigint_copy(&y1, &y0));          // y0 = y1
+//         CHECK_OKAY(bigint_mul(&q, &y1, &tmp));      // tmp = q * y1
+//         CHECK_OKAY(bigint_sub(&y0, &tmp, &y1));     // y1 = y0 - q * y1
+
+        
+//     }       
+
+//     CHECK_OKAY(bigint_copy(&x0, x));
+
+//     bigint_free(&x0);
+//     bigint_free(&x1);
+//     bigint_free(&y0);
+//     bigint_free(&y1);
+//     bigint_free(&b);
+//     bigint_free(&q);
+//     bigint_free(&r);
+//     bigint_free(&tmp);
+
+//     return BIGINT_OKAY;
+// }
+
+// temporarty struct used to handle modular inverse 
+// https://stackoverflow.com/questions/53560302/modular-inverses-and-unsigned-integers
+// Maybe I should move this to the header? Perhaps other future functions will need it
+typedef struct signed_bigint{
+    bigint bi;
+    bool sign;    // 1 = negative, 0 = positive
+} signed_bigint;
+
+bigint_err bigint_inverse_mod(const bigint *a, const bigint *m, bigint *c){
+    if (!a || !m || !c) return BIGINT_ERROR_NULLPTR;
+
+    if (c->num_of_digit != a->num_of_digit) {
+        CHECK_OKAY(bigint_expand(c, m->num_of_digit));
+    }
+
+    bigint one, gcd;
+    CHECK_OKAY(bigint_init(&one, 1));
+    CHECK_OKAY(bigint_init(&gcd, 1));
+    CHECK_OKAY(bigint_from_small_int(&one, 1));
+
+    CHECK_OKAY(bigint_gcd(a, m, &gcd));
+    // If GCD is not 1, modular multiplicative inverse doesn't exist
+    if (bigint_cmp(&gcd, &one) != 0) { 
+        bigint_free(&gcd);
+        bigint_free(&one);
+        return BIGINT_ERROR_MUL_INVERSE_DOES_NOT_EXIST;
+    } 
+    
+    bigint_free(&gcd);
+
+    signed_bigint x0;
+    signed_bigint x1;
+    x0.sign = 0;
+    x1.sign = 0;
+    CHECK_OKAY(bigint_init(&x0.bi, 1));
+    CHECK_OKAY(bigint_init(&x1.bi, 1));
+    CHECK_OKAY(bigint_from_small_int(&x0.bi, 0));
+    CHECK_OKAY(bigint_from_small_int(&x1.bi, 1));
+
+    bigint tmp_m;   // tmp var for m
+    bigint tmp_a;   // tmp var for a
+    bigint q;   // q = tmp_a // tmp_m
+    bigint r;   // r = tmp_a % tmp_m
+    bigint t;   // tmp var to hold intermediate values 
+    bigint qx0;   // qx0 = q * x0 
+
+    CHECK_OKAY(bigint_init(&tmp_m, m->num_of_digit));
+    CHECK_OKAY(bigint_init(&tmp_a, a->num_of_digit));
+    CHECK_OKAY(bigint_init(&q, a->num_of_digit));
+    CHECK_OKAY(bigint_init(&r, m->num_of_digit));
+    CHECK_OKAY(bigint_init(&t, m->num_of_digit));
+    CHECK_OKAY(bigint_init(&qx0, m->num_of_digit));
+
+    CHECK_OKAY(bigint_copy(a, &tmp_a));
+    CHECK_OKAY(bigint_copy(m, &tmp_m));
+
+    signed_bigint t2;
+    CHECK_OKAY(bigint_init(&t2.bi, x0.bi.num_of_digit));
+
+    while(bigint_cmp(&tmp_a, &one) == 1){
+        CHECK_OKAY(bigint_div(&tmp_a, &tmp_m, &q, &r));
+        CHECK_OKAY(bigint_copy(&tmp_m, &t));
+        CHECK_OKAY(bigint_copy(&r, &tmp_m));
+        CHECK_OKAY(bigint_copy(&t, &tmp_a));
+        
+        CHECK_OKAY(bigint_copy(&x0.bi, &t2.bi));
+        t2.sign = x0.sign;
+
+        CHECK_OKAY(bigint_mul(&q, &x0.bi, &qx0));
+        if(x0.sign != x1.sign){
+            CHECK_OKAY(bigint_add(&x1.bi, &qx0, &x0.bi));
+            x0.sign = x1.sign;
+        } else{
+            if(bigint_cmp(&x1.bi, &qx0) == 1){
+                CHECK_OKAY(bigint_sub(&x1.bi, &qx0, &x0.bi));
+                x0.sign = x1.sign;
+            } else {
+                CHECK_OKAY(bigint_sub(&qx0, &x1.bi, &x0.bi));
+                x0.sign = !x1.sign;
+            }
+        }
+        CHECK_OKAY(bigint_copy(&t2.bi, &x1.bi));
+        x1.sign = t2.sign;
+    }
+    
+    if(x1.sign){
+        CHECK_OKAY(bigint_sub(m, &x1.bi, c));
+    } else {
+        CHECK_OKAY(bigint_copy(&x1.bi, c));
+    }
+
+    bigint_free(&tmp_m);
+    bigint_free(&tmp_a);
+    bigint_free(&q);
+    bigint_free(&t);
+    bigint_free(&r);
+    bigint_free(&qx0);
+    bigint_free(&one);
+    bigint_free(&x0.bi);
+    bigint_free(&x1.bi);
+    bigint_free(&t2.bi);
+    return BIGINT_OKAY;    
+}
+
+
 bigint_err bigint_and(const bigint *a, const bigint *b, bigint *c){
     if(!a || !b || !c) return BIGINT_ERROR_NULLPTR;
 
@@ -1372,7 +1544,7 @@ bigint_err bigint_or(const bigint *a, const bigint *b, bigint *c){
 bigint_err bigint_xor(const bigint *a, const bigint *b, bigint *c){
     if(!a || !b || !c) return BIGINT_ERROR_NULLPTR;
 
-   bigint bigger, smaller;
+    bigint bigger, smaller;
     unsigned int i = 0;
     
     int r = bigint_cmp(a, b);

@@ -38,6 +38,7 @@ int bigint_sub_digit_test();
 int bigint_mul_digit_test();
 int bigint_gcd_test();
 int bigint_lcm_test();
+int bigint_inverse_mod_test();
 
 
 #endif /* BIGINT_TEST_H */
