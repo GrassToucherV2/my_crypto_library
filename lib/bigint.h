@@ -39,7 +39,6 @@ typedef enum {
 
 } bigint_err;
 
-void buffers_xor(const char *a, const char *b, int len, char *output);
 /* bigint utils */
 
 void print_bigint_ctx(const bigint *a);

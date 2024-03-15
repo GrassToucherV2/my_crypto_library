@@ -1,11 +1,13 @@
 #include <stdio.h>
 #include "test/test_util.h"
 #include "test/bigint_test.h"
+#include "test/hash_test.h"
 #include "set1/set1_challenge.h"
 
 #define NUM_UTIL_TEST 4
 #define NUM_CHAL_TEST 5
 #define NUM_BIGINT_TEST (sizeof(bigint_test) / sizeof(bigint_test[0]))
+#define NUM_HASH_TEST (sizeof(hash_test) / sizeof(hash_test[0]))
 
 util_unit_test util_tests[] = {
     {"hex_to_bytes_conv_test", &hex_to_bytes_conv_test, 1},
@@ -57,6 +59,10 @@ bigint_tests bigint_test[] = {
     {"bigint_expt_mod_test", &bigint_expt_mod_test, 1},
 };
 
+hash_tests hash_test[] = {
+    {"md5_sanity_test", &md5_sanity_test, 1},
+};
+
 void run_util_tests(){
     int num_tests = sizeof(util_tests) / sizeof(util_tests[0]);
     for(int i = 0; i < num_tests; i++){
@@ -96,6 +102,28 @@ void run_bigint_test(){
     printf("Failed: %d\n", num_failed);
     printf("Skipped: %d\n", num_skipped);
 }
+
+void run_hash_test(){
+    printf("========== Hashing Algorithms tests ==========\n");
+    int num = sizeof(hash_test) / sizeof(hash_test[0]);
+    int num_failed = 0;
+    int num_skipped = 0;
+    for(int i = 0; i < num; i++){
+        if(bigint_test[i].enabled){
+            print_msg(YELLOW, hash_test[i].name);
+            num_failed += hash_test[i].unit_test_fn();
+            printf("\n");
+        } else {
+            num_skipped++;
+        }
+    }
+    printf("========== Summary ==========\n");
+    printf("Total tests: %d\n", num);
+    printf("Passed: %d\n", num - num_failed - num_skipped);
+    printf("Failed: %d\n", num_failed);
+    printf("Skipped: %d\n", num_skipped);
+}
+
 int main(int argc, char *argv[]){
     if(argc == 1){
         printf("Running all tests\n\n");
@@ -114,6 +142,10 @@ int main(int argc, char *argv[]){
         else if(!strcmp(argv[1], "b")){
             printf("Running bigint tests\n\n");
             run_bigint_test();
+        }
+        else if(!strcmp(argv[1], "h")){
+            printf("Running hashing algorithms tests\n\n");
+            run_hash_test();
         }
         else{
             printf("Unrecognized arg\n");
@@ -144,6 +176,17 @@ int main(int argc, char *argv[]){
         }
         else if(!strcmp(argv[1], "b")){
             for(int i = 0; i < (int)NUM_BIGINT_TEST; i++){
+                if(!strcmp(argv[2], bigint_test[i].name)){
+                    bigint_test[i].unit_test_fn();
+                    printf("\n");
+                    return 0;
+                }
+            }
+            printf("Test %s not found\n", argv[2]);
+            return 0;
+        }
+        else if(!strcmp(argv[1], "h")){
+            for(int i = 0; i < (int)NUM_HASH_TEST; i++){
                 if(!strcmp(argv[2], bigint_test[i].name)){
                     bigint_test[i].unit_test_fn();
                     printf("\n");

@@ -6,7 +6,7 @@
 #include <stdlib.h>
 #include "set1_challenge.h"
 #include "../util/tools.h"
-#include "../util/bigint.h"
+#include "../lib/bigint.h"
 #include "../test/test_util.h"
 
 /* Challenge tests */

@@ -37,5 +37,6 @@ int three_bytes_to_base64(int24 *num, char *output);
 int bytes_to_base64(const char *input, int input_len, char *output);
 void printBinary(int number) ;
 int read_b64(const char *bytes, int len, char *output); // read bytes array into output buffer
+void buffers_xor(const char *a, const char *b, int len, char *output);
 
 #endif /* TOOLS_H */

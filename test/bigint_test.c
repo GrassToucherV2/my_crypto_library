@@ -1,5 +1,5 @@
 #include "bigint_test.h"
-#include "../util/bigint.h"
+#include "../lib/bigint.h"
 #include "test_util.h"
 #include <valgrind/memcheck.h>
 #include <assert.h>
