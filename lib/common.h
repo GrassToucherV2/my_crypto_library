@@ -34,7 +34,8 @@
 typedef enum {
     CRYPT_OKAY = 0,
     CRYPT_FAILURE = 1, 
-    CRYPT_BAD_BUFFER_LEN = 2, 
+    CRYPT_NULL_PTR = 2,
+    CRYPT_BAD_BUFFER_LEN = 3, 
 } crypt_status;
 
 #endif /* COMMON_H */

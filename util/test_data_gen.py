@@ -35,31 +35,41 @@ def print_help_menu():
     print("""
 Usage: script_name [BITS1] [BITS2] (BITS3) [OPERATION]
 
-This script performs various arithmetic operations on large, randomly generated numbers.
+This script generates random test data for my crypto library.
 
+============================================ bigint operations =================================================
 Arguments:
-  BITS1      Number of bits for the first random number - num1
-  BITS2      Number of bits for the second random number (optional for certain operations) - num2
-  BITS3      Number of bits for the third random number (required only for certain operations) - num3
-  OPERATION  The arithmetic operation to perform. Supported operations include:
-             - add      Addition of two numbers -- num1 + num2
-             - sub      Subtraction of two numbers -- num1 - num2
-             - mul      Multiplication of two numbers -- num1 * num2
-             - dou      Doubling the first number -- num1 * 2
-             - half     Halving the first number -- num1 / 2
-             - div      Integer division of two numbers, returns quotient and remainder -- num1 // num2 , num1 % num2
-             - mod      Modulus operation of two numbers -- num1 % num2
-             - or       Bitwise OR of two numbers -- num1 | num2
-             - and      Bitwise AND of two numbers -- num1 & num2
-             - xor      Bitwise XOR of two numbers -- num1 ^ num2
-             - not      Bitwise NOT of the first number -- ~num1
-             - lshift   Left shift the first number by the number of bits specified in BITS2 -- num1 << num2
-             - rshift   Right shift the first number by the number of bits specified in BITS2 -- num1 >> num2
-             - mul_pow_2 Multiply the first number by 2 raised to BITS2 -- num1 * (2^BITS2)
-             - div_pow_2 Integer division of the first number by 2 raised to BITS2 -- num1 / (2^BITE)
-             - mod_pow_2 Modulus of the first number by 2 raised to BITS2 -- num1 % (2^BITS2)
-             - sqr      Square of the first number -- num1^2
-             - expt_mod Modular exponentiation of two numbers with modulus BITS3 -- (num1 * num2) % num3
+    BITS1      Number of bits for the first random number                                        - num1
+    BITS2      Number of bits for the second random number (optional for certain operations)     - num2
+    BITS3      Number of bits for the third random number (required only for certain operations) - num3
+    OPERATION  The operation to perform. 
+            - add       Addition of two numbers                                                    -- num1 + num2
+            - sub       Subtraction of two numbers                                                 -- num1 - num2
+            - mul       Multiplication of two numbers                                              -- num1 * num2
+            - dou       Doubling the first number                                                  -- num1 * 2
+            - hal      Halving the first number                                                   -- num1 / 2
+            - div       Integer division of two numbers, returns quotient and remainder            -- num1 // num2 , num1 % num2
+            - mod       Modulus operation of two numbers                                           -- num1 % num2
+            - or        Bitwise OR of two numbers                                                  -- num1 | num2
+            - and       Bitwise AND of two numbers                                                 -- num1 & num2
+            - xor       Bitwise XOR of two numbers                                                 -- num1 ^ num2
+            - not       Bitwise NOT of the first number                                            -- ~num1
+            - lshift    Left shift the first number by the number of bits specified in BITS2       -- num1 << num2
+            - rshift    Right shift the first number by the number of bits specified in BITS2      -- num1 >> num2
+            - mul_pow_2 Multiply the first number by 2 raised to BITS2                             -- num1 * (2^BITS2)
+            - div_pow_2 Integer division of the first number by 2 raised to BITS2                  -- num1 / (2^BITE)
+            - mod_pow_2 Modulus of the first number by 2 raised to BITS2                           -- num1 % (2^BITS2)
+            - sqr       Square of the first number                                                 -- num1^2
+            - expt_mod  Modular exponentiation of two numbers with modulus BITS3                   -- (num1 * num2) % num3
+            - mod_inv   Modular multiplicative inverse                                             -- num1^-1 (mod num2)
+    
+    ============================================ hashing operations =================================================
+    Arguments:
+        BITS1      Number of bits for the first random string                                        - num1
+        BITS2      Number of bits for the second random string (optional for certain operations)     - num2
+        BITS3      Number of bits for the third random string (required only for certain operations) - num3  
+        Operation  The hash algorithm  
+            - md5       compute MD5 hash
 """)
 
 
@@ -72,7 +82,7 @@ def perform_operation(num1, num2, num3, op):
         return num1 * num2
     elif op == "dou":
         return num1 * 2
-    elif op == "half":
+    elif op == "hal":
         return num1 >> 1
     elif op == "div":
         if num2 == 0:

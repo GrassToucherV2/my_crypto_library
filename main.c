@@ -60,7 +60,7 @@ bigint_tests bigint_test[] = {
 };
 
 hash_tests hash_test[] = {
-    {"md5_sanity_test", &md5_sanity_test, 1},
+    {"md5_test", &md5_test, 1},
 };
 
 void run_util_tests(){

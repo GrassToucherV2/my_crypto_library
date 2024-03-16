@@ -7,7 +7,7 @@ typedef struct {
     int enabled;
 } hash_tests;
 
-int md5_sanity_test();
+int md5_test();
 
 
 #endif /* HASH_TEST_H */

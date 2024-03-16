@@ -4,7 +4,8 @@
 FILES=(
     "test/test_util.c"       
     "util/tools.c"          
-    "main.c"                
+    "main.c"  
+    "lib/crypto_api.c"              
     "lib/bigint.c"    
     "lib/md5.c"        
     "test/bigint_test.c"  
