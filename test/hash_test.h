@@ -8,6 +8,7 @@ typedef struct {
 } hash_tests;
 
 int md5_test();
+int sha1_test();
 
 
 #endif /* HASH_TEST_H */

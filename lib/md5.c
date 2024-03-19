@@ -4,6 +4,16 @@
 #include "md5.h"
 #include "../test/test_util.h"
 
+/*
+    MD5 is a hashing algorithm that played an important role in data integrity 
+    and authentication over the years. However, in recent years, it has become 
+    insecure, and is known to be vulnerable to collision attack and preimage attack. 
+    Therefore new systems should not use MD5. Instead, they should choose more secure 
+    algorithms, like SHA256
+
+    This implementation will not work on 32-bit devices.
+*/
+
 // four words specified in RFC 1321, step 3.3
 const uint32_t word_A = 0x67452301;
 const uint32_t word_B = 0xefcdab89;
@@ -62,29 +72,7 @@ const uint32_t word_D = 0x10325476;
     A += B;                             \
 } while(0)
 
-// this function converts the input of type uint32_t array to unsigned char array
-static void encode (const uint32_t *input, unsigned int input_len, unsigned char *output){
-    unsigned int i, j;
-    for (i = 0, j = 0; j < input_len; i++, j += 4) {
-        output[j] = (unsigned char)(input[i] & 0xff);
-        output[j+1] = (unsigned char)((input[i] >> 8) & 0xff);
-        output[j+2] = (unsigned char)((input[i] >> 16) & 0xff);
-        output[j+3] = (unsigned char)((input[i] >> 24) & 0xff);
-    }
-}
-
-// this function converts the input of type unsigned char array to uint32_t array
-static void decode (const unsigned char *input, unsigned int input_len, uint32_t *output){
-    unsigned int i, j;
-    for (i = 0, j = 0; j < input_len; i++, j += 4){
-        output[i] = (uint32_t)input[j] | 
-                    ((uint32_t)input[j+1] << 8) |
-                    ((uint32_t)input[j+2] << 16) |
-                    ((uint32_t)input[j+3] << 24);
-    }
-}
-
-// 4 Rounds of MD5 transformation, updates the state based on the 64-bit block
+// 4 Rounds of MD5 transformation, updates the state based on the 64-byte block
 static void md5_transformation(md5_ctx *ctx, const unsigned char *block){
     uint32_t a = ctx->state[0];
     uint32_t b = ctx->state[1];
@@ -92,7 +80,7 @@ static void md5_transformation(md5_ctx *ctx, const unsigned char *block){
     uint32_t d = ctx->state[3];
 
     uint32_t x[16] = {0};
-    decode(block, MD5_BLOCK_SIZE_BYTES, x);
+    memcpy(x, block, 64);
 
     /* Round 1 */
     FF (a, b, c, d, x[ 0], S11, 0xd76aa478); /* 1 */
@@ -254,23 +242,31 @@ crypt_status md5_update(md5_ctx *ctx, const unsigned char *input, unsigned int i
 crypt_status md5_finish(md5_ctx *ctx, unsigned char *digest){
     if(!ctx || !digest) return CRYPT_NULL_PTR;
 
-    unsigned char msg_len[8];
     unsigned int index, pad_len;
-    encode((uint32_t *)&ctx->bit_count, sizeof(ctx->bit_count), msg_len); // I think this might be a problem
 
     // apply the padding
+    // index = num_bytes mod 64
     index = (unsigned int)((ctx->bit_count >> 3) & 0x3f); 
+    // pad the message with a bit of 1, then 0s until the size of
+    // the message in bit in congruent to 448 (mod 512)
     pad_len = (index < 56) ? (56 - index) : (120 - index);
-    md5_update(ctx, pad_bytes, pad_len);
-
+    memcpy(&ctx->buffer[index], pad_bytes, pad_len);
+    
+    index += pad_len;
+    
     // append the message length as 64-bit value
-    md5_update(ctx, msg_len, 8);
-
+    memcpy(&ctx->buffer[index], &ctx->bit_count, 8);
+    md5_transformation(ctx, ctx->buffer);
+    
     // generate 16-byte or 128-bit digest
-    encode(ctx->state, 16, digest);
-
+    uint32_t state_le[4];
+    state_le[0] = BE32TOLE32(ctx->state[0]);
+    state_le[1] = BE32TOLE32(ctx->state[1]);
+    state_le[2] = BE32TOLE32(ctx->state[2]);
+    state_le[3] = BE32TOLE32(ctx->state[3]);
+    memcpy(digest, state_le, MD5_DIGESTS_LEN_BYTES);
+    
     memset(ctx, 0, sizeof(*ctx));
-
     return CRYPT_OKAY;
 }    
 

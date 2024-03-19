@@ -1,6 +1,7 @@
 import secrets
 import sys
 import math
+import hashlib
 
 def extended_gcd(a, b):
     x0, x1, y0, y1 = 1, 0, 0, 1
@@ -16,6 +17,11 @@ def mod_inverse(a, m):
         return 0  # Modular inverse does not exist if a and m are not coprime
     else:
         return x % m
+    
+def md5_hash(data):
+    m = hashlib.md5()
+    m.update(data)
+    return int(m.hexdigest(), 16)
 
 def print_hex_format(number, line_length=8):
     # Convert the number to a hexadecimal string, removing the '0x' prefix and padding with zeros to ensure byte alignment
@@ -126,6 +132,9 @@ def perform_operation(num1, num2, num3, op):
         return math.lcm(num1, num2)
     elif op == "mod_inv":
         return mod_inverse(num1, num2)
+    elif op == "md5":
+        byte_data = num1.to_bytes((num1.bit_length() + 7) // 8, byteorder='big') or b'\x00'
+        return md5_hash(byte_data)
 
 if __name__ == "__main__":
     bits1 = 0

@@ -61,6 +61,7 @@ bigint_tests bigint_test[] = {
 
 hash_tests hash_test[] = {
     {"md5_test", &md5_test, 1},
+    {"sha1_test", &sha1_test, 1},
 };
 
 void run_util_tests(){

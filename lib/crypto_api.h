@@ -1,10 +1,14 @@
 #ifndef CRYPTO_API_H
 #define CRYPTO_API_H
 
-#include "md5.h"
 #include "common.h"
 
-crypt_status md5(md5_ctx *ctx, const unsigned char *input,
+crypt_status crypt_md5(const unsigned char *input,
+                 unsigned int input_len, unsigned char *output,
+                 unsigned int output_len
+);
+
+crypt_status crypt_sha1(const unsigned char *input,
                  unsigned int input_len, unsigned char *output,
                  unsigned int output_len
 );

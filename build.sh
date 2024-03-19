@@ -8,6 +8,7 @@ FILES=(
     "lib/crypto_api.c"              
     "lib/bigint.c"    
     "lib/md5.c"        
+    "lib/sha1.c"        
     "test/bigint_test.c"  
     "test/hash_test.c"                     
     "set1/challenge1.c"     
