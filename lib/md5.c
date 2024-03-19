@@ -163,21 +163,6 @@ static void md5_transformation(md5_ctx *ctx, const unsigned char *block){
     memset(x, 0, sizeof(x));
 }
 
-static const unsigned char pad_bytes[] = {
-    0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
-};
-
 crypt_status md5_init(md5_ctx *ctx){
     if(!ctx) return CRYPT_NULL_PTR;
 
@@ -242,20 +227,27 @@ crypt_status md5_update(md5_ctx *ctx, const unsigned char *input, unsigned int i
 crypt_status md5_finish(md5_ctx *ctx, unsigned char *digest){
     if(!ctx || !digest) return CRYPT_NULL_PTR;
 
-    unsigned int index, pad_len;
-
-    // apply the padding
     // index = num_bytes mod 64
-    index = (unsigned int)((ctx->bit_count >> 3) & 0x3f); 
-    // pad the message with a bit of 1, then 0s until the size of
-    // the message in bit in congruent to 448 (mod 512)
-    pad_len = (index < 56) ? (56 - index) : (120 - index);
-    memcpy(&ctx->buffer[index], pad_bytes, pad_len);
-    
-    index += pad_len;
-    
-    // append the message length as 64-bit value
-    memcpy(&ctx->buffer[index], &ctx->bit_count, 8);
+    unsigned int index = (unsigned int)((ctx->bit_count >> 3) & 0x3f);
+
+    // apply the padding, beginning with a bit of 1 right after what's left in the buffer
+    ctx->buffer[index] = 0x80;
+    index++; 
+
+    // if there is no more room for appending the length (8 bytes), we pad it with 0
+    // and then process it, then prepare a new block with the first 56 bytes 
+    // being only 0
+    if(index >= 56){    
+        memset(&ctx->buffer[index], 0, MD5_BLOCK_SIZE_BYTES - index);
+        md5_transformation(ctx, ctx->buffer);
+        memset(ctx->buffer, 0, 56);
+    } else {
+        memset(&ctx->buffer[index], 0, 56 - index);
+    }
+
+    // append the message length as 64-bit value at index 56
+    uint64_t bit_count_be = BE64TOLE64(ctx->bit_count);
+    memcpy(&ctx->buffer[56], &bit_count_be, 8);
     md5_transformation(ctx, ctx->buffer);
     
     // generate 16-byte or 128-bit digest

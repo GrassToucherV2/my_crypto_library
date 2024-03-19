@@ -5,7 +5,7 @@
 #include "common.h"
 
 #define SHA1_DIGEST_LEN_BYTES 20
-#define SHA1_MEG_BLOCK_LEN_BYTES 64
+#define SHA1_MSG_BLOCK_LEN_BYTES 64
 
 typedef struct {
     uint32_t state[5];          // message digests

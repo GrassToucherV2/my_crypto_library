@@ -3,6 +3,8 @@
 #include "../util/tools.h"
 #include <stdio.h>
 
+// test vectors from RFC 1321
+// https://www.ietf.org/rfc/rfc1321.txt
 int md5_test(){
     int failed = 0;
 
@@ -89,22 +91,21 @@ int md5_test(){
         print_bytes_array(digest, sizeof(digest), "digest = ");
     }
 
-    // this test case causes stack smashing for some reason>
-    // const unsigned char a6[] = {"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"};
-    // const unsigned char d6[] = {
-    //     0xd1, 0x74, 0xab, 0x98, 0xd2, 0x77, 0xd9, 0xf5, 
-    //     0xa5, 0x61, 0x1c, 0x2c, 0x9f, 0x41, 0x9d, 0x9f
-    // };
-    // crypt_md5(a6, sizeof(a6) - 1, digest, sizeof(digest));
-    // if(memcmp(digest, d6, sizeof(d6))){
-    //     print_failed("MD5 test 6 - failed");
-    //     print_bytes_array(digest, sizeof(digest), "computed digest = ");
-    //     print_bytes_array(d6, sizeof(d6), "expected digest = ");
-    //     failed = 1;
-    // } else {
-    //     print_passed("MD5 test 6 - passed");
-    //     print_bytes_array(digest, sizeof(digest), "digest = ");
-    // }
+    const unsigned char a6[] = {"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"};
+    const unsigned char d6[] = {
+        0xd1, 0x74, 0xab, 0x98, 0xd2, 0x77, 0xd9, 0xf5, 
+        0xa5, 0x61, 0x1c, 0x2c, 0x9f, 0x41, 0x9d, 0x9f
+    };
+    crypt_md5(a6, sizeof(a6) - 1, digest, sizeof(digest));
+    if(memcmp(digest, d6, sizeof(d6))){
+        print_failed("MD5 test 6 - failed");
+        print_bytes_array(digest, sizeof(digest), "computed digest = ");
+        print_bytes_array(d6, sizeof(d6), "expected digest = ");
+        failed = 1;
+    } else {
+        print_passed("MD5 test 6 - passed");
+        print_bytes_array(digest, sizeof(digest), "digest = ");
+    }
 
     const unsigned char a7[] = {"12345678901234567890123456789012345678901234567890123456789012345678901234567890"};
     const unsigned char d7[] = {
@@ -149,6 +150,8 @@ int md5_test(){
     return failed;
 }
 
+// test vectors from FIPS 180-1
+// https://public.websites.umich.edu/~x509/ssleay/fip180/fip180-1.htm
 int sha1_test(){
     int failed = 0;
     unsigned char digest[20] = {0};
@@ -169,6 +172,48 @@ int sha1_test(){
         failed = 1;
     } else {
         print_passed("SHA1 test 1 - passed");
+        print_bytes_array(digest, sizeof(digest), "digest = ");
+    }
+
+    const unsigned char a2[] = {"abcdbcdecdefdefgefghfghighijhijkijkljklmklmnlmnomnopnopq"};
+    const unsigned char d2[] = {
+        0x84, 0x98, 0x3E, 0x44, 0x1C, 0x3B, 0xD2, 0x6E, 
+        0xBA, 0xAE, 0x4A, 0xA1, 0xF9, 0x51, 0x29, 0xE5, 
+        0xE5, 0x46, 0x70, 0xF1
+    };
+
+    // sizeof(a1) - 1 to remove additional byte due to null char at the end 
+    crypt_sha1(a2, sizeof(a2) - 1, digest, sizeof(digest));
+    if(memcmp(digest, d2, sizeof(d2))){
+        print_failed("SHA1 test 2 - failed");
+        print_bytes_array(digest, sizeof(digest), "computed digest = ");
+        print_bytes_array(d2, sizeof(d2), "expected digest = ");
+        failed = 1;
+    } else {
+        print_passed("SHA1 test 2 - passed");
+        print_bytes_array(digest, sizeof(digest), "digest = ");
+    }
+
+    unsigned char a3[1000000];
+    const unsigned char d3[] = {
+        0x34, 0xAA, 0x97, 0x3C, 0xD4, 0xC4, 0xDA, 0xA4, 
+        0xF6, 0x1E, 0xEB, 0x2B, 0xDB, 0xAD, 0x27, 0x31, 
+        0x65, 0x34, 0x01, 0x6F
+    };
+
+    for(int i = 0; i < 1000000; i++){
+        a3[i] = 'a';
+    }
+
+    // not sizeof(a3) - 1 here because we manually set the string
+    crypt_sha1(a3, sizeof(a3), digest, sizeof(digest));
+    if(memcmp(digest, d3, sizeof(d3))){
+        print_failed("SHA1 test 3 - failed");
+        print_bytes_array(digest, sizeof(digest), "computed digest = ");
+        print_bytes_array(d3, sizeof(d3), "expected digest = ");
+        failed = 1;
+    } else {
+        print_passed("SHA1 test 3 - passed");
         print_bytes_array(digest, sizeof(digest), "digest = ");
     }
 

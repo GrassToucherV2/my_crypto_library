@@ -1,8 +1,18 @@
 #include "sha1.h"
+#include "../util/tools.h"
 #include <string.h>
 
 /*
+    FIPS 180-1
     https://public.websites.umich.edu/~x509/ssleay/fip180/fip180-1.htm
+
+    Just like MD5, SHA-1 is also used for data integrity and for digital signature.
+    However, it is proven that SHA-1 is also vulnerable to collusion attack like MD5, and 
+    in 2017, SHAttered attack marked the first practical demonstration of a collision attack
+    against SHA-1. This attack is about 100000 times faster than a brute force collision with 
+    birthday attack. Thus making this hashing algorithm insecure.
+
+    This implementation does not work on 32-bit machines
 */
 
 #define SHA1_CIRCULAR_SHIFT(word, bits) ((word << bits) | ((word & 0xFFFFFFFF) >> (32 - bits))) 
@@ -17,22 +27,6 @@
 #define K2 0x6ED9EBA1
 #define K3 0x8F1BBCDC
 #define K4 0xCA62C1D6
-
-static const unsigned char pad_bytes[] = {
-    0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
-};
-
 
 crypt_status sha1_init(sha1_ctx *ctx){
     if(!ctx) return CRYPT_NULL_PTR;
@@ -93,7 +87,7 @@ void sha1_process_buffer(sha1_ctx *ctx, const unsigned char *block){
     }
 
     for(i = 40; i < 60; i++){
-        tmp = SHA1_CIRCULAR_SHIFT(5, A) + G(B, C, D) + E + W[i] + K3;
+        tmp = SHA1_CIRCULAR_SHIFT(A, 5) + G(B, C, D) + E + W[i] + K3;
         E = D;
         D = C;
         C = SHA1_CIRCULAR_SHIFT(B, 30);
@@ -102,7 +96,7 @@ void sha1_process_buffer(sha1_ctx *ctx, const unsigned char *block){
     }
 
     for(i = 60; i < 80; i++){
-        tmp = SHA1_CIRCULAR_SHIFT(5, A) + H(B, C, D) + E + W[i] + K4;
+        tmp = SHA1_CIRCULAR_SHIFT(A, 5) + H(B, C, D) + E + W[i] + K4;
         E = D;
         D = C;
         C = SHA1_CIRCULAR_SHIFT(B, 30);
@@ -140,7 +134,7 @@ crypt_status sha1_update(sha1_ctx *ctx, const unsigned char *input, unsigned int
     // to ensure proper padding and complete the MD5 digest
     ctx->bit_count += (input_len << 3);
     // using partial_len in case there are already things in the context buffer
-    partial_len = SHA1_MEG_BLOCK_LEN_BYTES - index;
+    partial_len = SHA1_MSG_BLOCK_LEN_BYTES - index;
     // Transform the state for as many times as possible until we have 
     // an incomplete block
     // if we can form a full block
@@ -151,10 +145,10 @@ crypt_status sha1_update(sha1_ctx *ctx, const unsigned char *input, unsigned int
         i = partial_len;
         input_len -= partial_len;
 
-        while(input_len >= SHA1_MEG_BLOCK_LEN_BYTES){
+        while(input_len >= SHA1_MSG_BLOCK_LEN_BYTES){
             sha1_process_buffer(ctx, &input[i]);
-            input_len -= SHA1_MEG_BLOCK_LEN_BYTES;
-            i += SHA1_MEG_BLOCK_LEN_BYTES;
+            input_len -= SHA1_MSG_BLOCK_LEN_BYTES;
+            i += SHA1_MSG_BLOCK_LEN_BYTES;
         }
     } 
     // buffer the remaining input
@@ -168,25 +162,31 @@ crypt_status sha1_update(sha1_ctx *ctx, const unsigned char *input, unsigned int
 crypt_status sha1_finish(sha1_ctx *ctx, unsigned char digest[20], unsigned int digest_len){
     if(!ctx || !digest) return CRYPT_NULL_PTR;
 
-    if(digest_len < 20){
+    if(digest_len < SHA1_DIGEST_LEN_BYTES){
         return CRYPT_BAD_BUFFER_LEN;
     }
 
-    unsigned int index, pad_len;
+    unsigned int index = (unsigned int)((ctx->bit_count >> 3) & 0x3f);
 
     // apply the padding
     // index = num_bytes mod 64
-    index = (unsigned int)((ctx->bit_count >> 3) & 0x3f); 
-    // pad the message with a bit of 1, then 0s until the size of
-    // the message in bit in congruent to 448 (mod 512)
-    pad_len = (index < 56) ? (56 - index) : (120 - index);
-    memcpy(&ctx->buffer[index], pad_bytes, pad_len);
-    
-    index += pad_len;
-    
-    // append the message length as 64-bit value
+    ctx->buffer[index] = 0x80;
+    index++; 
+
+    // if there is no more room for appending the length, we pad it with 0
+    // and then process it, then prepare a new block with the first 56 bytes 
+    // being only 0
+    if(index >= 56){    
+        memset(&ctx->buffer[index], 0, SHA1_MSG_BLOCK_LEN_BYTES - index);
+        sha1_process_buffer(ctx, ctx->buffer);
+        memset(ctx->buffer, 0, 56);
+    } else {
+        memset(&ctx->buffer[index], 0, 56 - index);
+    }
+
+    // append the message length as 64-bit value at index 56
     uint64_t bit_count_be = LE64TOBE64(ctx->bit_count);
-    memcpy(&ctx->buffer[index], &bit_count_be, 8);
+    memcpy(&ctx->buffer[56], &bit_count_be, 8);
     sha1_process_buffer(ctx, ctx->buffer);
     
     // generate 20-byte or 160-bit digest
