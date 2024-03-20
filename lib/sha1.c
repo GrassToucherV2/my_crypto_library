@@ -15,7 +15,7 @@
     This implementation does not work on 32-bit machines
 */
 
-#define SHA1_CIRCULAR_SHIFT(word, bits) ((word << bits) | ((word & 0xFFFFFFFF) >> (32 - bits))) 
+#define SHA1_CIRCULAR_SHIFT(word, bits) ((word << bits) | (word >> (32 - bits))) 
 
 // logical functions used for SHA1, see FIPS 180-1, section 5
 #define F(X, Y, Z) ((X & Y) | ((~X) & Z))

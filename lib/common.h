@@ -57,6 +57,17 @@ typedef enum {
     CRYPT_FAILURE = 1, 
     CRYPT_NULL_PTR = 2,
     CRYPT_BAD_BUFFER_LEN = 3, 
+    CRYPT_UNSUPPORTED_ALGO = 4,
 } crypt_status;
+
+typedef enum{
+    SHA1,
+    SHA224,
+    SHA256,
+    SHA384,
+    SHA512,
+    SHA512_224,
+    SHA512_256,
+} SHA2;
 
 #endif /* COMMON_H */

@@ -245,7 +245,7 @@ crypt_status md5_finish(md5_ctx *ctx, unsigned char *digest){
         memset(&ctx->buffer[index], 0, 56 - index);
     }
 
-    // append the message length as 64-bit value at index 56
+    // append the message length as 64-bit value at index 56, MD5 is done in little endian
     uint64_t bit_count_be = BE64TOLE64(ctx->bit_count);
     memcpy(&ctx->buffer[56], &bit_count_be, 8);
     md5_transformation(ctx, ctx->buffer);

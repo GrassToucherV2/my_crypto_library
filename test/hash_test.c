@@ -147,6 +147,17 @@ int md5_test(){
         print_passed("MD5 test 8 - passed");
         print_bytes_array(digest, sizeof(digest), "digest = ");
     }
+
+    // MD5 collision - https://twitter.com/realhashbreaker/status/1770161965006008570
+    printf("\n\nHere is a MD5 collision using 72-byte alphanum with only 1 byte difference\n\n");
+    const unsigned char a9[] = {"TEXTCOLLBYfGiJUETHQ4hAcKSMd5zYpgqf1YRDhkmxHkhPWptrkoyz28wnI9V0aHeAuaKnak"};
+    const unsigned char a10[] = {"TEXTCOLLBYfGiJUETHQ4hEcKSMd5zYpgqf1YRDhkmxHkhPWptrkoyz28wnI9V0aHeAuaKnak"};
+    unsigned char digest1[16] = {0};
+    crypt_md5(a9, sizeof(a9) - 1, digest, sizeof(digest));
+    crypt_md5(a10, sizeof(a10) - 1, digest1, sizeof(digest));
+    print_bytes_array(digest, sizeof(digest), "computed digest using TEXTCOLLBYfGiJUETHQ4hAcKSMd5zYpgqf1YRDhkmxHkhPWptrkoyz28wnI9V0aHeAuaKnak");
+    print_bytes_array(digest1, sizeof(digest1), "computed digest using TEXTCOLLBYfGiJUETHQ4hEcKSMd5zYpgqf1YRDhkmxHkhPWptrkoyz28wnI9V0aHeAuaKnak");
+
     return failed;
 }
 
@@ -166,12 +177,12 @@ int sha1_test(){
     // sizeof(a1) - 1 to remove additional byte due to null char at the end 
     crypt_sha1(a1, sizeof(a1) - 1, digest, sizeof(digest));
     if(memcmp(digest, d1, sizeof(d1))){
-        print_failed("SHA1 test 1 - failed");
+        print_failed("SHA-1 test 1 - failed");
         print_bytes_array(digest, sizeof(digest), "computed digest = ");
         print_bytes_array(d1, sizeof(d1), "expected digest = ");
         failed = 1;
     } else {
-        print_passed("SHA1 test 1 - passed");
+        print_passed("SHA-1 test 1 - passed");
         print_bytes_array(digest, sizeof(digest), "digest = ");
     }
 
@@ -185,12 +196,12 @@ int sha1_test(){
     // sizeof(a1) - 1 to remove additional byte due to null char at the end 
     crypt_sha1(a2, sizeof(a2) - 1, digest, sizeof(digest));
     if(memcmp(digest, d2, sizeof(d2))){
-        print_failed("SHA1 test 2 - failed");
+        print_failed("SHA-1 test 2 - failed");
         print_bytes_array(digest, sizeof(digest), "computed digest = ");
         print_bytes_array(d2, sizeof(d2), "expected digest = ");
         failed = 1;
     } else {
-        print_passed("SHA1 test 2 - passed");
+        print_passed("SHA-1 test 2 - passed");
         print_bytes_array(digest, sizeof(digest), "digest = ");
     }
 
@@ -208,13 +219,127 @@ int sha1_test(){
     // not sizeof(a3) - 1 here because we manually set the string
     crypt_sha1(a3, sizeof(a3), digest, sizeof(digest));
     if(memcmp(digest, d3, sizeof(d3))){
-        print_failed("SHA1 test 3 - failed");
+        print_failed("SHA-1 test 3 - failed");
         print_bytes_array(digest, sizeof(digest), "computed digest = ");
         print_bytes_array(d3, sizeof(d3), "expected digest = ");
         failed = 1;
     } else {
-        print_passed("SHA1 test 3 - passed");
+        print_passed("SHA-1 test 3 - passed");
         print_bytes_array(digest, sizeof(digest), "digest = ");
+    }
+
+    return failed;
+}
+
+int sha256_test(){
+    int failed = 0;
+    unsigned char digest[32] = {0};
+    unsigned char digest_224[28] = {0};
+
+    const unsigned char a1[] = {"abc"};
+    const unsigned char d1_256[] = {
+        0xba, 0x78, 0x16, 0xbf, 0x8f, 0x01, 0xcf, 0xea,
+        0x41, 0x41, 0x40, 0xde, 0x5d, 0xae, 0x22, 0x23,
+        0xb0, 0x03, 0x61, 0xa3, 0x96, 0x17, 0x7a, 0x9c,
+        0xb4, 0x10, 0xff, 0x61, 0xf2, 0x00, 0x15, 0xad
+    };
+    const unsigned char d1_224[] = {
+        0x23, 0x09, 0x7d, 0x22, 0x34, 0x05, 0xd8, 0x22,
+        0x86, 0x42, 0xa4, 0x77, 0xbd, 0xa2, 0x55, 0xb3,
+        0x2a, 0xad, 0xbc, 0xe4, 0xbd, 0xa0, 0xb3, 0xf7,
+        0xe3, 0x6c, 0x9d, 0xa7
+    };
+
+    // sizeof(a1) - 1 to remove additional byte due to null char at the end 
+    crypt_sha256(a1, sizeof(a1) - 1, digest, sizeof(digest), SHA256);
+    if(memcmp(digest, d1_256, sizeof(d1_256))){
+        print_failed("SHA-256 test 1 - failed");
+        print_bytes_array(digest, sizeof(digest), "computed digest = ");
+        print_bytes_array(d1_256, sizeof(d1_256), "expected digest = ");
+        failed = 1;
+    } else {
+        print_passed("SHA-256 test 1 - passed");
+        print_bytes_array(digest, sizeof(digest), "digest = ");
+    }
+    crypt_sha256(a1, sizeof(a1) - 1, digest_224, sizeof(digest_224), SHA224);
+    if(memcmp(digest_224, d1_224, sizeof(d1_224))){
+        print_failed("SHA-224 test 1 - failed");
+        print_bytes_array(digest_224, sizeof(digest_224), "computed digest = ");
+        print_bytes_array(d1_224, sizeof(d1_224), "expected digest = ");
+        failed = 1;
+    } else {
+        print_passed("SHA-224 test 1 - passed");
+        print_bytes_array(digest_224, sizeof(digest_224), "digest = ");
+    }
+
+    const unsigned char a2[] = {"abcdbcdecdefdefgefghfghighijhijkijkljklmklmnlmnomnopnopq"};
+    const unsigned char d2_256[] = {
+        0x24, 0x8d, 0x6a, 0x61, 0xd2, 0x06, 0x38, 0xb8,
+        0xe5, 0xc0, 0x26, 0x93, 0x0c, 0x3e, 0x60, 0x39,
+        0xa3, 0x3c, 0xe4, 0x59, 0x64, 0xff, 0x21, 0x67,
+        0xf6, 0xec, 0xed, 0xd4, 0x19, 0xdb, 0x06, 0xc1
+    };
+    const unsigned char d2_224[] = {
+        0x75, 0x38, 0x8b, 0x16, 0x51, 0x27, 0x76, 0xcc,
+        0x5d, 0xba, 0x5d, 0xa1, 0xfd, 0x89, 0x01, 0x50,
+        0xb0, 0xc6, 0x45, 0x5c, 0xb4, 0xf5, 0x8b, 0x19,
+        0x52, 0x52, 0x25, 0x25
+    };
+
+    crypt_sha256(a2, sizeof(a2) - 1, digest, sizeof(digest), SHA256);
+    if(memcmp(digest, d2_256, sizeof(d2_256))){
+        print_failed("SHA-256 test 2 - failed");
+        print_bytes_array(digest, sizeof(digest), "computed digest = ");
+        print_bytes_array(d2_256, sizeof(d2_256), "expected digest = ");
+        failed = 1;
+    } else {
+        print_passed("SHA-256 test 2 - passed");
+        print_bytes_array(digest, sizeof(digest), "digest = ");
+    }
+    crypt_sha256(a2, sizeof(a2) - 1, digest_224, sizeof(digest_224), SHA224);
+    if(memcmp(digest_224, d2_224, sizeof(d2_224))){
+        print_failed("SHA-224 test 2 - failed");
+        print_bytes_array(digest_224, sizeof(digest_224), "computed digest = ");
+        print_bytes_array(d2_224, sizeof(d2_224), "expected digest = ");
+        failed = 1;
+    } else {
+        print_passed("SHA-224 test 2 - passed");
+        print_bytes_array(digest_224, sizeof(digest_224), "digest = ");
+    }
+
+    const unsigned char a3[] = {""};
+    const unsigned char d3_256[] = {
+        0xe3, 0xb0, 0xc4, 0x42, 0x98, 0xfc, 0x1c, 0x14,
+        0x9a, 0xfb, 0xf4, 0xc8, 0x99, 0x6f, 0xb9, 0x24,
+        0x27, 0xae, 0x41, 0xe4, 0x64, 0x9b, 0x93, 0x4c,
+        0xa4, 0x95, 0x99, 0x1b, 0x78, 0x52, 0xb8, 0x55
+    };
+    const unsigned char d3_224[] = {
+        0xd1, 0x4a, 0x02, 0x8c, 0x2a, 0x3a, 0x2b, 0xc9,
+        0x47, 0x61, 0x02, 0xbb, 0x28, 0x82, 0x34, 0xc4,
+        0x15, 0xa2, 0xb0, 0x1f, 0x82, 0x8e, 0xa6, 0x2a,
+        0xc5, 0xb3, 0xe4, 0x2f
+    };
+
+    crypt_sha256(a3, sizeof(a3) - 1, digest, sizeof(digest), SHA256);
+    if(memcmp(digest, d3_256, sizeof(d3_256))){
+        print_failed("SHA-256 test 3 - failed");
+        print_bytes_array(digest, sizeof(digest), "computed digest = ");
+        print_bytes_array(d3_256, sizeof(d3_256), "expected digest = ");
+        failed = 1;
+    } else {
+        print_passed("SHA-256 test 3 - passed");
+        print_bytes_array(digest, sizeof(digest), "digest = ");
+    }
+    crypt_sha256(a3, sizeof(a3) - 1, digest_224, sizeof(digest_224), SHA224);
+    if(memcmp(digest_224, d3_224, sizeof(d3_224))){
+        print_failed("SHA-224 test 3 - failed");
+        print_bytes_array(digest_224, sizeof(digest_224), "computed digest = ");
+        print_bytes_array(d3_224, sizeof(d3_224), "expected digest = ");
+        failed = 1;
+    } else {
+        print_passed("SHA-224 test 3 - passed");
+        print_bytes_array(digest_224, sizeof(digest_224), "digest = ");
     }
 
     return failed;
