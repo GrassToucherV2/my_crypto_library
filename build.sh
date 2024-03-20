@@ -10,6 +10,7 @@ FILES=(
     "lib/md5.c"        
     "lib/sha1.c"        
     "lib/sha256.c"        
+    "lib/sha512.c"        
     "test/bigint_test.c"  
     "test/hash_test.c"                     
     "set1/challenge1.c"     

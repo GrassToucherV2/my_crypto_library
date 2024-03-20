@@ -67,7 +67,7 @@ crypt_status sha224_256_init(sha224_256_ctx *ctx, SHA2 sha){
         ctx->state[7] = sha256_H[7];
     } 
     else {
-        return CRYPT_FAILURE;
+        return CRYPT_UNSUPPORTED_ALGO;
     }
     
     ctx->bit_count = 0;

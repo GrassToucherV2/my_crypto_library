@@ -63,6 +63,7 @@ hash_tests hash_test[] = {
     {"md5_test", &md5_test, 1},
     {"sha1_test", &sha1_test, 1},
     {"sha256_test", &sha256_test, 1},
+    {"sha512_test", &sha512_test, 1},
 };
 
 void run_util_tests(){
@@ -132,6 +133,7 @@ int main(int argc, char *argv[]){
         run_util_tests();
         run_challenge_test();
         run_bigint_test();
+        run_hash_test();
     } else if(argc == 2){
         if(!strcmp(argv[1], "u")){
             printf("Running util tests\n\n");

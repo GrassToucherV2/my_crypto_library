@@ -1,5 +1,5 @@
-#ifndef SHA2_H
-#define SHA2_H
+#ifndef SHA256_H
+#define SHA256_H
 
 #include <stdint.h>
 #include "common.h"
@@ -20,4 +20,4 @@ crypt_status sha224_256_update(sha224_256_ctx *ctx, const unsigned char *input, 
 crypt_status sha224_256_finish(sha224_256_ctx *ctx, unsigned char *digest, 
                                 unsigned int digest_len, SHA2 sha);
 
-#endif /* SHA2_H */
+#endif /* SHA256_H */

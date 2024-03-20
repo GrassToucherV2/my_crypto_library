@@ -10,6 +10,7 @@ typedef struct {
 int md5_test();
 int sha1_test();
 int sha256_test();
+int sha512_test();
 
 
 #endif /* HASH_TEST_H */
