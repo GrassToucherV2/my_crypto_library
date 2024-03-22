@@ -57,7 +57,9 @@ typedef enum {
     CRYPT_FAILURE = 1, 
     CRYPT_NULL_PTR = 2,
     CRYPT_BAD_BUFFER_LEN = 3, 
-    CRYPT_UNSUPPORTED_ALGO = 4,
+    CRYPT_BAD_KEY = 4,
+    CRYPT_BAD_NONCE = 5,
+    CRYPT_UNSUPPORTED_ALGO = 6,
 } crypt_status;
 
 typedef enum{

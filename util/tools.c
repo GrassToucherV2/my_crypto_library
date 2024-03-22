@@ -1,5 +1,6 @@
 
 #include "tools.h"
+#include <stdlib.h>
 #include <ctype.h>
 
 const char base64_chars[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
@@ -172,52 +173,115 @@ void buffers_xor(const char *a, const char *b, int len, char *output){
     }
 }
 
-void print_bytes_array(const unsigned char *bytes, unsigned int size_byte, char *str){
+// void print_bytes_array(const unsigned char *bytes, unsigned int size_byte, char *str){
+//     printf("%s\n", str);
+//     uint16_t bytes_counter = 0;
+//     int num_of_lines = 0;
+//     int num_bytes_to_print = 0;
+//     int remainder = size_byte % 32;
+//     if(remainder == 0){
+//         num_of_lines = size_byte / 32;
+//     } else{
+//         num_of_lines = size_byte / 32 + 1;
+//     }
+//     for(int i = 0; i < num_of_lines; i++){
+//         printf("%04u     ", bytes_counter);
+//         if(i == num_of_lines - 1 && remainder != 0){ 
+//             num_bytes_to_print = remainder;
+//         } else{
+//             num_bytes_to_print = 32;
+//         }
+//         // printing the hex value 
+//         for(int j = 0; j < num_bytes_to_print; j++){
+//             printf("%02X ", bytes[(i * num_bytes_to_print) + j]);
+//             if(j == 15){
+//                 printf(" ");
+//             }
+//         }
+//         printf(" ");
+//         // upon reaching last line, add padding to hex values so that all characters will align
+//         if(i == num_of_lines - 1){
+//             int padding = 32 - num_bytes_to_print;
+//             for (int j = 0; j < padding; j++) {
+//                 printf("   ");
+//             }
+//         }
+//         printf(" ");
+//         // printing characters
+//         for (int j = 0; j < num_bytes_to_print; j++) {
+//             uint8_t value = bytes[i * 32 + j];
+//             if (isprint(value)) {
+//                 printf("%c", value);
+//             } else {
+//                 printf(".");
+//             }
+//         }
+//         printf("\n");
+//         bytes_counter += num_bytes_to_print;
+//     }
+// }
+
+void print_bytes_array(const unsigned char *bytes, unsigned int size_byte, char *str) {
     printf("%s\n", str);
     uint16_t bytes_counter = 0;
-    int num_of_lines = 0;
-    int num_bytes_to_print = 0;
-    int remainder = size_byte % 32;
-    if(remainder == 0){
-        num_of_lines = size_byte / 32;
-    } else{
-        num_of_lines = size_byte / 32 + 1;
-    }
-    for(int i = 0; i < num_of_lines; i++){
+    int num_of_lines = (size_byte + 31) / 32;  // Simplified computation for number of lines
+
+    for(int i = 0; i < num_of_lines; i++) {
         printf("%04u     ", bytes_counter);
-        if(i == num_of_lines - 1 && remainder != 0){ 
-            num_bytes_to_print = remainder;
-        } else{
-            num_bytes_to_print = 32;
-        }
+        int line_limit = (i == num_of_lines - 1 && size_byte % 32 != 0) ? size_byte % 32 : 32;
+
         // printing the hex value 
-        for(int j = 0; j < num_bytes_to_print; j++){
-            printf("%02X ", bytes[(i * num_bytes_to_print) + j]);
-            if(j == 15){
-                printf(" ");
+        for(int j = 0; j < line_limit; j++) {
+            printf("%02X ", bytes[i * 32 + j]);
+            if(j == 15) {
+                printf("  "); // Double space for visual separation
             }
         }
-        printf(" ");
-        // upon reaching last line, add padding to hex values so that all characters will align
-        if(i == num_of_lines - 1){
-            int padding = 32 - num_bytes_to_print;
-            for (int j = 0; j < padding; j++) {
+
+        // Add padding to align the characters if this is the last line and it's not full
+        if(line_limit < 32) {
+            for(int j = line_limit; j < 32; j++) {
                 printf("   ");
+                if(j == 15) {
+                    printf("  "); // Double space for visual separation
+                }
             }
         }
-        printf(" ");
+
+        printf("  "); // Space before characters
+
         // printing characters
-        for (int j = 0; j < num_bytes_to_print; j++) {
+        for(int j = 0; j < line_limit; j++) {
             uint8_t value = bytes[i * 32 + j];
-            if (isprint(value)) {
-                printf("%c", value);
-            } else {
-                printf(".");
-            }
+            printf("%c", isprint(value) ? value : '.');
         }
+
         printf("\n");
-        bytes_counter += num_bytes_to_print;
+        bytes_counter += line_limit;
     }
+}
+
+
+int crypt_gen_rand(unsigned char *buffer, unsigned int bits) {
+    if (!buffer) {
+        return -1; // Buffer is null
+    }
+
+    FILE *f = fopen("/dev/urandom", "rb"); // Open /dev/urandom for reading
+    if (f == NULL) {
+        perror("Error opening /dev/urandom");
+        return -1;
+    }
+
+    size_t bytesRead = fread(buffer, 1, bits, f); // Read 32 bytes (256 bits)
+    fclose(f); // Close the file
+
+    if (bytesRead != bits) {
+        fprintf(stderr, "Failed to read enough random data\n");
+        return -1;
+    }
+
+    return 0; 
 }
 
 

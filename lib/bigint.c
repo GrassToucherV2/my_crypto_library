@@ -4,6 +4,7 @@
 #include <stdbool.h>
 #include "../util/tools.h"
 #include "bigint.h"
+#include <time.h>
 
 void print_bigint_ctx(const bigint *a){
     printf("MSD              = %u\n", a->MSD);
@@ -588,6 +589,35 @@ bigint_err bigint_to_bytes(const bigint *a, unsigned char *output,
 
     if(!index){
         output[index] = 0;
+    }
+
+    return BIGINT_OKAY;
+}
+
+// this is a bad PRNG, crypt_gen_rand() should be used instead, it is in /util/tool.c
+// which utilizes linux's /dev/urandom 
+bigint_err bigint_random(bigint *a, unsigned int num_digits){
+    if(!a) return BIGINT_ERROR_NULLPTR;
+
+    if(num_digits <= 0){
+        return BIGINT_OKAY;
+    }
+
+    digit d = 0;
+    CHECK_OKAY(bigint_set_zero(a));
+
+    time_t t;
+    srand((unsigned int)time(&t));
+
+    do{
+        d = (digit) abs(rand()) & BASE;
+    } while(d == 0);
+
+    CHECK_OKAY(bigint_add_digit(a, d, a));
+
+    while(--num_digits > 0){
+        CHECK_OKAY(bigint_right_shift_digits(a, 1));
+        CHECK_OKAY(bigint_add_digit(a, (digit)abs(rand()), a));
     }
 
     return BIGINT_OKAY;

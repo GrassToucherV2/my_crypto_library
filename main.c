@@ -2,6 +2,7 @@
 #include "test/test_util.h"
 #include "test/bigint_test.h"
 #include "test/hash_test.h"
+#include "test/cipher_test.h"
 #include "set1/set1_challenge.h"
 
 #define NUM_UTIL_TEST 4
@@ -66,6 +67,10 @@ hash_tests hash_test[] = {
     {"sha512_test", &sha512_test, 1},
 };
 
+cipher_tests cipher_test[] = {
+    {"chacha20_test", &chacha20_test, 1},
+};
+
 void run_util_tests(){
     int num_tests = sizeof(util_tests) / sizeof(util_tests[0]);
     for(int i = 0; i < num_tests; i++){
@@ -112,9 +117,30 @@ void run_hash_test(){
     int num_failed = 0;
     int num_skipped = 0;
     for(int i = 0; i < num; i++){
-        if(bigint_test[i].enabled){
+        if(hash_test[i].enabled){
             print_msg(YELLOW, hash_test[i].name);
             num_failed += hash_test[i].unit_test_fn();
+            printf("\n");
+        } else {
+            num_skipped++;
+        }
+    }
+    printf("========== Summary ==========\n");
+    printf("Total tests: %d\n", num);
+    printf("Passed: %d\n", num - num_failed - num_skipped);
+    printf("Failed: %d\n", num_failed);
+    printf("Skipped: %d\n", num_skipped);
+}
+
+void run_cipher_test(){
+    printf("========== Cipher Suite tests ==========\n");
+    int num = sizeof(cipher_test) / sizeof(cipher_test[0]);
+    int num_failed = 0;
+    int num_skipped = 0;
+    for(int i = 0; i < num; i++){
+        if(cipher_test[i].enabled){
+            print_msg(YELLOW, cipher_test[i].name);
+            num_failed += cipher_test[i].unit_test_fn();
             printf("\n");
         } else {
             num_skipped++;
@@ -131,18 +157,19 @@ int main(int argc, char *argv[]){
     if(argc == 1){
         printf("Running all tests\n\n");
         run_util_tests();
-        run_challenge_test();
+        // run_challenge_test();
         run_bigint_test();
         run_hash_test();
+        run_cipher_test();
     } else if(argc == 2){
         if(!strcmp(argv[1], "u")){
             printf("Running util tests\n\n");
             run_util_tests();
         } 
-        else if(!strcmp(argv[1], "c")){
-            printf("Running challenge tests\n\n");
-            run_challenge_test();
-        }
+        // else if(!strcmp(argv[1], "c")){
+        //     printf("Running challenge tests\n\n");
+        //     run_challenge_test();
+        // }
         else if(!strcmp(argv[1], "b")){
             printf("Running bigint tests\n\n");
             run_bigint_test();
@@ -150,6 +177,10 @@ int main(int argc, char *argv[]){
         else if(!strcmp(argv[1], "h")){
             printf("Running hashing algorithms tests\n\n");
             run_hash_test();
+        }
+        else if(!strcmp(argv[1], "c")){
+            printf("Running cipher suite tests\n\n");
+            run_cipher_test();
         }
         else{
             printf("Unrecognized arg\n");

@@ -5,6 +5,8 @@
 #include "sha256.h"
 #include "sha512.h"
 
+#include "chacha20.h"
+
 #include <stdio.h>
 
 /////////////////////////////////// API for hashing algorithms ///////////////////////////////////
@@ -131,4 +133,48 @@ crypt_status crypt_sha512(const unsigned char *input,
     return CRYPT_OKAY;
 }
 
-/////////////////////////////////// API for encryption algorithms ///////////////////////////////////
+/////////////////////////////////// API for symmetric key algorithms ///////////////////////////////////
+
+crypt_status crypt_chacha20_encrypt(const unsigned char *plaintext, unsigned int plaintext_len,
+                                    const unsigned char *key, unsigned int key_len,
+                                    const unsigned char *nonce, unsigned int nonce_len,
+                                    unsigned int counter, unsigned char *ciphertext,
+                                    unsigned int ciphertext_len)
+{
+
+    if(!plaintext || !key || !nonce || !ciphertext) return CRYPT_NULL_PTR;
+
+    if(key_len != CHACHA20_KEY_LEN_BYTES) return CRYPT_BAD_KEY;
+
+    if(nonce_len != CHACHA20_NONCE_LEN_BYTES) return CRYPT_BAD_NONCE;
+
+    if(ciphertext_len < plaintext_len) return CRYPT_BAD_BUFFER_LEN;
+
+    chacha20_ctx ctx = {0};
+    CRYPT_CHECK_OKAY(chacha20_init(&ctx, key, nonce, counter));
+    CRYPT_CHECK_OKAY(chacha20_crypt(&ctx, plaintext, plaintext_len, ciphertext, ciphertext_len));
+
+    return CRYPT_OKAY;
+}
+
+crypt_status crypt_chacha20_decrypt(const unsigned char *ciphertext, unsigned int ciphertext_len,
+                                    const unsigned char *key, unsigned int key_len,
+                                    const unsigned char *nonce, unsigned int nonce_len,
+                                    unsigned int counter, unsigned char *plaintext,
+                                    unsigned int plaintext_len)
+{
+    if(!plaintext || !key || !nonce || !ciphertext) return CRYPT_NULL_PTR;
+
+    if(key_len != CHACHA20_KEY_LEN_BYTES) return CRYPT_BAD_KEY;
+
+    if(nonce_len != CHACHA20_NONCE_LEN_BYTES) return CRYPT_BAD_NONCE;
+
+    if(plaintext_len < ciphertext_len) return CRYPT_BAD_BUFFER_LEN;
+
+    chacha20_ctx ctx = {0};
+    CRYPT_CHECK_OKAY(chacha20_init(&ctx, key, nonce, counter));
+    CRYPT_CHECK_OKAY(chacha20_crypt(&ctx, ciphertext, ciphertext_len, plaintext, plaintext_len));
+
+    return CRYPT_OKAY;
+}
+

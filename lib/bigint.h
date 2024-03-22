@@ -91,6 +91,9 @@ bigint_err bigint_pad_zero(bigint *a, unsigned int msd);
 /* Counts the number of bits in a given bigint */
 int bigint_bits_count(const bigint *a);
 
+/* Generate a random number with the given number of digits (need to prove that it is cryptographically secure) */
+bigint_err bigint_random(bigint *a, unsigned int num_digits);
+
 //////////////////////////////////////////////////////////////////////////////////////////////
 
 /* bigint arithmetic */
