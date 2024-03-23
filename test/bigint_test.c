@@ -1086,16 +1086,16 @@ int bigint_mul_test(){
     bigint_from_bytes(&b, b1, 16);
     bigint_from_bytes(&r, exp_res, 32);
 
-    bigint_mul_karatsuba(&a, &b, &c);
-    res = bigint_cmp(&c, &r);
+    bigint_mul_karatsuba(&a, &b, &a);
+    res = bigint_cmp(&a, &r);
     if(!res){
-        bigint_print(&c, "c = ");
+        bigint_print(&a, "c = ");
         print_passed("bigint_mul_test - Karatsuba algorithm 1 passed");
     } else{
         failed = 1;
         bigint_print(&a, "a = ");
         bigint_print(&b, "b = ");
-        bigint_print(&c, "c = ");
+        bigint_print(&a, "c = ");
         bigint_print(&r, "r = ");
         print_failed("bigint_mul_test - Karatsuba algorithm 1 failed");
     }
@@ -1124,16 +1124,16 @@ int bigint_mul_test(){
     bigint_from_bytes(&r, exp_res2, 31);
 
     bigint_init(&c, 1);
-    bigint_mul_karatsuba(&a, &b, &c);
-    res = bigint_cmp(&c, &r);
+    bigint_mul_karatsuba(&a, &b, &a);
+    res = bigint_cmp(&a, &r);
     if(!res){
-        bigint_print(&c, "c = ");
+        bigint_print(&a, "c = ");
         print_passed("bigint_mul_test - Karatsuba algorithm 2 passed");
     } else{
         failed = 1;
         bigint_print(&a, "a = ");
         bigint_print(&b, "b = ");
-        bigint_print(&c, "c = ");
+        bigint_print(&a, "c = ");
         bigint_print(&r, "r = ");
         print_failed("bigint_mul_test - Karatsuba algorithm 2 failed");
     }
@@ -1813,17 +1813,17 @@ int bigint_bitwise_op_test(){
     bigint_from_bytes(&b, b_and1, 16);
     bigint_from_bytes(&r, exp_res_and1, 16);
 
-    bigint_and(&a, &b, &c);
+    bigint_and(&a, &b, &a);
 
-    int res = bigint_cmp(&c, &r);
+    int res = bigint_cmp(&a, &r);
     if(!res){
-        bigint_print(&c, "c = ");
+        bigint_print(&a, "c = ");
         print_passed("bigint_and_test - random bigint 4 passed");
     } else{
         failed = 1;
         bigint_print(&a, "a = ");
         bigint_print(&b, "b = ");
-        bigint_print(&c, "c = ");
+        bigint_print(&a, "c = ");
         bigint_print(&r, "r = ");
         print_failed("bigint_and_test - random bigint 4 failed");
     }
@@ -1837,17 +1837,17 @@ int bigint_bitwise_op_test(){
     bigint_init(&c, 1);
     bigint_set_zero(&b);
     bigint_from_bytes(&b, b_and2, 8);
-    bigint_and(&a, &b, &c);
-    res = bigint_cmp_zero(&c);
+    bigint_and(&a, &b, &a);
+    res = bigint_cmp_zero(&a);
 
     if(!res){
-        bigint_print(&c, "c = ");
+        bigint_print(&a, "c = ");
         print_passed("bigint_and_test - random bigint 4 passed");
     } else{
         failed = 1;
         bigint_print(&a, "a = ");
         bigint_print(&b, "b = ");
-        bigint_print(&c, "c = ");
+        bigint_print(&a, "c = ");
         bigint_print(&r, "r = ");
         print_failed("bigint_and_test - random bigint 4 failed");
     }

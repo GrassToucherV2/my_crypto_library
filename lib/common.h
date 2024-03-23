@@ -9,6 +9,7 @@
 #define NUM_BITS_IN_BYTE 8
 
 #define CRYPT_CHECK_OKAY(a) do {if (a != CRYPT_OKAY) return a; } while(0) 
+#define CHECK_BIGINT_OKAY(a) do {if (a != BIGINT_OKAY) return CRYPT_COMPUTATION_ERROR; } while(0) 
 
 #if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
     #define LE16TOBE16(value) ((value >> 8) | (value << 8))
@@ -60,6 +61,7 @@ typedef enum {
     CRYPT_BAD_KEY = 4,
     CRYPT_BAD_NONCE = 5,
     CRYPT_UNSUPPORTED_ALGO = 6,
+    CRYPT_COMPUTATION_ERROR = 7,
 } crypt_status;
 
 typedef enum{

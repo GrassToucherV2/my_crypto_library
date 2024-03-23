@@ -817,9 +817,13 @@ bigint_err bigint_mul(const bigint *a, const bigint *b, bigint *c){
     }
     // bigint_print(c, "c in bigint_mul before setting to zero ");
     // print_bigint_ctx(c);
-    CHECK_OKAY(bigint_set_zero(c));
+    // CHECK_OKAY(bigint_set_zero(c));
     // bigint_print(c, "after setting to zero ");
     // print_bigint_ctx(c);
+
+    bigint tmp_res;
+    CHECK_OKAY(bigint_init(&tmp_res, c->num_of_digit));
+    CHECK_OKAY(bigint_set_zero(&tmp_res));
 
     uint64_t tmp = 0;
     uint32_t carry = 0;
@@ -828,16 +832,19 @@ bigint_err bigint_mul(const bigint *a, const bigint *b, bigint *c){
         carry = 0;
         for(unsigned int j = 0; j < b_digits_used; j++){
             // printf("c at i = %u, j = %u is %u\n",i, j, c->digits[i + j]);
-            tmp = (uint64_t)a->digits[i] * (uint64_t)b->digits[j] + c->digits[i + j] + carry;
-            c->digits[i + j] = tmp & BASE;  
+            tmp = (uint64_t)a->digits[i] * (uint64_t)b->digits[j] + tmp_res.digits[i + j] + carry;
+            tmp_res.digits[i + j] = tmp & BASE;  
             carry = tmp >> DIGIT_BIT;
         }
-        c->digits[i + b_digits_used] = carry;
+        tmp_res.digits[i + b_digits_used] = carry;
     }
+    
+    tmp_res.MSD = a_digits_used + b_digits_used - 1;
 
-    c->MSD = a_digits_used + b_digits_used - 1;
+    while(tmp_res.MSD > 0 && tmp_res.digits[tmp_res.MSD] == 0) tmp_res.MSD--;
 
-    while(c->MSD > 0 && c->digits[c->MSD] == 0) c->MSD--;
+    CHECK_OKAY(bigint_copy(&tmp_res, c));
+    bigint_free(&tmp_res);
 
     return BIGINT_OKAY;
 }
@@ -1523,6 +1530,7 @@ bigint_err bigint_and(const bigint *a, const bigint *b, bigint *c){
 
     return BIGINT_OKAY;
 }
+
 
 bigint_err bigint_or(const bigint *a, const bigint *b, bigint *c){
     if(!a || !b || !c) return BIGINT_ERROR_NULLPTR;

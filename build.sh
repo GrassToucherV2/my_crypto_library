@@ -12,6 +12,7 @@ FILES=(
     "lib/sha256.c"        
     "lib/sha512.c"     
     "lib/chacha20.c"   
+    "lib/poly1305.c"   
     "test/bigint_test.c"  
     "test/hash_test.c"                     
     "test/cipher_test.c"                     

@@ -69,6 +69,7 @@ hash_tests hash_test[] = {
 
 cipher_tests cipher_test[] = {
     {"chacha20_test", &chacha20_test, 1},
+    {"poly1305_test", &poly1305_test, 1},
 };
 
 void run_util_tests(){

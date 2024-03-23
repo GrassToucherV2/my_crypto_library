@@ -20,4 +20,8 @@ crypt_status chacha20_crypt(chacha20_ctx *ctx, const unsigned char *input,
                             unsigned int input_len, unsigned char *output,
                             unsigned int output_len);
 
+crypt_status chacha20_cleanup(chacha20_ctx *ctx);
+
+void chacha20_block(chacha20_ctx *ctx, unsigned char keystream[CHACHA20_KEYSTREAM_LEN_BYTES]);
+
 #endif /* CHACHA20_H */

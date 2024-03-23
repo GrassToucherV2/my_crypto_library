@@ -8,5 +8,6 @@ typedef struct {
 } cipher_tests;
 
 int chacha20_test();
+int poly1305_test();
 
 #endif /* CIPHER_TEST_H */

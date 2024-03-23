@@ -26,7 +26,7 @@ static void chacha20_inner_block(uint32_t *state){
     chacha20_quarter_round(state, 3, 4, 9,  14);
 }
 
-static void chacha20_block(chacha20_ctx *ctx, unsigned char keystream[CHACHA20_KEYSTREAM_LEN_BYTES]){
+void chacha20_block(chacha20_ctx *ctx, unsigned char keystream[CHACHA20_KEYSTREAM_LEN_BYTES]){
     uint32_t tmp_state[16];
     for(int i = 0; i < 16; i++){
         tmp_state[i] = ctx->state[i];
@@ -118,6 +118,14 @@ crypt_status chacha20_crypt(chacha20_ctx *ctx, const unsigned char *input,
             output[i + (input_len - remaining_len)] = input[i + (input_len - remaining_len)] ^ keystream[i];
         }
     }
+
+    return CRYPT_OKAY;
+}
+
+crypt_status chacha20_cleanup(chacha20_ctx *ctx){
+    if(!ctx) return CRYPT_NULL_PTR;
+
+    memset(ctx->state, 0, CHACHA20_STATE_LEN_BYTES);
 
     return CRYPT_OKAY;
 }
