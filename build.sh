@@ -2,7 +2,6 @@
 
 # List of C source files
 FILES=(
-    
     "test/test_util.c"       
     "util/tools.c"          
     "main.c"  
