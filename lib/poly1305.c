@@ -15,7 +15,7 @@ void poly1305_clamp(unsigned char r[16]){
 
 static void poly1305_keygen(const unsigned char *key, const unsigned char *nonce,
                             unsigned char *polykey)
-{
+{   
     unsigned char keystream[64];                    
     chacha20_ctx ctx = {0};
     chacha20_init(&ctx, key, nonce, 0);
@@ -149,7 +149,7 @@ crypt_status poly1305_compute_mac(poly1305_ctx *ctx, const unsigned char *input,
         reverse_array(n_arr, n_8, sizeof(n_arr));
         CHECK_BIGINT_OKAY(bigint_from_bytes(&n, (unsigned char *)n_8, sizeof(n_8)));
         CHECK_BIGINT_OKAY(bigint_add(&a, &n, &a));
-        CHECK_BIGINT_OKAY(bigint_mul_karatsuba(&a, &r, &a));
+        CHECK_BIGINT_OKAY(bigint_mul(&a, &r, &a));
         CHECK_BIGINT_OKAY(bigint_mod(&a, &p, &a));        
         remaining_len -= POLY1305_BLOCK_LEN_BYTES;
         blk_counter += POLY1305_BLOCK_LEN_BYTES;

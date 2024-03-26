@@ -19,6 +19,9 @@ typedef struct {
     // uint32_t buffer_len;
 } poly1305_ctx;
 
+// crypt_status poly1305_keygen(const unsigned char *key, const unsigned char *nonce,
+//                             unsigned char *polykey);
+
 crypt_status poly1305_init(poly1305_ctx *ctx, const unsigned char *key, unsigned int key_len,
                             const unsigned char *nonce, unsigned int nonce_len);
 

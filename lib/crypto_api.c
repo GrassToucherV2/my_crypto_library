@@ -6,6 +6,7 @@
 #include "sha512.h"
 
 #include "chacha20.h"
+#include "poly1305.h"
 
 #include <stdio.h>
 
@@ -153,6 +154,7 @@ crypt_status crypt_chacha20_encrypt(const unsigned char *plaintext, unsigned int
     chacha20_ctx ctx = {0};
     CRYPT_CHECK_OKAY(chacha20_init(&ctx, key, nonce, counter));
     CRYPT_CHECK_OKAY(chacha20_crypt(&ctx, plaintext, plaintext_len, ciphertext, ciphertext_len));
+    CRYPT_CHECK_OKAY(chacha20_cleanup(&ctx));
 
     return CRYPT_OKAY;
 }
@@ -174,7 +176,27 @@ crypt_status crypt_chacha20_decrypt(const unsigned char *ciphertext, unsigned in
     chacha20_ctx ctx = {0};
     CRYPT_CHECK_OKAY(chacha20_init(&ctx, key, nonce, counter));
     CRYPT_CHECK_OKAY(chacha20_crypt(&ctx, ciphertext, ciphertext_len, plaintext, plaintext_len));
+    CRYPT_CHECK_OKAY(chacha20_cleanup(&ctx));
 
     return CRYPT_OKAY;
 }
 
+crypt_status crypt_poly1305(const unsigned char *input, unsigned int input_len, 
+                            const unsigned char *key, unsigned int key_len, 
+                            const unsigned char *nonce, unsigned int nonce_len,
+                            unsigned char *mac, unsigned int mac_len)
+{
+    if(!input || !key || !nonce || !mac) return CRYPT_NULL_PTR;
+
+    if(key_len != CHACHA20_KEY_LEN_BYTES) return CRYPT_BAD_KEY;
+
+    if(nonce_len != CHACHA20_NONCE_LEN_BYTES) return CRYPT_BAD_NONCE;
+
+    if(mac_len < POLY1305_MAC_LEC_BYTES) return CRYPT_BAD_BUFFER_LEN;
+
+    poly1305_ctx ctx = {0};
+    CRYPT_CHECK_OKAY(poly1305_init(&ctx, key, key_len, nonce, nonce_len));
+    CRYPT_CHECK_OKAY(poly1305_compute_mac(&ctx, input, input_len, mac, mac_len));
+
+    return CRYPT_OKAY;
+}
