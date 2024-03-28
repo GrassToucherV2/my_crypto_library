@@ -9,6 +9,11 @@
 #define NUM_BITS_IN_BYTE 8
 
 #define CRYPT_CHECK_OKAY(a) do {if (a != CRYPT_OKAY) return a; } while(0) 
+#define CRYPT_CHECK_OKAY_CL(a) do { \
+            res = (a);              \
+            if (res != CRYPT_OKAY)  \
+                goto cleanup;       \
+        } while(0)
 #define CHECK_BIGINT_OKAY(a) do {if (a != BIGINT_OKAY) return CRYPT_COMPUTATION_ERROR; } while(0) 
 
 #if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__

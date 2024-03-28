@@ -13,12 +13,12 @@ typedef struct{
     uint32_t state[16];
 } chacha20_ctx;
 
-crypt_status chacha20_init(chacha20_ctx *ctx, const unsigned char *key,
-                            const unsigned char *nonce, unsigned int counter);
+crypt_status chacha20_init(chacha20_ctx *ctx, const unsigned char *key);
 
-crypt_status chacha20_crypt(chacha20_ctx *ctx, const unsigned char *input,
-                            unsigned int input_len, unsigned char *output,
-                            unsigned int output_len);
+crypt_status chacha20_crypt(chacha20_ctx *ctx, unsigned int counter,
+                            const unsigned char *nonce, unsigned int nonce_len, 
+                            const unsigned char *input, unsigned int input_len, 
+                            unsigned char *output, unsigned int output_len);
 
 crypt_status chacha20_cleanup(chacha20_ctx *ctx);
 

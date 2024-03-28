@@ -51,10 +51,9 @@ void chacha20_block(chacha20_ctx *ctx, unsigned char keystream[CHACHA20_KEYSTREA
     }
 }
 
-crypt_status chacha20_init(chacha20_ctx *ctx, const unsigned char *key,
-                            const unsigned char *nonce, unsigned int counter)
+crypt_status chacha20_init(chacha20_ctx *ctx, const unsigned char *key)
 {
-    if(!ctx || !key || !nonce) return CRYPT_NULL_PTR;
+    if(!ctx || !key) return CRYPT_NULL_PTR;
 
     ctx->state[0] = 0x61707865;
     ctx->state[1] = 0x3320646e;
@@ -65,13 +64,6 @@ crypt_status chacha20_init(chacha20_ctx *ctx, const unsigned char *key,
     for(int i = 4; i < 12; i++){
         ctx->state[i] = BE32TOLE32(key_32[i-4]);
     }
-
-    uint32_t *nonce_32 = (uint32_t *)nonce;
-    for(int i = 13; i < 16; i++){
-        ctx->state[i] = BE32TOLE32(nonce_32[i-13]);
-    }
-
-    ctx->state[12] = counter;
 
     return CRYPT_OKAY;
 }
@@ -93,15 +85,28 @@ void print_chacha20_state(const uint32_t state[16]) {
 }
 
 // This function handles both encrypt and decrypt for chacha20
-crypt_status chacha20_crypt(chacha20_ctx *ctx, const unsigned char *input,
-                            unsigned int input_len, unsigned char *output,
-                            unsigned int output_len)
+crypt_status chacha20_crypt(chacha20_ctx *ctx, unsigned int counter,
+                            const unsigned char *nonce, unsigned int nonce_len, 
+                            const unsigned char *input, unsigned int input_len, 
+                            unsigned char *output, unsigned int output_len)
 {
     if(!ctx || !input || !output) return CRYPT_NULL_PTR;
 
     if(output_len < input_len){
         return CRYPT_BAD_BUFFER_LEN;
     }
+
+    if(nonce_len != CHACHA20_NONCE_LEN_BYTES){
+        return CRYPT_BAD_NONCE;
+    }
+
+    uint32_t *nonce_32 = (uint32_t *)nonce;
+    for(int i = 13; i < 16; i++){
+        ctx->state[i] = BE32TOLE32(nonce_32[i-13]);
+    }
+
+    ctx->state[12] = counter;
+
     unsigned char keystream[CHACHA20_KEYSTREAM_LEN_BYTES] = {0};
     unsigned int remaining_len = input_len;
     for(unsigned int j = 0; j < input_len / CHACHA20_KEYSTREAM_LEN_BYTES; j++){

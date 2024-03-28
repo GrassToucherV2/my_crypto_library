@@ -299,7 +299,7 @@ int poly1305_test(){
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
     };
     
-    poly1305_init_test(&ctx, key1);
+    poly1305_init(&ctx, key1, sizeof(key1));
     poly1305_compute_mac(&ctx, plaintext1, sizeof(plaintext1), mac, 16);
     if(memcmp(mac, exp_mac1, sizeof(exp_mac1))){
         failed = 1;
@@ -348,7 +348,7 @@ int poly1305_test(){
         0x36, 0xe5, 0xf6, 0xb5, 0xc5, 0xe0, 0x60, 0x70, 0xf0, 0xef, 0xca, 0x96, 0x22, 0x7a, 0x86, 0x3e
     };
     
-    poly1305_init_test(&ctx, key2);
+    poly1305_init(&ctx, key2, sizeof(key2));
     poly1305_compute_mac(&ctx, plaintext2, sizeof(plaintext2), mac, 16);
     if(memcmp(mac, exp_mac2, sizeof(exp_mac2))){
         failed = 1;
@@ -398,7 +398,7 @@ int poly1305_test(){
         0x89, 0xa6, 0xb8, 0x79, 0x4c, 0x31, 0x0c, 0xf0
     };
     
-    poly1305_init_test(&ctx, key3);
+    poly1305_init(&ctx, key3, sizeof(key3));
     poly1305_compute_mac(&ctx, plaintext3, sizeof(plaintext3), mac, 16);
     if(memcmp(mac, exp_mac3, sizeof(exp_mac3))){
         failed = 1;
@@ -432,7 +432,7 @@ int poly1305_test(){
         0xe7, 0x08, 0xdc, 0x7c, 0xbc, 0xc5, 0xeb, 0x62
     };
     
-    poly1305_init_test(&ctx, key4);
+    poly1305_init(&ctx, key4, sizeof(key4));
     poly1305_compute_mac(&ctx, plaintext4, sizeof(plaintext4), mac, 16);
     if(memcmp(mac, exp_mac4, sizeof(exp_mac4))){
         failed = 1;
@@ -463,7 +463,7 @@ int poly1305_test(){
         0xc2, 0x2b, 0x8b, 0xaf, 0x0c, 0x01, 0x27, 0xa9
     };
     
-    poly1305_init_test(&ctx, key5);
+    poly1305_init(&ctx, key5, sizeof(key5));
     poly1305_compute_mac(&ctx, plaintext5, sizeof(plaintext5), mac, 16);
     if(memcmp(mac, exp_mac5, sizeof(exp_mac5))){
         failed = 1;

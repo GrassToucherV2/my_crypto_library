@@ -13,50 +13,62 @@ void poly1305_clamp(unsigned char r[16]){
     r[12] &= 252;
 }
 
-static void poly1305_keygen(const unsigned char *key, const unsigned char *nonce,
+void poly1305_keygen(const unsigned char *key, const unsigned char *nonce,
                             unsigned char *polykey)
 {   
     unsigned char keystream[64];                    
     chacha20_ctx ctx = {0};
-    chacha20_init(&ctx, key, nonce, 0);
+    chacha20_init(&ctx, key);
+    uint32_t *nonce_32 = (uint32_t *)nonce;
+    for(int i = 13; i < 16; i++){
+        ctx.state[i] = BE32TOLE32(nonce_32[i-13]);
+    }
+
+    ctx.state[12] = 0;
     chacha20_block(&ctx, keystream);
     memcpy(polykey, keystream, POLY1305_KEY_LEN_BYTES);
 }
 
-crypt_status poly1305_init(poly1305_ctx *ctx, const unsigned char *key, unsigned int key_len,
-                            const unsigned char *nonce, unsigned int nonce_len)
-{
-    if(!ctx || !key || !nonce) return CRYPT_NULL_PTR;
+// crypt_status poly1305_init(poly1305_ctx *ctx, const unsigned char *key, unsigned int key_len,
+//                             const unsigned char *nonce, unsigned int nonce_len)
+// {
+//     if(!ctx || !key || !nonce) return CRYPT_NULL_PTR;
 
-    if(key_len != CHACHA20_KEY_LEN_BYTES){
+//     if(key_len != CHACHA20_KEY_LEN_BYTES){
+//         return CRYPT_BAD_KEY;
+//     }
+
+//     if(nonce_len != CHACHA20_NONCE_LEN_BYTES){
+//         return CRYPT_BAD_NONCE;
+//     }
+
+//     unsigned char polykey[32];
+//     poly1305_keygen(key, nonce, polykey);
+
+//     uint64_t *r_64 = (uint64_t *)ctx->r;
+//     uint64_t *s_64 = (uint64_t *)ctx->s;
+//     uint64_t *polykey_64 = (uint64_t *)polykey;
+
+//     r_64[0] = BE64TOLE64(polykey_64[0]);
+//     r_64[1] = BE64TOLE64(polykey_64[1]);
+//     s_64[0] = BE64TOLE64(polykey_64[2]);
+//     s_64[1] = BE64TOLE64(polykey_64[3]);
+
+//     poly1305_clamp(ctx->r);
+
+//     memset(ctx->accumulator, 0, sizeof(ctx->accumulator));
+
+//     return CRYPT_OKAY;
+// }
+
+crypt_status poly1305_init(poly1305_ctx *ctx, const unsigned char *key, unsigned int polykey_len){
+
+    if(!ctx || !key) return CRYPT_NULL_PTR;
+
+    if(polykey_len != POLY1305_KEY_LEN_BYTES){
         return CRYPT_BAD_KEY;
     }
-
-    if(nonce_len != CHACHA20_NONCE_LEN_BYTES){
-        return CRYPT_BAD_NONCE;
-    }
-
-    unsigned char polykey[32];
-    poly1305_keygen(key, nonce, polykey);
-
-    uint64_t *r_64 = (uint64_t *)ctx->r;
-    uint64_t *s_64 = (uint64_t *)ctx->s;
-    uint64_t *polykey_64 = (uint64_t *)polykey;
-
-    r_64[0] = BE64TOLE64(polykey_64[0]);
-    r_64[1] = BE64TOLE64(polykey_64[1]);
-    s_64[0] = BE64TOLE64(polykey_64[2]);
-    s_64[1] = BE64TOLE64(polykey_64[3]);
-
-    poly1305_clamp(ctx->r);
-
-    memset(ctx->accumulator, 0, sizeof(ctx->accumulator));
-
-    return CRYPT_OKAY;
-}
-
-crypt_status poly1305_init_test(poly1305_ctx *ctx, const unsigned char *key){
-
+    
     memcpy(ctx->polykey, key, 32);
     uint64_t *r_64 = (uint64_t *)ctx->r;
     uint64_t *s_64 = (uint64_t *)ctx->s;
@@ -106,7 +118,7 @@ crypt_status poly1305_compute_mac(poly1305_ctx *ctx, const unsigned char *input,
 {
     if(!ctx || !input || !mac) return CRYPT_NULL_PTR;
 
-    if(mac_len != POLY1305_MAC_LEC_BYTES){
+    if(mac_len != POLY1305_MAC_LEN_BYTES){
         return CRYPT_BAD_BUFFER_LEN;
     }
     
@@ -175,8 +187,8 @@ crypt_status poly1305_compute_mac(poly1305_ctx *ctx, const unsigned char *input,
         a.MSD = 3;
     }
     uint8_t mac_be[16];
-    CHECK_BIGINT_OKAY(bigint_to_bytes(&a, mac_be, POLY1305_MAC_LEC_BYTES, 0));
-    reverse_array(mac_be, mac, POLY1305_MAC_LEC_BYTES);
+    CHECK_BIGINT_OKAY(bigint_to_bytes(&a, mac_be, POLY1305_MAC_LEN_BYTES, 0));
+    reverse_array(mac_be, mac, POLY1305_MAC_LEN_BYTES);
     
     bigint_free(&r);
     bigint_free(&s);
