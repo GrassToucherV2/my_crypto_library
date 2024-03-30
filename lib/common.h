@@ -1,6 +1,8 @@
 #ifndef COMMON_H
 #define COMMON_H
 
+#include <stdio.h>
+
 /*
     This file contains some common defines and enums that will be used by 
     all other files
@@ -65,8 +67,10 @@ typedef enum {
     CRYPT_BAD_BUFFER_LEN = 3, 
     CRYPT_BAD_KEY = 4,
     CRYPT_BAD_NONCE = 5,
-    CRYPT_UNSUPPORTED_ALGO = 6,
-    CRYPT_COMPUTATION_ERROR = 7,
+    CRYPT_BAD_IV = 6,
+    CRYPT_UNSUPPORTED_ALGO = 7,
+    CRYPT_COMPUTATION_ERROR = 8,
+    CRYPT_INVALID_TEXT = 9,
 } crypt_status;
 
 typedef enum{

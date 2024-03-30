@@ -23,5 +23,7 @@ crypt_status chacha20_crypt(chacha20_ctx *ctx, unsigned int counter,
 crypt_status chacha20_cleanup(chacha20_ctx *ctx);
 
 void chacha20_block(chacha20_ctx *ctx, unsigned char keystream[CHACHA20_KEYSTREAM_LEN_BYTES]);
+void print_chacha20_state(const uint32_t state[16]);
+
 
 #endif /* CHACHA20_H */

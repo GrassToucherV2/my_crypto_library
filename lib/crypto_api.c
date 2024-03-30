@@ -7,6 +7,7 @@
 
 #include "chacha20.h"
 #include "poly1305.h"
+#include "chacha20_poly1305.h"
 
 #include <stdio.h>
 
@@ -200,3 +201,68 @@ crypt_status crypt_chacha20_decrypt(const unsigned char *ciphertext, unsigned in
 
 //     return CRYPT_OKAY;
 // }
+
+crypt_status crypt_chacha20_poly1305_encrypt(const unsigned char *iv, unsigned int iv_len,
+                                            const unsigned char *aad, unsigned int aad_len,
+                                            const unsigned char *key, unsigned int key_len,
+                                            const unsigned char *constant, unsigned int constant_len,
+                                            const unsigned char *plaintext, unsigned int plaintext_len,
+                                            unsigned char *ciphertext, unsigned int ciphertext_len,
+                                            unsigned char *aead_output, unsigned int aead_output_len
+                                            )
+{
+    if(!iv || !aad || !key || !plaintext || !ciphertext || !aead_output) return CRYPT_NULL_PTR;
+
+    if(iv_len != CHACHA20_POLY1305_IV_LEN_BYTES){
+        return CRYPT_BAD_IV;
+    }
+
+    if(key_len != CHACHA20_KEY_LEN_BYTES){
+        return CRYPT_BAD_KEY;
+    }
+
+    if(ciphertext_len < plaintext_len){
+        return CRYPT_BAD_BUFFER_LEN;
+    }
+
+    if(aead_output_len < plaintext_len + POLY1305_MAC_LEN_BYTES){
+        return CRYPT_BAD_BUFFER_LEN;
+    }
+    chacha20_poly1305_ctx ctx;
+    CRYPT_CHECK_OKAY(chacha20_poly1305_init(&ctx, key, key_len));
+    CRYPT_CHECK_OKAY(chacha20_poly1305_encrypt(&ctx, plaintext, plaintext_len, ciphertext,
+                                                ciphertext_len, constant, constant_len, iv, iv_len, aad, 
+                                                aad_len, aead_output, aead_output_len));
+    CRYPT_CHECK_OKAY(chacha20_poly1305_cleanup(&ctx));
+
+    return CRYPT_OKAY;
+}
+
+crypt_status crypt_chacha20_poly1305_decrypt(const unsigned char *iv, unsigned int iv_len,
+                                            const unsigned char *aad, unsigned int aad_len,
+                                            const unsigned char *key, unsigned int key_len,
+                                            const unsigned char *constant, unsigned int constant_len,                                            
+                                            unsigned char *aead_input, unsigned int aead_input_len,
+                                            unsigned char *plaintext, unsigned int plaintext_len)
+{
+    if(!iv || !aad || !key || !plaintext || !aead_input) return CRYPT_NULL_PTR;
+
+    if(iv_len != CHACHA20_POLY1305_IV_LEN_BYTES){
+        return CRYPT_BAD_IV;
+    }
+
+    if(key_len != CHACHA20_KEY_LEN_BYTES){
+        return CRYPT_BAD_KEY;
+    }
+
+    if(plaintext_len < aead_input_len - POLY1305_MAC_LEN_BYTES){
+        return CRYPT_BAD_BUFFER_LEN;
+    }
+    chacha20_poly1305_ctx ctx;
+    CRYPT_CHECK_OKAY(chacha20_poly1305_init(&ctx, key, key_len));
+    CRYPT_CHECK_OKAY(chacha20_poly1305_decrypt(&ctx, aead_input, aead_input_len, constant, constant_len,
+                                                iv, iv_len, aad, aad_len, plaintext, plaintext_len));
+    CRYPT_CHECK_OKAY(chacha20_poly1305_cleanup(&ctx));
+
+    return CRYPT_OKAY;
+}

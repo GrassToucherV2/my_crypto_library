@@ -14,7 +14,7 @@ void poly1305_clamp(unsigned char r[16]){
 }
 
 void poly1305_keygen(const unsigned char *key, const unsigned char *nonce,
-                            unsigned char *polykey)
+                    unsigned char *polykey)
 {   
     unsigned char keystream[64];                    
     chacha20_ctx ctx = {0};
@@ -28,38 +28,6 @@ void poly1305_keygen(const unsigned char *key, const unsigned char *nonce,
     chacha20_block(&ctx, keystream);
     memcpy(polykey, keystream, POLY1305_KEY_LEN_BYTES);
 }
-
-// crypt_status poly1305_init(poly1305_ctx *ctx, const unsigned char *key, unsigned int key_len,
-//                             const unsigned char *nonce, unsigned int nonce_len)
-// {
-//     if(!ctx || !key || !nonce) return CRYPT_NULL_PTR;
-
-//     if(key_len != CHACHA20_KEY_LEN_BYTES){
-//         return CRYPT_BAD_KEY;
-//     }
-
-//     if(nonce_len != CHACHA20_NONCE_LEN_BYTES){
-//         return CRYPT_BAD_NONCE;
-//     }
-
-//     unsigned char polykey[32];
-//     poly1305_keygen(key, nonce, polykey);
-
-//     uint64_t *r_64 = (uint64_t *)ctx->r;
-//     uint64_t *s_64 = (uint64_t *)ctx->s;
-//     uint64_t *polykey_64 = (uint64_t *)polykey;
-
-//     r_64[0] = BE64TOLE64(polykey_64[0]);
-//     r_64[1] = BE64TOLE64(polykey_64[1]);
-//     s_64[0] = BE64TOLE64(polykey_64[2]);
-//     s_64[1] = BE64TOLE64(polykey_64[3]);
-
-//     poly1305_clamp(ctx->r);
-
-//     memset(ctx->accumulator, 0, sizeof(ctx->accumulator));
-
-//     return CRYPT_OKAY;
-// }
 
 crypt_status poly1305_init(poly1305_ctx *ctx, const unsigned char *key, unsigned int polykey_len){
 
@@ -83,6 +51,7 @@ crypt_status poly1305_init(poly1305_ctx *ctx, const unsigned char *key, unsigned
     poly1305_clamp(ctx->r);
    
     memset(ctx->accumulator, 0, sizeof(ctx->accumulator));
+
     // memset(ctx->buffer, 0, sizeof(ctx->buffer));
     // ctx->buffer_len = 0;
 
@@ -170,7 +139,7 @@ crypt_status poly1305_compute_mac(poly1305_ctx *ctx, const unsigned char *input,
     // copy the remaining bytes into final_block, which is all 0x00 initially, then 
     // change the endianness to fit the requirement, the same way as how it is done for
     // full blocks
-    if(remaining_len < 16){
+    if(remaining_len > 0 ){
         memcpy(final_block, &input[blk_counter], input_len - blk_counter);
         final_block[input_len - blk_counter] = 0x01;
         reverse_array(final_block, n_8, sizeof(final_block));
