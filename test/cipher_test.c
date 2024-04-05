@@ -269,6 +269,29 @@ int chacha20_test(){
         print_bytes_array(plain4, sizeof(plain4), "plaintext");
     }
 
+    const unsigned char key5[] = {
+        0x1c, 0x92, 0x40, 0xa5, 0xeb, 0x55, 0xd3, 0x8a, 0xf3, 0x33, 0x88, 0x86, 0x04, 0xf6, 0xb5, 0xf0,
+        0x47, 0x39, 0x17, 0xc1, 0x40, 0x2b, 0x80, 0x09, 0x9d, 0xca, 0x5c, 0xbc, 0x20, 0x70, 0x75, 0xc0
+    };
+
+    const unsigned char nonce5[] = {
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
+        0x00, 0x00, 0x00, 0x02
+    };
+
+    unsigned int counter5 = 42;
+
+    const unsigned char plaintext5[] = {
+        "This is chacha20 encryption test - - - - - "
+    };
+    
+    unsigned char ciphertext5[44];
+    unsigned char plain5[44];
+    crypt_chacha20_encrypt(plaintext5, sizeof(plaintext5), key5, sizeof(key5), nonce5, sizeof(nonce5), counter5, ciphertext5, sizeof(ciphertext5));
+    print_bytes_array(ciphertext5, sizeof(ciphertext5), "ciphertext");
+    crypt_chacha20_decrypt(ciphertext5, sizeof(ciphertext5), key5, sizeof(key5), nonce5, sizeof(nonce5), counter5, plain5, sizeof(plain5));
+    print_bytes_array(plain5, sizeof(plain5), "plaintext");
+
     return failed;
 }
 
@@ -688,7 +711,6 @@ int chacha20_poly1305_test(){
         print_passed("chacha20_poly1305 encryption test 2 passed");
         print_bytes_array(aead_output2, sizeof(aead_output2), "aead_output");
     }
-
 
     return failed;
 }       

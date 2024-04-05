@@ -28,6 +28,39 @@ FILES=(
 # Compiler options
 CC=gcc
 CFLAGS="-Wall -Wextra"
+RUSTC=rustc
+RUSTFLAGS="--crate-type=bin"
+
+# Function to compile C library
+compile_c_library() {
+    echo "Compiling C library..."
+    # Filter out the files that should be part of the library
+    LIB_FILES=()
+    for file in "${FILES[@]}"; do
+        if [[ "$file" == lib/*.c ]]; then
+            LIB_FILES+=("$file")
+        fi
+    done
+    $CC $CFLAGS -shared -fPIC "${LIB_FILES[@]}" -o libcrypto_api.so
+    if [ $? -eq 0 ]; then
+        echo "C library compiled successfully"
+    else
+        echo "Error compiling C library"
+        exit 1
+    fi
+}
+
+# Function to compile Rust code
+compile_rust() {
+    echo "Compiling Rust $1..."
+    $RUSTC $RUSTFLAGS -L. -lcrypto_api util/$1.rs -o $1
+    if [ $? -eq 0 ]; then
+        echo "Rust $1 compiled successfully"
+    else
+        echo "Error compiling Rust $1"
+        exit 1
+    fi
+}
 
 # I am beginning to forget the options...
 function print_help() {
@@ -39,6 +72,7 @@ function print_help() {
     echo "  -d, --disassemble   Compile and disassemble the binary, saving the output to disassembly_with_source."
     echo "  -g, --gprof         Compile with profiling information for use with gprof."
     echo "  -b, --benchmark     Compile and link benchmark components, creating a benchmark binary."
+    echo "  -w, --webserver     Compile webserver and client written in rust with crypto library"
     echo ""
     exit 0
 }
@@ -116,6 +150,17 @@ do
         rm bigint.o benchmark.o timer.o
         echo "Cleaned up intermediate object files."
 
+        exit 0
+    fi
+
+    if [[ "$arg" == "--webserver" || "$arg" == "-w" ]]; then
+        echo "compileing for rust webserver and crypto library"
+        compile_c_library
+        compile_rust "server"
+        compile_rust "client"
+        # had to copy libcrypto_api.so to the following location for it to work
+        cp libcrypto_api.so /usr/local/lib/
+        ldconfig
         exit 0
     fi
 done

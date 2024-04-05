@@ -3,6 +3,8 @@
 
 #include "common.h"
 
+crypt_status crypt_test();
+
 /////////////////////////////////// API for hashing algorithms ///////////////////////////////////
 
 crypt_status crypt_md5(const unsigned char *input,

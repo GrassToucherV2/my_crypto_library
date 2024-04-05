@@ -11,6 +11,11 @@
 
 #include <stdio.h>
 
+crypt_status crypt_test(){
+    printf("test function\n");
+    return CRYPT_OKAY;
+}
+
 /////////////////////////////////// API for hashing algorithms ///////////////////////////////////
 
 crypt_status crypt_md5(const unsigned char *input,
