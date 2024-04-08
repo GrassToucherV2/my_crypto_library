@@ -10,5 +10,6 @@ typedef struct {
 int chacha20_test();
 int poly1305_test();
 int chacha20_poly1305_test();
+int des_test();
 
 #endif /* CIPHER_TEST_H */

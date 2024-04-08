@@ -71,6 +71,8 @@ cipher_tests cipher_test[] = {
     {"chacha20_test", &chacha20_test, 1},
     {"poly1305_test", &poly1305_test, 1},
     {"chacha20_poly1305_test", &chacha20_poly1305_test, 1},
+    {"des_test", &des_test, 1},
+
 };
 
 void run_util_tests(){
@@ -200,17 +202,17 @@ int main(int argc, char *argv[]){
             printf("Test %s not found\n", argv[2]);
             return 0;
         } 
-        else if(!strcmp(argv[1], "c")){
-            for(int i = 0; i < NUM_CHAL_TEST; i++){
-                if(!strcmp(argv[2], set1_test[i].name)){
-                    set1_test[i].challenge_fn();
-                    printf("\n");
-                    return 0;
-                }
-            }
-            printf("Test %s not found\n", argv[2]);
-            return 0;
-        }
+        // else if(!strcmp(argv[1], "c")){
+        //     for(int i = 0; i < NUM_CHAL_TEST; i++){
+        //         if(!strcmp(argv[2], set1_test[i].name)){
+        //             set1_test[i].challenge_fn();
+        //             printf("\n");
+        //             return 0;
+        //         }
+        //     }
+        //     printf("Test %s not found\n", argv[2]);
+        //     return 0;
+        // }
         else if(!strcmp(argv[1], "b")){
             for(int i = 0; i < (int)NUM_BIGINT_TEST; i++){
                 if(!strcmp(argv[2], bigint_test[i].name)){

@@ -39,6 +39,7 @@ void printBinary(int number) ;
 int read_b64(const char *bytes, int len, char *output); // read bytes array into output buffer
 void buffers_xor(const char *a, const char *b, int len, char *output);
 void print_bytes_array(const unsigned char *bytes, unsigned int size_byte, char *str);
+void print_as_bits(uint8_t *bytes, unsigned int size_byte, char *str);
 int crypt_gen_rand(unsigned char *buffer, unsigned int bits);
 
 #endif /* TOOLS_H */

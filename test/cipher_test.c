@@ -4,6 +4,7 @@
 #include "../util/tools.h"
 #include "../lib/chacha20.h"
 #include "../lib/poly1305.h"
+#include "../lib/des.h"
 #include <string.h>
 
 // test vectors from https://www.ietf.org/rfc/rfc8439.txt
@@ -284,7 +285,7 @@ int chacha20_test(){
     const unsigned char plaintext5[] = {
         "This is chacha20 encryption test - - - - - "
     };
-    
+
     unsigned char ciphertext5[44];
     unsigned char plain5[44];
     crypt_chacha20_encrypt(plaintext5, sizeof(plaintext5), key5, sizeof(key5), nonce5, sizeof(nonce5), counter5, ciphertext5, sizeof(ciphertext5));
@@ -714,3 +715,35 @@ int chacha20_poly1305_test(){
 
     return failed;
 }       
+
+
+int des_test(){
+    int failed = 0;
+    uint64_t key = (0b0001001100110100010101110111100110011011101111001101111111110001);
+    uint64_t exp_key_56 = (0b0000000011110000110011001010101011110101010101100110011110001111); 
+    uint64_t key_56 = 0;
+
+    des_key_test(key, &key_56);
+    if(memcmp(&exp_key_56, &key_56, sizeof(uint64_t))){
+        print_as_bits((uint8_t *)&key, 8, "key 64");
+        print_as_bits((uint8_t *)&exp_key_56, 8, "expected key 56");
+        print_as_bits((uint8_t *)&key_56, 8, "key 56");
+    } else {
+        print_as_bits((uint8_t *)&key_56, 8, "key 56");
+    }
+
+    uint32_t right = key_56 & 0x000000000FFFFFFF;
+    uint32_t left = (key_56 >> 28) & 0x000000000FFFFFFF;
+    print_as_bits((uint8_t *)&left, 4, "left");
+    print_as_bits((uint8_t *)&right, 4, "right");
+
+    uint64_t combined_key56 = 0;
+    combined_key56 |= (uint64_t)right;
+    combined_key56 |= ((uint64_t)left << 28);
+    print_as_bits((uint8_t *)&exp_key_56, 8, "expected key 56");
+    print_as_bits((uint8_t *)&combined_key56, 8, "combined_key56");
+
+    
+
+    return failed;
+}

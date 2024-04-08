@@ -261,6 +261,18 @@ void print_bytes_array(const unsigned char *bytes, unsigned int size_byte, char 
     }
 }
 
+void print_as_bits(uint8_t *bytes, unsigned int size_byte, char *str){
+    printf("%s\n", str);
+    for(int i = 0; i < size_byte; i++){
+        for(int j = 0; j < 8; j++){
+            uint8_t bit = (bytes[i] >> j) & 1;
+            printf("%d", bit);
+        }
+        printf(" ");
+    }
+    printf("\n");
+}
+
 
 int crypt_gen_rand(unsigned char *buffer, unsigned int bits) {
     if (!buffer) {
