@@ -719,31 +719,34 @@ int chacha20_poly1305_test(){
 
 int des_test(){
     int failed = 0;
-    uint64_t key = (0b0001001100110100010101110111100110011011101111001101111111110001);
-    uint64_t exp_key_56 = (0b0000000011110000110011001010101011110101010101100110011110001111); 
-    uint64_t key_56 = 0;
-
-    des_key_test(key, &key_56);
-    if(memcmp(&exp_key_56, &key_56, sizeof(uint64_t))){
-        print_as_bits((uint8_t *)&key, 8, "key 64");
-        print_as_bits((uint8_t *)&exp_key_56, 8, "expected key 56");
-        print_as_bits((uint8_t *)&key_56, 8, "key 56");
-    } else {
-        print_as_bits((uint8_t *)&key_56, 8, "key 56");
-    }
-
-    uint32_t right = key_56 & 0x000000000FFFFFFF;
-    uint32_t left = (key_56 >> 28) & 0x000000000FFFFFFF;
-    print_as_bits((uint8_t *)&left, 4, "left");
-    print_as_bits((uint8_t *)&right, 4, "right");
-
-    uint64_t combined_key56 = 0;
-    combined_key56 |= (uint64_t)right;
-    combined_key56 |= ((uint64_t)left << 28);
-    print_as_bits((uint8_t *)&exp_key_56, 8, "expected key 56");
-    print_as_bits((uint8_t *)&combined_key56, 8, "combined_key56");
-
     
+    unsigned char plaintext1[] = {
+        0x4E, 0x6F, 0x77, 0x20, 0x69, 0x73, 0x20, 0x74,
+    };
+    unsigned char ciphertext1[8] = {0};
+    uint64_t key = 0x0123456789ABCDEF;
+    des_ctx ctx = {0};
+    des_init(&ctx, key);
+    DES_encrypt_ECB(&ctx, plaintext1, sizeof(plaintext1), ciphertext1, sizeof(ciphertext1));
+
+    print_bytes_array_RB(ciphertext1, sizeof(ciphertext1), "ciphertext");
+    
+    memset(&ctx, 0, sizeof(ctx));
+    unsigned char plaintext2[] = {
+        0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff, 0x00
+    };
+    unsigned char ciphertext2[16] = {0};
+    uint64_t key2 = 0x752878397493CB70;
+    // uint64_t key2 = 0x70CB937439782875;
+    des_init(&ctx, key2);
+    DES_encrypt_ECB(&ctx, plaintext2, sizeof(plaintext2), ciphertext2, sizeof(ciphertext2));
+    print_bytes_array_RB(ciphertext2, sizeof(ciphertext2), "ciphertext");
+
+    // unsigned char plaintext2[] = {
+    //     0x4E, 0x6F, 0x77, 0x20, 0x69, 0x73, 0x20, 0x74,
+    //     0x68, 0x65, 0x20, 0x74, 0x69, 0x6D, 0x65, 0x20, 
+    //     0x66, 0x6F, 0x72, 0x20, 0x61, 0x6C, 0x6C, 0x00
+    // };
 
     return failed;
 }

@@ -261,10 +261,68 @@ void print_bytes_array(const unsigned char *bytes, unsigned int size_byte, char 
     }
 }
 
-void print_as_bits(uint8_t *bytes, unsigned int size_byte, char *str){
+// print the byte array in reverse byte order
+void print_bytes_array_RB(const unsigned char *bytes, unsigned int size_byte, char *str) {
     printf("%s\n", str);
-    for(int i = 0; i < size_byte; i++){
-        for(int j = 0; j < 8; j++){
+    uint16_t bytes_counter = 0;
+    int num_of_lines = (size_byte + 31) / 32;  // Simplified computation for number of lines
+
+    for(int i = num_of_lines - 1; i >= 0; i--) {
+        int line_start = i * 32;
+        int line_end = line_start + ((i == num_of_lines - 1 && size_byte % 32 != 0) ? size_byte % 32 : 32);
+        
+        printf("%04u     ", size_byte - line_end); // Adjust byte counter to reflect the reverse order
+        
+        // Print the hex value in reverse order within the line
+        for(int j = line_end - 1; j >= line_start; j--) {
+            printf("%02X ", bytes[j]);
+            int pos = line_end - 1 - j;  // Position from start of line
+            if(pos == 16) {
+                printf("  "); // Double space for visual separation
+            }
+        }
+
+        // Add padding to align the characters if this is the last line (actually the first in original order) and it's not full
+        if(line_end - line_start < 32) {
+            for(int j = 32 - (line_end - line_start); j > 0; j--) {
+                printf("   ");
+                if(j == 17) { // Correct position for padding space
+                    printf("  ");
+                }
+            }
+        }
+
+        printf("  "); // Space before characters
+
+        // Print characters in reverse order within the line
+        for(int j = line_end - 1; j >= line_start; j--) {
+            uint8_t value = bytes[j];
+            printf("%c", isprint(value) ? value : '.');
+        }
+
+        printf("\n");
+        bytes_counter += (line_end - line_start);
+    }
+}
+
+
+// my computer is in little endian, this function here prints the byte array in little endian order
+void print_as_bits_LE(uint8_t *bytes, unsigned int size_byte, char *str){
+    printf("%s\n", str);
+    for(unsigned int i = 0; i < size_byte; i++){
+        for(int j = 7; j >= 0; j--){ // Start from the MSB
+            uint8_t bit = (bytes[i] >> j) & 1;
+            printf("%d", bit);
+        }
+        printf(" ");
+    }
+    printf("\n");
+}
+
+void print_as_bits_BE(uint8_t *bytes, unsigned int size_byte, char *str){
+    printf("%s\n", str);
+    for(int i = (int)size_byte- 1; i >= 0; i--){
+        for(int j = 7; j >= 0; j--){ // Start from the MSB
             uint8_t bit = (bytes[i] >> j) & 1;
             printf("%d", bit);
         }
