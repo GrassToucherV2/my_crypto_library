@@ -8,6 +8,7 @@
 #include "chacha20.h"
 #include "poly1305.h"
 #include "chacha20_poly1305.h"
+#include "des.h"
 
 #include <stdio.h>
 
@@ -268,6 +269,58 @@ crypt_status crypt_chacha20_poly1305_decrypt(const unsigned char *iv, unsigned i
     CRYPT_CHECK_OKAY(chacha20_poly1305_decrypt(&ctx, aead_input, aead_input_len, constant, constant_len,
                                                 iv, iv_len, aad, aad_len, plaintext, plaintext_len));
     CRYPT_CHECK_OKAY(chacha20_poly1305_cleanup(&ctx));
+
+    return CRYPT_OKAY;
+}
+
+crypt_status crypt_DES_encrypt_ECB(uint64_t key, 
+                                    const unsigned char *plaintext, unsigned int plaintext_len,
+                                    unsigned char *ciphertext, unsigned int ciphertext_len,
+                                    DES_padding padding)
+{
+    if(!plaintext || !ciphertext) return CRYPT_NULL_PTR;
+
+    // if no padding is selected, then we require the plaintext be full blocks only
+    if(padding == NO_PAD){
+        if(plaintext_len % DES_BLOCK_SIZE_BYTES != 0){
+            return CRYPT_INVALID_PADDING;
+        }
+    }
+
+    if(padding != NO_PAD && padding != PKCS7){
+        return CRYPT_INVALID_PADDING;
+    }
+
+    des_ctx ctx = {0};
+    CRYPT_CHECK_OKAY(DES_init(&ctx, key));
+    CRYPT_CHECK_OKAY(DES_encrypt_ECB(&ctx, plaintext, plaintext_len, ciphertext, ciphertext_len, padding));
+    CRYPT_CHECK_OKAY(DES_cleanup(&ctx));
+
+    return CRYPT_OKAY;
+}
+
+crypt_status crypt_DES_decrypt_ECB(uint64_t key, 
+                                    const unsigned char *ciphertext, unsigned int ciphertext_len,
+                                    unsigned char *plaintext, unsigned int plaintext_len,
+                                    DES_padding padding)
+{
+    if(!plaintext || !ciphertext) return CRYPT_NULL_PTR;
+
+    // if no padding is selected, then we require the plaintext be full blocks only
+    if(padding == NO_PAD){
+        if(ciphertext_len % DES_BLOCK_SIZE_BYTES != 0){
+            return CRYPT_INVALID_PADDING;
+        }
+    }
+
+    if(padding != NO_PAD && padding != PKCS7){
+        return CRYPT_INVALID_PADDING;
+    }
+
+    des_ctx ctx = {0};
+    CRYPT_CHECK_OKAY(DES_init(&ctx, key));
+    CRYPT_CHECK_OKAY(DES_decrypt_ECB(&ctx, ciphertext, ciphertext_len, plaintext, plaintext_len, padding));
+    CRYPT_CHECK_OKAY(DES_cleanup(&ctx));
 
     return CRYPT_OKAY;
 }

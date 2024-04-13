@@ -42,6 +42,8 @@ void print_bytes_array(const unsigned char *bytes, unsigned int size_byte, char 
 void print_bytes_array_RB(const unsigned char *bytes, unsigned int size_byte, char *str);
 void print_as_bits_LE(uint8_t *bytes, unsigned int size_byte, char *str);
 void print_as_bits_BE(uint8_t *bytes, unsigned int size_byte, char *str);
+// using this to change the endianness
+void reverse_byte_order(unsigned char *arr_in, unsigned char *arr_out, int length);
 int crypt_gen_rand(unsigned char *buffer, unsigned int bits);
 
 #endif /* TOOLS_H */

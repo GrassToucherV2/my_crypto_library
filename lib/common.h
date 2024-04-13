@@ -71,6 +71,7 @@ typedef enum {
     CRYPT_UNSUPPORTED_ALGO = 7,
     CRYPT_COMPUTATION_ERROR = 8,
     CRYPT_INVALID_TEXT = 9,
+    CRYPT_INVALID_PADDING = 10,
 } crypt_status;
 
 typedef enum{
@@ -82,5 +83,10 @@ typedef enum{
     SHA512_224,
     SHA512_256,
 } SHA2;
+
+typedef enum{
+    NO_PAD = 0,
+    PKCS7 = 1,
+} DES_padding;
 
 #endif /* COMMON_H */

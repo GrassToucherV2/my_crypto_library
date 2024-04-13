@@ -12,12 +12,15 @@ typedef struct des_ctx{
     uint64_t subkeys[16];
 } des_ctx;
 
-crypt_status des_init(des_ctx *ctx, uint64_t key);
+crypt_status DES_init(des_ctx *ctx, uint64_t key);
 
-crypt_status DES_encrypt_ECB(des_ctx *ctx, unsigned char *plaintext, unsigned int plaintext_len,
-                        unsigned char *ciphertext, unsigned int ciphertext_len);
+crypt_status DES_encrypt_ECB(des_ctx *ctx, const unsigned char *plaintext, unsigned int plaintext_len,
+                        unsigned char *ciphertext, unsigned int ciphertext_len, DES_padding padding);
 
-crypt_status DES_encrypt_CBC(des_ctx *ctx, unsigned char *plaintext, unsigned int plaintext_len,
+crypt_status DES_decrypt_ECB(des_ctx *ctx, const unsigned char *ciphertext, unsigned int ciphertext_len,
+                             unsigned char *plaintext, unsigned int plaintext_len, DES_padding padding);
+
+crypt_status DES_encrypt_CBC(des_ctx *ctx, const unsigned char *plaintext, unsigned int plaintext_len,
                             uint64_t iv, unsigned char *ciphertext, unsigned int ciphertext_len);
 
-void des_key_test(uint64_t key, uint64_t *key_56);
+crypt_status DES_cleanup(des_ctx *ctx);

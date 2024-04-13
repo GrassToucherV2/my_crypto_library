@@ -137,3 +137,20 @@ void bytes_to_base64_test(){
     printf("c = "BYTE_TO_BINARY_PATTERN"\n", BYTE_TO_BINARY(c));
     printf("\n");
 }
+
+/*
+    text1 = result 
+    text2 = expected text
+*/
+int assert_eq_texts(unsigned char* text1, unsigned char *text2, unsigned int size){
+    if(memcmp(text1, text2, size)){
+        print_failed("The texts are different - assertion failed");
+        print_bytes_array(text1, size, "text 1");
+        print_bytes_array(text2, size, "expected text");
+        return 1;
+    } else {
+        print_passed("The texts are identical - assertion passed");
+        print_bytes_array(text1, size, "text 1");
+    }
+    return 0;
+}

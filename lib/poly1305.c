@@ -64,23 +64,6 @@ static const unsigned char prime[] = {
     0xfb
 };
 
-// using this to change the endianness
-void reverse_array(unsigned char *arr_in, unsigned char *arr_out, int length) {
-    if (arr_in != arr_out) {
-        // If input and output buffers are different, copy while reversing
-        for (int i = 0; i < length; ++i) {
-            arr_out[i] = arr_in[length - 1 - i];
-        }
-    } else {
-        // If input and output buffers are the same, swap in place
-        for (int i = 0; i < length / 2; ++i) {
-            unsigned char temp = arr_in[i];
-            arr_in[i] = arr_in[length - 1 - i];
-            arr_in[length - 1 - i] = temp;
-        }
-    }
-}
-
 crypt_status poly1305_compute_mac(poly1305_ctx *ctx, const unsigned char *input,
                             unsigned int input_len, unsigned char *mac, 
                             unsigned int mac_len)
@@ -101,8 +84,8 @@ crypt_status poly1305_compute_mac(poly1305_ctx *ctx, const unsigned char *input,
 
     uint8_t r_le[16];
     uint8_t s_le[16];
-    reverse_array(ctx->r, r_le, 16);
-    reverse_array(ctx->s, s_le, 16);
+    reverse_byte_order(ctx->r, r_le, 16);
+    reverse_byte_order(ctx->s, s_le, 16);
 
     CHECK_BIGINT_OKAY(bigint_from_bytes(&r, r_le, sizeof(ctx->r)));
     CHECK_BIGINT_OKAY(bigint_from_bytes(&s, s_le, sizeof(s_le)));
@@ -127,7 +110,7 @@ crypt_status poly1305_compute_mac(poly1305_ctx *ctx, const unsigned char *input,
     // process full blocks first
     for(unsigned int i = 0;  i < input_len / POLY1305_BLOCK_LEN_BYTES; i++){   
         memcpy(&n_arr[0], &input[i * 16], POLY1305_BLOCK_LEN_BYTES); 
-        reverse_array(n_arr, n_8, sizeof(n_arr));
+        reverse_byte_order(n_arr, n_8, sizeof(n_arr));
         CHECK_BIGINT_OKAY(bigint_from_bytes(&n, (unsigned char *)n_8, sizeof(n_8)));
         CHECK_BIGINT_OKAY(bigint_add(&a, &n, &a));
         CHECK_BIGINT_OKAY(bigint_mul(&a, &r, &a));
@@ -142,7 +125,7 @@ crypt_status poly1305_compute_mac(poly1305_ctx *ctx, const unsigned char *input,
     if(remaining_len > 0 ){
         memcpy(final_block, &input[blk_counter], input_len - blk_counter);
         final_block[input_len - blk_counter] = 0x01;
-        reverse_array(final_block, n_8, sizeof(final_block));
+        reverse_byte_order(final_block, n_8, sizeof(final_block));
         CHECK_BIGINT_OKAY(bigint_from_bytes(&n, (unsigned char *)n_8, sizeof(n_8)));
         CHECK_BIGINT_OKAY(bigint_add(&a, &n, &a));
         CHECK_BIGINT_OKAY(bigint_mul(&a, &r, &a));
@@ -157,7 +140,7 @@ crypt_status poly1305_compute_mac(poly1305_ctx *ctx, const unsigned char *input,
     }
     uint8_t mac_be[16];
     CHECK_BIGINT_OKAY(bigint_to_bytes(&a, mac_be, POLY1305_MAC_LEN_BYTES, 0));
-    reverse_array(mac_be, mac, POLY1305_MAC_LEN_BYTES);
+    reverse_byte_order(mac_be, mac, POLY1305_MAC_LEN_BYTES);
     
     bigint_free(&r);
     bigint_free(&s);

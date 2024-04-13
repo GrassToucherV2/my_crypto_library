@@ -159,19 +159,12 @@ static void key_schedule(uint32_t left, uint32_t right, uint32_t *left_keys, uin
 
 static void key_expansion(uint64_t key, uint64_t *keys){
     // dropping parity bits (lsb of each byte) - key permutation
-    // key = 0x133457799BBCDFF1;
-    // key = 0b0001001100110100010101110111100110011011101111001101111111110001; 
-    // uint64_t temp = LE64TOBE64(key);
     uint64_t key_56 = 0;
 
     permute(key, &key_56, PC1, DES_KEY_SIZE_BITS, 64);
-    // print_as_bits_BE((uint8_t *)&key, 8, "key as bit");
-    // print_as_bits_BE((uint8_t *)&key_56, 8, "permuted key as bit"); 
     // separate the 56-bit key into left half and right half
     uint32_t right = key_56 & 0x000000000FFFFFFF;    
     uint32_t left = (key_56 >> 28) & 0x000000000FFFFFFF;
-    // print_as_bits_BE((uint8_t *)&left, 4, "left ");
-    // print_as_bits_BE((uint8_t *)&right, 4, "right"); 
 
     // generate 16 subkeys
     uint32_t left_keys[16] = {0};
@@ -180,33 +173,27 @@ static void key_expansion(uint64_t key, uint64_t *keys){
 
     uint64_t keys_56[16] = {0};                             
     for(int i = 0; i < DES_NUM_ROUNDS; i++){
-        // print_as_bits_BE((uint8_t *)&left_keys[i], 4, "left i");
-        // print_as_bits_BE((uint8_t *)&right_keys[i], 4, "right i");
         keys_56[i] |= (uint64_t)right_keys[i];
         keys_56[i] |= ((uint64_t)left_keys[i] << 28);
-        // print_as_bits_BE((uint8_t *)&keys_56[i], 8, "key_56");      // <<---------------------------------------- correct up until this point, permute is wrong
         permute(keys_56[i], &keys[i], PC2, DES_SUBKEY_SIZE_BITS, 56);
-        // print_as_bits_BE((uint8_t *)&keys[i], 8, "permuted key");
     }
     
 }
 
-static void print_subkeys(des_ctx *ctx){
-    for(int i = 0; i < 16; i++){
-        printf("%lX ", ctx->subkeys[i]);
-        // print_as_bits_BE((uint8_t *)&ctx->subkeys[i], 8, "subkey");
-    }
-    printf("\n");
-}
+// static void print_subkeys(des_ctx *ctx){
+//     for(int i = 0; i < 16; i++){
+//         printf("%lX ", ctx->subkeys[i]);
+//         // print_as_bits_BE((uint8_t *)&ctx->subkeys[i], 8, "subkey");
+//     }
+//     printf("\n");
+// }
 
-crypt_status des_init(des_ctx *ctx, uint64_t key){
+crypt_status DES_init(des_ctx *ctx, uint64_t key){
     if(!ctx) return CRYPT_NULL_PTR;
 
-    // printf("key = %lX\n", key);
     memset(ctx->subkeys, 0, sizeof(ctx->subkeys));
 
     key_expansion(key, ctx->subkeys);
-    // print_subkeys(ctx);
 
     return CRYPT_OKAY;
 }
@@ -217,9 +204,6 @@ static void s_box_lookup(uint8_t block, uint8_t *block_4 , const uint8_t S[4][16
     row |= block & 1;
 
     uint8_t col = (block & 0x1E) >> 1;  // 0b00011110 = 0x1E
-    // print_as_bits_BE(&block, 1, "       6 bit block");
-    // printf("   row = %u\n", row);
-    // printf("   col = %u\n", col);
     *block_4 = S[row][col];
 }
 
@@ -232,8 +216,6 @@ static void feistel(uint32_t right, uint32_t *res, uint64_t key){
 
     // XOR the expanded block with the subkey
     right_expanded ^= key;
-    // printf("subkey used = %lX\n", key);
-    // printf("after xor = %lX\n", right_expanded);
     // break the expanded block into 8 6-bit blocks and perform S-box lookup
     uint32_t res_before_perm = 0;
     for (int i = 0; i < 8; i++) {
@@ -244,25 +226,18 @@ static void feistel(uint32_t right, uint32_t *res, uint64_t key){
         // Assemble the result from the S-box outputs, same as above, shifting 28 bits to get the 4 msb
         res_before_perm |= ((uint32_t)six_bit_block << (28 - 4 * i));
     }
-    // printf("after sbox: %8X\n", res_before_perm);
     permute(res_before_perm, (uint64_t *)res, P, sizeof(P)/sizeof(P[0]), 32);
-    // printf("after pbox = %8X\n", *res);
 }
 
 // one round of transformation in DES Feistel network
 static void DES_transform(uint32_t right_in, uint32_t left_in, uint64_t key,
                         uint32_t *right_out, uint32_t *left_out)
 {
-    // printf("left half: %08X\n", left_in);
-    // printf("right half: %08X\n", right_in);
-
     // L_(i+1) = R_i
     *left_out = right_in;
     // R_(i+1) = L_i ^ f(k, R_i)
     feistel(right_in, right_out, key);
-    // printf("xor with: %08X\n", left_in);
     *right_out ^= left_in;
-    // printf("xor res : %08X\n", *right_out);
 }
 
 static void DES_encrypt_block(des_ctx *ctx, uint64_t block_in, uint32_t *left_half, 
@@ -270,10 +245,7 @@ static void DES_encrypt_block(des_ctx *ctx, uint64_t block_in, uint32_t *left_ha
 {   
     uint64_t block_out = 0;
     uint64_t temp = LE64TOBE64(block_in);
-    // printf("block permuted = %lX\n", temp);
     permute(temp, &block_out, IP, sizeof(IP)/sizeof(IP[0]), 64);
-    // printf("block permuted = %lX\n", block_out);
-    // printf("block          = %lX\n", temp);
     left_half[0] = (block_out & 0xFFFFFFFF00000000) >> 32;
     right_half[0] = block_out & 0xFFFFFFFF;
     for(int i = 0; i < DES_NUM_ROUNDS; i++){
@@ -283,15 +255,13 @@ static void DES_encrypt_block(des_ctx *ctx, uint64_t block_in, uint32_t *left_ha
     *ciphertext_block |= (((uint64_t)right_half[16]) << 32);
     *ciphertext_block |= (uint64_t)(left_half[16]);
     permute(*ciphertext_block, ciphertext_block, IP_1, sizeof(IP_1)/sizeof(IP_1[0]), 64);
-    uint64_t ciphertext_block_be = *ciphertext_block;
-    *ciphertext_block = BE64TOLE64(ciphertext_block_be);
-    // printf("final res: %lX\n", *ciphertext_block);
-    // printf("\n");
+
+    reverse_byte_order((uint8_t *)ciphertext_block, (uint8_t *)ciphertext_block, DES_BLOCK_SIZE_BYTES);
 }
 
 // By default a block cipher operates in ECB mode
-crypt_status DES_encrypt_ECB(des_ctx *ctx, unsigned char *plaintext, unsigned int plaintext_len,
-                        unsigned char *ciphertext, unsigned int ciphertext_len)
+crypt_status DES_encrypt_ECB(des_ctx *ctx, const unsigned char *plaintext, unsigned int plaintext_len,
+                        unsigned char *ciphertext, unsigned int ciphertext_len, DES_padding padding)
 {
     if(!ctx || !plaintext || !ciphertext) return CRYPT_NULL_PTR;
 
@@ -309,23 +279,56 @@ crypt_status DES_encrypt_ECB(des_ctx *ctx, unsigned char *plaintext, unsigned in
 
     // encrypt the full blocks
     for(int i = 0; i < num_blocks; i++){
-        // permute(blocks[i], &blocks[i], IP, sizeof(IP)/sizeof(IP[0]));
-        // left_half[0] = (blocks[i] & 0xFFFFFFFF00000000) >> 32;
-        // right_half[0] = blocks[i] & 0xFFFFFFFF;
-        // for(int j = 0; j < DES_NUM_ROUNDS; j++){
-        //     DES_transform(right_half[j], left_half[j], ctx->subkeys[j], right_half[j+1], left_half[j+1]);
-        // }
-        
-        // ciphertext_blocks[i] |= (uint64_t)(left_half[16] << 32);
-        // ciphertext_blocks[i] |= (uint64_t)(right_half[16]);
-        // permute(ciphertext_blocks[i], &ciphertext_blocks[i], IP_1, sizeof(IP_1)/sizeof(IP_1[0]));
         DES_encrypt_block(ctx, blocks[i], left_half, right_half, &ciphertext_blocks[i]);
     }
 
     return CRYPT_OKAY;
 }
 
-crypt_status DES_encrypt_CBC(des_ctx *ctx, unsigned char *plaintext, unsigned int plaintext_len,
+static void DES_decrypt_block(des_ctx *ctx, uint64_t block_in, uint32_t *left_half, 
+                            uint32_t *right_half, uint64_t *plaintext_block)
+{   
+    uint64_t block_out = 0;
+    uint64_t temp = LE64TOBE64(block_in);
+    permute(temp, &block_out, IP_1, sizeof(IP_1)/sizeof(IP_1[0]), 64);
+    left_half[0] = (block_out & 0xFFFFFFFF00000000) >> 32;
+    right_half[0] = block_out & 0xFFFFFFFF;
+    for(int i = 0; i < DES_NUM_ROUNDS; i++){
+        DES_transform(left_half[i], right_half[i], ctx->subkeys[15 - i], &left_half[i+1], &right_half[i+1]);
+
+    }
+    *plaintext_block |= (((uint64_t)right_half[16]) << 32);
+    *plaintext_block |= (uint64_t)(left_half[16]);
+    permute(*plaintext_block, plaintext_block, IP, sizeof(IP)/sizeof(IP[0]), 64);
+    reverse_byte_order((uint8_t *)plaintext_block, (uint8_t *)plaintext_block, DES_BLOCK_SIZE_BYTES);
+}
+
+crypt_status DES_decrypt_ECB(des_ctx *ctx, const unsigned char *ciphertext, unsigned int ciphertext_len,
+                        unsigned char *plaintext, unsigned int plaintext_len, DES_padding padding)
+{
+    if(!ctx || !plaintext || !ciphertext) return CRYPT_NULL_PTR;
+
+    if(plaintext_len < ciphertext_len){
+        return CRYPT_BAD_BUFFER_LEN;
+    }
+    memset(plaintext, 0, plaintext_len);
+
+    int num_blocks = ciphertext_len / DES_BLOCK_SIZE_BYTES;
+
+    uint64_t *blocks = (uint64_t *)ciphertext;
+    uint64_t *ciphertext_blocks = (uint64_t *)plaintext;
+    uint32_t right_half[17] = {0};
+    uint32_t left_half[17] = {0};
+
+    // encrypt the full blocks
+    for(int i = 0; i < num_blocks; i++){
+        DES_decrypt_block(ctx, blocks[i], left_half, right_half, &ciphertext_blocks[i]);
+    }
+
+    return CRYPT_OKAY;
+}
+
+crypt_status DES_encrypt_CBC(des_ctx *ctx, const unsigned char *plaintext, unsigned int plaintext_len,
                             uint64_t iv, unsigned char *ciphertext, unsigned int ciphertext_len)
 {
     if(!ctx || !plaintext || !iv || !ciphertext) return CRYPT_NULL_PTR;
@@ -360,7 +363,9 @@ crypt_status DES_encrypt_CBC(des_ctx *ctx, unsigned char *plaintext, unsigned in
 
 }
 
+crypt_status DES_cleanup(des_ctx *ctx){
+    if(!ctx) return CRYPT_NULL_PTR;
 
-void des_key_test(uint64_t key, uint64_t *key_56){
-    key_expansion(key, key_56);
+    memset(ctx->subkeys, 0, sizeof(ctx->subkeys));
+    return CRYPT_OKAY;
 }

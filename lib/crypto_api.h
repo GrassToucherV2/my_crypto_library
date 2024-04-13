@@ -2,6 +2,7 @@
 #define CRYPTO_API_H
 
 #include "common.h"
+#include <stdint.h>
 
 crypt_status crypt_test();
 
@@ -61,5 +62,14 @@ crypt_status crypt_chacha20_poly1305_decrypt(const unsigned char *iv, unsigned i
                                             unsigned char *aead_input, unsigned int aead_input_len,
                                             unsigned char *plaintext, unsigned int plaintext_len);
 
+crypt_status crypt_DES_encrypt_ECB(uint64_t key, 
+                                    const unsigned char *plaintext, unsigned int plaintext_len,
+                                    unsigned char *ciphertext, unsigned int ciphertext_len,
+                                    DES_padding padding);
+
+crypt_status crypt_DES_decrypt_ECB(uint64_t key, 
+                                    const unsigned char *ciphertext, unsigned int ciphertext_len,
+                                    unsigned char *plaintext, unsigned int plaintext_len,
+                                    DES_padding padding);
                                     
 #endif /* CRYPTO_API_H */

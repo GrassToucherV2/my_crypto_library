@@ -6,6 +6,7 @@
 #include "../lib/poly1305.h"
 #include "../lib/des.h"
 #include <string.h>
+#include "../lib/common.h"
 
 // test vectors from https://www.ietf.org/rfc/rfc8439.txt
 int chacha20_test(){
@@ -702,16 +703,16 @@ int chacha20_poly1305_test(){
                                     exp_plaintext2, sizeof(exp_plaintext2),
                                     ciphertext2, sizeof(ciphertext2),
                                     aead_output2, sizeof(aead_output2));
-    
-    if(memcmp(aead_output2, aead_encrypted_text, sizeof(aead_encrypted_text))){
-        failed = 1;
-        print_failed("chacha20_poly1305 encryption test 2 failed");
-        print_bytes_array(aead_output2, sizeof(aead_output2), "aead output");
-        print_bytes_array(aead_encrypted_text, sizeof(aead_encrypted_text), "expected aead output");
-    } else {
-        print_passed("chacha20_poly1305 encryption test 2 passed");
-        print_bytes_array(aead_output2, sizeof(aead_output2), "aead_output");
-    }
+    failed = assert_eq_texts(aead_output2, aead_encrypted_text, sizeof(aead_encrypted_text));
+    // if(memcmp(aead_output2, aead_encrypted_text, sizeof(aead_encrypted_text))){
+    //     failed = 1;
+    //     print_failed("chacha20_poly1305 encryption test 2 failed");
+    //     print_bytes_array(aead_output2, sizeof(aead_output2), "aead output");
+    //     print_bytes_array(aead_encrypted_text, sizeof(aead_encrypted_text), "expected aead output");
+    // } else {
+    //     print_passed("chacha20_poly1305 encryption test 2 passed");
+    //     print_bytes_array(aead_output2, sizeof(aead_output2), "aead_output");
+    // }
 
     return failed;
 }       
@@ -723,30 +724,42 @@ int des_test(){
     unsigned char plaintext1[] = {
         0x4E, 0x6F, 0x77, 0x20, 0x69, 0x73, 0x20, 0x74,
     };
-    unsigned char ciphertext1[8] = {0};
-    uint64_t key = 0x0123456789ABCDEF;
-    des_ctx ctx = {0};
-    des_init(&ctx, key);
-    DES_encrypt_ECB(&ctx, plaintext1, sizeof(plaintext1), ciphertext1, sizeof(ciphertext1));
-
-    print_bytes_array_RB(ciphertext1, sizeof(ciphertext1), "ciphertext");
-    
-    memset(&ctx, 0, sizeof(ctx));
-    unsigned char plaintext2[] = {
-        0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff, 0x00
+    unsigned char ciphertext1[] = {
+        0x3F, 0xA4, 0x0E, 0x8A, 0x98, 0x4D, 0x48, 0x15
     };
-    unsigned char ciphertext2[16] = {0};
-    uint64_t key2 = 0x752878397493CB70;
-    // uint64_t key2 = 0x70CB937439782875;
-    des_init(&ctx, key2);
-    DES_encrypt_ECB(&ctx, plaintext2, sizeof(plaintext2), ciphertext2, sizeof(ciphertext2));
-    print_bytes_array_RB(ciphertext2, sizeof(ciphertext2), "ciphertext");
+    unsigned char cipher1[8] = {0};
+    unsigned char plain1[8] = {0};
+    uint64_t key = 0x0123456789ABCDEF;
+    crypt_DES_encrypt_ECB(key, plaintext1, sizeof(plaintext1), cipher1, sizeof(cipher1), NO_PAD);
+    failed = assert_eq_texts(cipher1, ciphertext1, sizeof(ciphertext1));
 
-    // unsigned char plaintext2[] = {
-    //     0x4E, 0x6F, 0x77, 0x20, 0x69, 0x73, 0x20, 0x74,
-    //     0x68, 0x65, 0x20, 0x74, 0x69, 0x6D, 0x65, 0x20, 
-    //     0x66, 0x6F, 0x72, 0x20, 0x61, 0x6C, 0x6C, 0x00
-    // };
+    unsigned char plaintext2[] = {
+        0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 
+        0x99, 0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff, 0x00
+    };
+    unsigned char ciphertext2[16] = {
+        0xB5, 0x21, 0x9E, 0xE8, 0x1A, 0xA7, 0x49, 0x9D, 
+        0x21, 0x96, 0x68, 0x7E, 0x13, 0x97, 0x38, 0x56
+    };
+    unsigned char cipher2[16] = {0};
+    uint64_t key2 = 0x752878397493CB70;
+    crypt_DES_encrypt_ECB(key2, plaintext2, sizeof(plaintext2), cipher2, sizeof(cipher2), NO_PAD);
+    failed = assert_eq_texts(cipher2, ciphertext2, sizeof(ciphertext2));
+
+    unsigned char plaintext3[] = {
+        0x4E, 0x6F, 0x77, 0x20, 0x69, 0x73, 0x20, 0x74,
+        0x68, 0x65, 0x20, 0x74, 0x69, 0x6D, 0x65, 0x20, 
+        0x66, 0x6F, 0x72, 0x20, 0x61, 0x6C, 0x6C, 0x00
+    };
+    unsigned char ciphertext3[] = {
+        0x3F, 0xA4, 0x0E, 0x8A, 0x98, 0x4D, 0x48, 0x15, 
+        0x6A, 0x27, 0x17, 0x87, 0xAB, 0x88, 0x83, 0xF9, 
+        0xB1, 0xCB, 0xC8, 0x07, 0x56, 0x55, 0x70, 0x58
+    };
+    unsigned char cipher3[24] = {0};
+    uint64_t key3 = 0x0123456789ABCDEF;
+    crypt_DES_encrypt_ECB(key3, plaintext3, sizeof(plaintext3), cipher3, sizeof(cipher3), NO_PAD);
+    failed = assert_eq_texts(cipher3, ciphertext3, sizeof(ciphertext3));
 
     return failed;
 }

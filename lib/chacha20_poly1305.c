@@ -30,6 +30,7 @@ static void form_mac_data(const unsigned char *aad, unsigned int aad_len,
     // the padding is up to 15 zero bytes, and it should bring the total length so far to
     // and integral multiple of 16  
     int padding_len = 16 - (current_len & 0x0F);
+    if(padding_len == 0) padding_len = 0;
     
     memset(&mac_data[current_len], 0, padding_len);
     current_len += padding_len;
@@ -40,6 +41,7 @@ static void form_mac_data(const unsigned char *aad, unsigned int aad_len,
 
     // appending padding 2
     padding_len = 16 - (current_len & 0x0F);
+    if(padding_len == 16) padding_len = 0;
     memset(&mac_data[current_len], 0, padding_len);
     current_len += padding_len;
 
@@ -90,6 +92,7 @@ crypt_status chacha20_poly1305_encrypt(chacha20_poly1305_ctx *ctx,
     // aad + padding1 + ciphertext + padding2 + aad_len (64-bit value) + ciphertext_len (64-bit value)
     // 16 bytes at the end for aad_len and ciphertext_len
     unsigned int mac_data_len = aad_len + (16 - (aad_len & 0x0F)) + ciphertext_len + (16 - (ciphertext_len & 0x0F)) + 16;
+
     unsigned char *mac_data = (unsigned char *)malloc(mac_data_len);
     crypt_status res = CRYPT_OKAY;
 
@@ -154,7 +157,10 @@ crypt_status chacha20_poly1305_decrypt(chacha20_poly1305_ctx *ctx,
 
     // extracting mac and ciphertext from the encrypted_text
     int ciphertext_len = encrypted_text_len - POLY1305_MAC_LEN_BYTES;
-    unsigned int mac_data_len = aad_len + (aad_len & 0x0F) + ciphertext_len + (ciphertext_len & 0x0F) + 16;
+    unsigned int mac_data_len = aad_len + (16 - (aad_len % 16)) + 
+                             ciphertext_len + (16 - (ciphertext_len % 16)) + 
+                             16;  // For two 64-bit length fields
+
     unsigned char extracted_mac[POLY1305_MAC_LEN_BYTES];
     unsigned char computed_mac[POLY1305_MAC_LEN_BYTES];
     
@@ -162,7 +168,6 @@ crypt_status chacha20_poly1305_decrypt(chacha20_poly1305_ctx *ctx,
 
     unsigned char *ciphertext = (unsigned char *)malloc(ciphertext_len);
     memcpy(ciphertext, encrypted_text, ciphertext_len);
-
     unsigned char *mac_data = (unsigned char *)malloc(mac_data_len);
     form_mac_data(aad, aad_len, ciphertext, ciphertext_len, mac_data);
 
@@ -173,7 +178,7 @@ crypt_status chacha20_poly1305_decrypt(chacha20_poly1305_ctx *ctx,
 
     CRYPT_CHECK_OKAY_CL(compute_mac(ctx, mac_data, mac_data_len, nonce, computed_mac));
     
-    if(!compare_mac(extracted_mac, computed_mac)){
+    if(compare_mac(extracted_mac, computed_mac)){
         res = CRYPT_INVALID_TEXT;
         goto cleanup;
     }

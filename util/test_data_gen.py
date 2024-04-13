@@ -2,6 +2,9 @@ import secrets
 import sys
 import math
 import hashlib
+import os
+from Crypto.Cipher import DES
+# from Crypto.Random import get_random_bytes
 
 def extended_gcd(a, b):
     x0, x1, y0, y1 = 1, 0, 0, 1
@@ -37,6 +40,43 @@ def print_hex_format(number, line_length=8):
 def generate_random_numbers(bits):
     return secrets.randbits(bits)
 
+
+def bytes_to_int(bytes_value):
+    return int.from_bytes(bytes_value, byteorder='big')
+
+
+def des_ecb():
+    keys = [
+        bytes([0x01, 0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF]),
+        bytes([0x75, 0x28, 0x78, 0x39, 0x74, 0x93, 0xCB, 0x70]),
+        bytes([0x01, 0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF]),
+    ]
+    # Generate test vectors
+    test_vectors = [
+        bytes([0x4E, 0x6F, 0x77, 0x20, 0x69, 0x73, 0x20, 0x74]),
+
+        bytes([0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 
+                0x99, 0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff, 0x00]),
+        
+        bytes([
+            0x4E, 0x6F, 0x77, 0x20, 0x69, 0x73, 0x20, 0x74,
+            0x68, 0x65, 0x20, 0x74, 0x69, 0x6D, 0x65, 0x20, 
+            0x66, 0x6F, 0x72, 0x20, 0x61, 0x6C, 0x6C, 0x00
+        ])
+    ]
+    for key, plaintext in zip(keys, test_vectors):
+        cipher = DES.new(key, DES.MODE_ECB)
+        ciphertext = cipher.encrypt(plaintext)
+        print("key")
+        print_hex_format(bytes_to_int(key))
+        print("plaintext")
+        print_hex_format(bytes_to_int(plaintext))
+        print("ciphertext")
+        print_hex_format(bytes_to_int(ciphertext))
+    
+    return ' '
+    
+
 def print_help_menu():
     print("""
 Usage: script_name [BITS1] [BITS2] (BITS3) [OPERATION]
@@ -53,7 +93,7 @@ Arguments:
             - sub       Subtraction of two numbers                                                 -- num1 - num2
             - mul       Multiplication of two numbers                                              -- num1 * num2
             - dou       Doubling the first number                                                  -- num1 * 2
-            - hal      Halving the first number                                                   -- num1 / 2
+            - hal      Halving the first number                                                    -- num1 / 2
             - div       Integer division of two numbers, returns quotient and remainder            -- num1 // num2 , num1 % num2
             - mod       Modulus operation of two numbers                                           -- num1 % num2
             - or        Bitwise OR of two numbers                                                  -- num1 | num2
@@ -76,6 +116,11 @@ Arguments:
         BITS3      Number of bits for the third random string (required only for certain operations) - num3  
         Operation  The hash algorithm  
             - md5       compute MD5 hash
+    
+    ============================================ encrypt operations =================================================
+    Arguments:
+            - des       Generate DES test vectors
+          
 """)
 
 
@@ -135,6 +180,8 @@ def perform_operation(num1, num2, num3, op):
     elif op == "md5":
         byte_data = num1.to_bytes((num1.bit_length() + 7) // 8, byteorder='big') or b'\x00'
         return md5_hash(byte_data)
+    elif op == "des":
+        return des_ecb()
 
 if __name__ == "__main__":
     bits1 = 0
@@ -152,12 +199,14 @@ if __name__ == "__main__":
     elif len(sys.argv) == 3:
         bits1 = int(sys.argv[1])
         op = sys.argv[2].lower()
+    elif len(sys.argv) == 2:
+        op = sys.argv[1].lower()
     elif len(sys.argv) == 5:
         bits1 = int(sys.argv[1])
         bits2 = int(sys.argv[2])
         bits3 = int(sys.argv[3])
         op = sys.argv[4].lower()
-    elif len(sys.argv) < 3 or sys.argv[1] in ('-h', '--help'):
+    elif len(sys.argv) < 2 or sys.argv[1] in ('-h', '--help'):
         print_help_menu()
         sys.exit(0)
         
@@ -177,7 +226,7 @@ if __name__ == "__main__":
     if op == "mul_pow_2" or op == "div_pow_2" or op == "mod_pow_2":
         random_number1 = generate_random_numbers(bits1)
         random_number2 = bits2
-
+    
     print("Random Number 1:")
     print_hex_format(random_number1)
     print("Random Number 2:")
