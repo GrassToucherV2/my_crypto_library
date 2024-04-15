@@ -356,6 +356,91 @@ crypt_status crypt_DES_decrypt(uint64_t key, uint64_t iv,
             break;
     }
     
+    return CRYPT_OKAY;
+}
 
+crypt_status crypt_TDES_encrypt(uint64_t key1, uint64_t key2, uint64_t key3, uint64_t iv,
+                                    const unsigned char *plaintext, unsigned int plaintext_len,
+                                    unsigned char *ciphertext, unsigned int ciphertext_len,
+                                    DES_padding padding, block_cipher_mode mode)
+{
+    if(!plaintext || !ciphertext) return CRYPT_NULL_PTR;
+
+    tdes_ctx ctx = {0};
+    switch(mode){
+        case ECB:
+            // if no padding is selected, then we require the plaintext be full blocks only
+            if(padding == NO_PAD){
+                if(ciphertext_len % DES_BLOCK_SIZE_BYTES != 0){
+                    return CRYPT_INVALID_PADDING;
+                }
+            }
+
+            if(padding != NO_PAD && padding != PKCS7){
+                return CRYPT_INVALID_PADDING;
+            }
+            CRYPT_CHECK_OKAY(TDES_init(&ctx, key1, key2, key3));
+            CRYPT_CHECK_OKAY(TDES_encrypt_ECB(&ctx, plaintext, plaintext_len, ciphertext, ciphertext_len, padding));
+            CRYPT_CHECK_OKAY(TDES_cleanup(&ctx));
+            break;
+        
+        case CBC:
+            CRYPT_CHECK_OKAY(TDES_init(&ctx, key1, key2, key3));
+            CRYPT_CHECK_OKAY(TDES_encrypt_CBC(&ctx, plaintext, plaintext_len, iv, ciphertext, ciphertext_len));
+            CRYPT_CHECK_OKAY(TDES_cleanup(&ctx));
+            break;
+        
+        case CTR:
+            printf("not implemented\n");
+            break;
+        
+        default:
+            printf("mode not supported\n");
+            break;
+    }
+    
+    return CRYPT_OKAY;
+}
+
+crypt_status crypt_TDES_decrypt(uint64_t key1, uint64_t key2, uint64_t key3,  uint64_t iv,
+                                    const unsigned char *ciphertext, unsigned int ciphertext_len,
+                                    unsigned char *plaintext, unsigned int plaintext_len,
+                                    DES_padding padding, block_cipher_mode mode)
+{
+    if(!plaintext || !ciphertext) return CRYPT_NULL_PTR;
+
+    tdes_ctx ctx = {0};
+    switch(mode){
+        case ECB:
+            // if no padding is selected, then we require the plaintext be full blocks only
+            if(padding == NO_PAD){
+                if(ciphertext_len % DES_BLOCK_SIZE_BYTES != 0){
+                    return CRYPT_INVALID_PADDING;
+                }
+            }
+
+            if(padding != NO_PAD && padding != PKCS7){
+                return CRYPT_INVALID_PADDING;
+            }
+            CRYPT_CHECK_OKAY(TDES_init(&ctx, key1, key2, key3));
+            CRYPT_CHECK_OKAY(TDES_decrypt_ECB(&ctx, ciphertext, ciphertext_len, plaintext, plaintext_len, padding));
+            CRYPT_CHECK_OKAY(TDES_cleanup(&ctx));
+            break;
+        
+        case CBC:
+            CRYPT_CHECK_OKAY(TDES_init(&ctx, key1, key2, key3));
+            CRYPT_CHECK_OKAY(TDES_decrypt_CBC(&ctx, ciphertext, ciphertext_len, iv, plaintext, plaintext_len));
+            CRYPT_CHECK_OKAY(TDES_cleanup(&ctx));
+            break;
+        
+        case CTR:
+            printf("not implemented\n");
+            break;
+        
+        default:
+            printf("mode not supported\n");
+            break;
+    }
+    
     return CRYPT_OKAY;
 }

@@ -71,5 +71,15 @@ crypt_status crypt_DES_decrypt(uint64_t key,  uint64_t iv,
                                     const unsigned char *ciphertext, unsigned int ciphertext_len,
                                     unsigned char *plaintext, unsigned int plaintext_len,
                                     DES_padding padding, block_cipher_mode mode);
+
+crypt_status crypt_TDES_encrypt(uint64_t key1, uint64_t key2, uint64_t key3, uint64_t iv,
+                                    const unsigned char *plaintext, unsigned int plaintext_len,
+                                    unsigned char *ciphertext, unsigned int ciphertext_len,
+                                    DES_padding padding, block_cipher_mode mode);
+
+crypt_status crypt_TDES_decrypt(uint64_t key1, uint64_t key2, uint64_t key3,  uint64_t iv,
+                                    const unsigned char *ciphertext, unsigned int ciphertext_len,
+                                    unsigned char *plaintext, unsigned int plaintext_len,
+                                    DES_padding padding, block_cipher_mode mode);
                                     
 #endif /* CRYPTO_API_H */

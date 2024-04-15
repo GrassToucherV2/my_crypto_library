@@ -72,7 +72,7 @@ cipher_tests cipher_test[] = {
     {"poly1305_test", &poly1305_test, 1},
     {"chacha20_poly1305_test", &chacha20_poly1305_test, 1},
     {"des_test", &des_test, 1},
-
+    {"3DES_test", &tdes_test, 1},
 };
 
 void run_util_tests(){
