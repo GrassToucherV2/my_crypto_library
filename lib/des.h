@@ -23,4 +23,7 @@ crypt_status DES_decrypt_ECB(des_ctx *ctx, const unsigned char *ciphertext, unsi
 crypt_status DES_encrypt_CBC(des_ctx *ctx, const unsigned char *plaintext, unsigned int plaintext_len,
                             uint64_t iv, unsigned char *ciphertext, unsigned int ciphertext_len);
 
+crypt_status DES_decrypt_CBC(des_ctx *ctx, const unsigned char *ciphertext, unsigned int ciphertext_len,
+                            uint64_t iv, unsigned char *plaintext, unsigned int plaintext_len);
+
 crypt_status DES_cleanup(des_ctx *ctx);

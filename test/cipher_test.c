@@ -703,16 +703,8 @@ int chacha20_poly1305_test(){
                                     exp_plaintext2, sizeof(exp_plaintext2),
                                     ciphertext2, sizeof(ciphertext2),
                                     aead_output2, sizeof(aead_output2));
-    failed = assert_eq_texts(aead_output2, aead_encrypted_text, sizeof(aead_encrypted_text));
-    // if(memcmp(aead_output2, aead_encrypted_text, sizeof(aead_encrypted_text))){
-    //     failed = 1;
-    //     print_failed("chacha20_poly1305 encryption test 2 failed");
-    //     print_bytes_array(aead_output2, sizeof(aead_output2), "aead output");
-    //     print_bytes_array(aead_encrypted_text, sizeof(aead_encrypted_text), "expected aead output");
-    // } else {
-    //     print_passed("chacha20_poly1305 encryption test 2 passed");
-    //     print_bytes_array(aead_output2, sizeof(aead_output2), "aead_output");
-    // }
+    failed = assert_eq_texts(aead_output2, aead_encrypted_text, sizeof(aead_encrypted_text), " ");
+    print_bytes_array(aead_output2, sizeof(aead_output2), "aead_output");
 
     return failed;
 }       
@@ -727,11 +719,26 @@ int des_test(){
     unsigned char ciphertext1[] = {
         0x3F, 0xA4, 0x0E, 0x8A, 0x98, 0x4D, 0x48, 0x15
     };
+    unsigned char ciphertext1_cbc[] = {
+        0x3F, 0xA4, 0x0E, 0x8A, 0x98, 0x4D, 0x48, 0x15
+    };
+    uint64_t iv = 0x0000000000000000;
     unsigned char cipher1[8] = {0};
+    unsigned char cipher1_cbc[16] = {0};
     unsigned char plain1[8] = {0};
+    unsigned char plain1_cbc[16] = {0};
     uint64_t key = 0x0123456789ABCDEF;
-    crypt_DES_encrypt_ECB(key, plaintext1, sizeof(plaintext1), cipher1, sizeof(cipher1), NO_PAD);
-    failed = assert_eq_texts(cipher1, ciphertext1, sizeof(ciphertext1));
+    crypt_DES_encrypt(key, 0, plaintext1, sizeof(plaintext1), cipher1, sizeof(cipher1), NO_PAD, ECB);
+    failed |= assert_eq_texts(cipher1, ciphertext1, sizeof(ciphertext1), "DES-encryption ECB 1");
+
+    crypt_DES_decrypt(key, 0, ciphertext1, sizeof(ciphertext1), plain1, sizeof(plain1), NO_PAD, ECB);
+    failed |= assert_eq_texts(plain1, plaintext1, sizeof(plaintext1), "DES-decryption ECB 1");
+
+    crypt_DES_encrypt(key, iv, plaintext1, sizeof(plaintext1), cipher1_cbc, sizeof(cipher1_cbc), NO_PAD, CBC);
+    failed |= assert_eq_texts(cipher1_cbc, ciphertext1_cbc, sizeof(ciphertext1_cbc), "DES-encryption CBC 1");
+
+    crypt_DES_decrypt(key, iv, ciphertext1_cbc, sizeof(ciphertext1_cbc), plain1_cbc, sizeof(plain1_cbc), NO_PAD, CBC);
+    failed |= assert_eq_texts(plain1_cbc, plaintext1, sizeof(plaintext1), "DES-decryption CBC 1");
 
     unsigned char plaintext2[] = {
         0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 
@@ -741,10 +748,27 @@ int des_test(){
         0xB5, 0x21, 0x9E, 0xE8, 0x1A, 0xA7, 0x49, 0x9D, 
         0x21, 0x96, 0x68, 0x7E, 0x13, 0x97, 0x38, 0x56
     };
+    unsigned char ciphertext2_cbc[16] = {
+        0xEA, 0xFD, 0x7D, 0x68, 0x32, 0x34, 0xF5, 0x79, 
+        0x8F, 0x74, 0xA9, 0x8B, 0x9F, 0x4F, 0x03, 0xA9
+    };
+    uint64_t iv2 = 0x1234567890ABCDEF;
     unsigned char cipher2[16] = {0};
+    unsigned char cipher2_cbc[24] = {0};
+    unsigned char plain2[16] = {0}; 
+    unsigned char plain2_cbc[16] = {0};
     uint64_t key2 = 0x752878397493CB70;
-    crypt_DES_encrypt_ECB(key2, plaintext2, sizeof(plaintext2), cipher2, sizeof(cipher2), NO_PAD);
-    failed = assert_eq_texts(cipher2, ciphertext2, sizeof(ciphertext2));
+    crypt_DES_encrypt(key2, 0, plaintext2, sizeof(plaintext2), cipher2, sizeof(cipher2), NO_PAD, ECB);
+    failed |= assert_eq_texts(cipher2, ciphertext2, sizeof(ciphertext2), "DES-encryption ECB 2");
+
+    crypt_DES_decrypt(key2, 0, ciphertext2, sizeof(ciphertext2), plain2, sizeof(plain2), NO_PAD, ECB);
+    failed |= assert_eq_texts(plain2, plaintext2, sizeof(plaintext2), "DES-decryption ECB 2");
+
+    crypt_DES_encrypt(key2, iv2, plaintext2, sizeof(plaintext2), cipher2_cbc, sizeof(cipher2_cbc), NO_PAD, CBC);
+    failed |= assert_eq_texts(cipher2_cbc, ciphertext2_cbc, sizeof(ciphertext2_cbc), "DES-encryption CBC 2");
+
+    crypt_DES_decrypt(key2, iv2, ciphertext2_cbc, sizeof(ciphertext2_cbc), plain2_cbc, sizeof(plain2_cbc), NO_PAD, CBC);
+    failed |= assert_eq_texts(plain2_cbc, plaintext2, sizeof(plaintext2), "DES-decryption CBC 2");
 
     unsigned char plaintext3[] = {
         0x4E, 0x6F, 0x77, 0x20, 0x69, 0x73, 0x20, 0x74,
@@ -756,10 +780,51 @@ int des_test(){
         0x6A, 0x27, 0x17, 0x87, 0xAB, 0x88, 0x83, 0xF9, 
         0xB1, 0xCB, 0xC8, 0x07, 0x56, 0x55, 0x70, 0x58
     };
+    unsigned char ciphertext3_cbc[] = {
+        0x7F, 0x81, 0x65, 0x41, 0x21, 0xDB, 0xD4, 0xCF, 
+        0xA8, 0xE9, 0x88, 0x4F, 0x76, 0x72, 0x2A, 0xCD, 
+        0xBE, 0x42, 0x4F, 0x90, 0x86, 0x24, 0x3F, 0x35
+    };
+    uint64_t iv3 = 0xFEDCBA9876543210;
     unsigned char cipher3[24] = {0};
+    unsigned char cipher3_cbc[32] = {0};
+    unsigned char plain3[24] = {0};
+    unsigned char plain3_cbc[32] = {0};
     uint64_t key3 = 0x0123456789ABCDEF;
-    crypt_DES_encrypt_ECB(key3, plaintext3, sizeof(plaintext3), cipher3, sizeof(cipher3), NO_PAD);
-    failed = assert_eq_texts(cipher3, ciphertext3, sizeof(ciphertext3));
+    crypt_DES_encrypt(key3, 0, plaintext3, sizeof(plaintext3), cipher3, sizeof(cipher3), NO_PAD, ECB);
+    failed |= assert_eq_texts(cipher3, ciphertext3, sizeof(ciphertext3), "DES-encryption ECB 3");
+
+    crypt_DES_decrypt(key3, 0, ciphertext3, sizeof(ciphertext3), plain3, sizeof(plain3), NO_PAD, ECB);
+    failed |= assert_eq_texts(plain3, plaintext3, sizeof(plaintext3), "DES-decryption ECB 3");
+
+    crypt_DES_encrypt(key3, iv3, plaintext3, sizeof(plaintext3), cipher3_cbc, sizeof(cipher3_cbc), NO_PAD, CBC);
+    failed |= assert_eq_texts(cipher3_cbc, ciphertext3_cbc, sizeof(ciphertext3_cbc), "DES-encryption CBC 3");
+
+    crypt_DES_decrypt(key3, iv3, ciphertext3_cbc, sizeof(ciphertext3_cbc), plain3_cbc, sizeof(plain3_cbc), NO_PAD, CBC);
+    failed |= assert_eq_texts(plain3_cbc, plaintext3, sizeof(plaintext3), "DES-decryption CBC 3");
+
+    unsigned char plaintext4[] = {
+        0x4E, 0x6F, 0x77, 0x20, 0x69, 0x73, 0x20, 0x74, 
+        0x68, 0x65, 0x20, 0x74, 0x69, 0x6D, 0x65, 0x20, 
+        0x66, 0x6F, 0x72, 0x20, 0x61, 0x6C, 0x6C, 0x00, 
+        0x66, 0x6F, 0x72, 0x20, 0x61
+    };
+    unsigned char ciphertext4[] = {
+        0x7F, 0x81, 0x65, 0x41, 0x21, 0xDB, 0xD4, 0xCF, 
+        0xA8, 0xE9, 0x88, 0x4F, 0x76, 0x72, 0x2A, 0xCD, 
+        0xBE, 0x42, 0x4F, 0x90, 0x86, 0x24, 0x3F, 0x35, 
+        0x83, 0x81, 0x54, 0x60, 0x92, 0x60, 0x8F, 0xE0
+    };
+    uint64_t iv4 = 0xFEDCBA9876543210;
+    unsigned char cipher4_cbc[32] = {0};
+    unsigned char plain4_cbc[29] = {0};
+    uint64_t key4 = 0x0123456789ABCDEF;
+
+    crypt_DES_encrypt(key4, iv4, plaintext4, sizeof(plaintext4), cipher4_cbc, sizeof(cipher4_cbc), NO_PAD, CBC);
+    failed |= assert_eq_texts(cipher4_cbc, ciphertext4, sizeof(ciphertext4), "DES-encryption CBC 4");
+
+    crypt_DES_decrypt(key4, iv4, ciphertext4, sizeof(ciphertext4), plain4_cbc, sizeof(plain4_cbc), NO_PAD, CBC);
+    failed |= assert_eq_texts(plain4_cbc, plaintext4, sizeof(plaintext4), "DES-decryption CBC 4");
 
     return failed;
 }

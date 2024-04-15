@@ -39,7 +39,6 @@ void hex_to_bytes_conv_test();
 void is_odd_test();
 void three_bytes_to_base64_test();
 void bytes_to_base64_test();
-int assert_eq_texts(unsigned char* text1, unsigned char *text2, unsigned int size);
-
+int assert_eq_texts(unsigned char* text1, unsigned char *text2, unsigned int size, char *str);
 
 #endif /* TEST_UTIL_H */

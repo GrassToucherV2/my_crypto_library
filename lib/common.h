@@ -89,4 +89,12 @@ typedef enum{
     PKCS7 = 1,
 } DES_padding;
 
+// place holder for now 
+typedef enum{
+    ECB = 0,
+    CBC = 1,
+    CTR = 2,
+    GCM = 3,
+} block_cipher_mode;
+
 #endif /* COMMON_H */

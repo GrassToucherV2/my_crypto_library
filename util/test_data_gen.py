@@ -75,6 +75,61 @@ def des_ecb():
         print_hex_format(bytes_to_int(ciphertext))
     
     return ' '
+
+
+def pkcs7_padding(data, block_size):
+    padding_len = block_size - len(data) % block_size
+    if padding_len == block_size:
+        return data
+    padding = bytes([padding_len] * padding_len)
+    return data + padding
+
+
+def des_cbc():
+    keys = [
+        bytes([0x01, 0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF]),
+        bytes([0x75, 0x28, 0x78, 0x39, 0x74, 0x93, 0xCB, 0x70]),
+        bytes([0x01, 0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF]),
+        bytes([0x01, 0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF]),
+    ]
+    ivs = [
+        bytes([0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]),  # Example IVs
+        bytes([0x12, 0x34, 0x56, 0x78, 0x90, 0xAB, 0xCD, 0xEF]),
+        bytes([0xFE, 0xDC, 0xBA, 0x98, 0x76, 0x54, 0x32, 0x10]),
+        bytes([0xFE, 0xDC, 0xBA, 0x98, 0x76, 0x54, 0x32, 0x10]),
+    ]
+    # Generate test vectors
+    test_vectors = [
+        bytes([0x4E, 0x6F, 0x77, 0x20, 0x69, 0x73, 0x20, 0x74]),
+
+        bytes([0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 
+                0x99, 0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff, 0x00]),
+        
+        bytes([
+            0x4E, 0x6F, 0x77, 0x20, 0x69, 0x73, 0x20, 0x74,
+            0x68, 0x65, 0x20, 0x74, 0x69, 0x6D, 0x65, 0x20, 
+            0x66, 0x6F, 0x72, 0x20, 0x61, 0x6C, 0x6C, 0x00
+        ]),
+        bytes([
+            0x4E, 0x6F, 0x77, 0x20, 0x69, 0x73, 0x20, 0x74,
+            0x68, 0x65, 0x20, 0x74, 0x69, 0x6D, 0x65, 0x20, 
+            0x66, 0x6F, 0x72, 0x20, 0x61, 0x6C, 0x6C, 0x00,
+            0x66, 0x6F, 0x72, 0x20, 0x61,
+        ]),
+    ]
+    for iv, key, plaintext in zip(ivs, keys, test_vectors):
+        cipher = DES.new(key, DES.MODE_CBC, iv)
+        ciphertext = cipher.encrypt(pkcs7_padding(plaintext, 8))
+        print("IV")
+        print_hex_format(bytes_to_int(iv))
+        print("key")
+        print_hex_format(bytes_to_int(key))
+        print("plaintext")
+        print_hex_format(bytes_to_int(pkcs7_padding(plaintext, 8)))
+        print("ciphertext")
+        print_hex_format(bytes_to_int(ciphertext))
+    
+    return ' '
     
 
 def print_help_menu():
@@ -119,7 +174,8 @@ Arguments:
     
     ============================================ encrypt operations =================================================
     Arguments:
-            - des       Generate DES test vectors
+            - des_ecb      Generate DES_ECB test vectors
+            - des_cbc      Generate DES_CBC test vectors
           
 """)
 
@@ -180,8 +236,10 @@ def perform_operation(num1, num2, num3, op):
     elif op == "md5":
         byte_data = num1.to_bytes((num1.bit_length() + 7) // 8, byteorder='big') or b'\x00'
         return md5_hash(byte_data)
-    elif op == "des":
+    elif op == "des" or op == "des_ecb":
         return des_ecb()
+    elif op == "des_cbc":
+        return des_cbc()
 
 if __name__ == "__main__":
     bits1 = 0

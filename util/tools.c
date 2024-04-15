@@ -348,7 +348,6 @@ void reverse_byte_order(unsigned char *arr_in, unsigned char *arr_out, int lengt
     }
 }
 
-
 int crypt_gen_rand(unsigned char *buffer, unsigned int bits) {
     if (!buffer) {
         return -1; // Buffer is null

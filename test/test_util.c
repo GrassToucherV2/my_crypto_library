@@ -142,7 +142,10 @@ void bytes_to_base64_test(){
     text1 = result 
     text2 = expected text
 */
-int assert_eq_texts(unsigned char* text1, unsigned char *text2, unsigned int size){
+int assert_eq_texts(unsigned char* text1, unsigned char *text2, unsigned int size, char *str){
+    printf("\033[%dm", YELLOW);  
+    printf("Test - %s\n", str);
+    printf("\033[0m");
     if(memcmp(text1, text2, size)){
         print_failed("The texts are different - assertion failed");
         print_bytes_array(text1, size, "text 1");

@@ -62,14 +62,14 @@ crypt_status crypt_chacha20_poly1305_decrypt(const unsigned char *iv, unsigned i
                                             unsigned char *aead_input, unsigned int aead_input_len,
                                             unsigned char *plaintext, unsigned int plaintext_len);
 
-crypt_status crypt_DES_encrypt_ECB(uint64_t key, 
+crypt_status crypt_DES_encrypt(uint64_t key, uint64_t iv,
                                     const unsigned char *plaintext, unsigned int plaintext_len,
                                     unsigned char *ciphertext, unsigned int ciphertext_len,
-                                    DES_padding padding);
+                                    DES_padding padding, block_cipher_mode mode);
 
-crypt_status crypt_DES_decrypt_ECB(uint64_t key, 
+crypt_status crypt_DES_decrypt(uint64_t key,  uint64_t iv,
                                     const unsigned char *ciphertext, unsigned int ciphertext_len,
                                     unsigned char *plaintext, unsigned int plaintext_len,
-                                    DES_padding padding);
+                                    DES_padding padding, block_cipher_mode mode);
                                     
 #endif /* CRYPTO_API_H */
