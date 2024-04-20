@@ -44,6 +44,10 @@ void print_as_bits_LE(uint8_t *bytes, unsigned int size_byte, char *str);
 void print_as_bits_BE(uint8_t *bytes, unsigned int size_byte, char *str);
 // using this to change the endianness
 void reverse_byte_order(unsigned char *arr_in, unsigned char *arr_out, int length);
+
+
+/////////////////// Crypto functions ////////////////////////
+void *memset_s(void *v, int c, size_t n);
 int crypt_gen_rand(unsigned char *buffer, unsigned int bits);
 
 #endif /* TOOLS_H */

@@ -194,7 +194,7 @@ static void key_expansion(uint64_t key, uint64_t *keys){
 crypt_status DES_init(des_ctx *ctx, uint64_t key){
     if(!ctx) return CRYPT_NULL_PTR;
 
-    memset(ctx->subkeys, 0, sizeof(ctx->subkeys));
+    memset_s(ctx->subkeys, 0, sizeof(ctx->subkeys));
 
     key_expansion(key, ctx->subkeys);
 
@@ -284,7 +284,7 @@ crypt_status DES_encrypt_ECB(des_ctx *ctx, const unsigned char *plaintext, unsig
     if(padding != NO_PAD){
         return CRYPT_OKAY; // place holder, padding for ECB mode not implemented yet
     }
-    memset(ciphertext, 0, ciphertext_len);
+    memset_s(ciphertext, 0, ciphertext_len);
 
     int num_blocks = plaintext_len / DES_BLOCK_SIZE_BYTES;
 
@@ -329,7 +329,7 @@ crypt_status DES_decrypt_ECB(des_ctx *ctx, const unsigned char *ciphertext, unsi
     if(padding != NO_PAD){
         return CRYPT_OKAY; // place holder, padding for ECB mode not implemented yet
     }
-    memset(plaintext, 0, plaintext_len);
+    memset_s(plaintext, 0, plaintext_len);
 
     int num_blocks = ciphertext_len / DES_BLOCK_SIZE_BYTES;
 
@@ -355,7 +355,7 @@ crypt_status DES_encrypt_CBC(des_ctx *ctx, const unsigned char *plaintext, unsig
     if(ciphertext_len < padded_len) {
         return CRYPT_BAD_BUFFER_LEN;
     }
-    memset(ciphertext, 0, ciphertext_len);
+    memset_s(ciphertext, 0, ciphertext_len);
 
     // padding the plaintext
     unsigned char *plaintext_padded = (unsigned char*)malloc(padded_len);
@@ -365,7 +365,7 @@ crypt_status DES_encrypt_CBC(des_ctx *ctx, const unsigned char *plaintext, unsig
     memcpy(plaintext_padded, plaintext, plaintext_len);
     uint8_t len_to_pad = DES_BLOCK_SIZE_BYTES - (plaintext_len % DES_BLOCK_SIZE_BYTES);
 
-    memset(&plaintext_padded[plaintext_len], len_to_pad, len_to_pad);
+    memset_s(&plaintext_padded[plaintext_len], len_to_pad, len_to_pad);
 
     uint64_t *blocks = (uint64_t *)plaintext_padded;
     uint64_t *ciphertext_blocks = (uint64_t *)ciphertext;
@@ -389,7 +389,7 @@ crypt_status DES_decrypt_CBC(des_ctx *ctx, const unsigned char *ciphertext, unsi
     if (plaintext_len < ciphertext_len - DES_BLOCK_SIZE_BYTES) {
         return CRYPT_BAD_BUFFER_LEN;
     }
-    memset(plaintext, 0, plaintext_len);
+    memset_s(plaintext, 0, plaintext_len);
     
     uint64_t *blocks = (uint64_t *)ciphertext;
 
@@ -418,16 +418,16 @@ crypt_status DES_decrypt_CBC(des_ctx *ctx, const unsigned char *ciphertext, unsi
 crypt_status DES_cleanup(des_ctx *ctx){
     if(!ctx) return CRYPT_NULL_PTR;
 
-    memset(ctx->subkeys, 0, sizeof(ctx->subkeys));
+    memset_s(ctx->subkeys, 0, sizeof(ctx->subkeys));
     return CRYPT_OKAY;
 }
 
 crypt_status TDES_init(tdes_ctx *ctx, uint64_t key1, uint64_t key2, uint64_t key3){
     if(!ctx) return CRYPT_NULL_PTR;
 
-    memset(ctx->subkeys1, 0, sizeof(ctx->subkeys1));
-    memset(ctx->subkeys2, 0, sizeof(ctx->subkeys2));
-    memset(ctx->subkeys3, 0, sizeof(ctx->subkeys3));
+    memset_s(ctx->subkeys1, 0, sizeof(ctx->subkeys1));
+    memset_s(ctx->subkeys2, 0, sizeof(ctx->subkeys2));
+    memset_s(ctx->subkeys3, 0, sizeof(ctx->subkeys3));
 
     key_expansion(key1, ctx->subkeys1);
     key_expansion(key2, ctx->subkeys2);
@@ -456,7 +456,7 @@ crypt_status TDES_encrypt_ECB(tdes_ctx *ctx, const unsigned char *plaintext, uns
     if(padding != NO_PAD){
         return CRYPT_OKAY; // place holder, padding for ECB mode not implemented yet
     }
-    memset(ciphertext, 0, ciphertext_len);
+    memset_s(ciphertext, 0, ciphertext_len);
 
     int num_blocks = plaintext_len / DES_BLOCK_SIZE_BYTES;
 
@@ -492,7 +492,7 @@ crypt_status TDES_decrypt_ECB(tdes_ctx *ctx, const unsigned char *ciphertext, un
     if(padding != NO_PAD){
         return CRYPT_OKAY; // place holder, padding for ECB mode not implemented yet
     }
-    memset(plaintext, 0, plaintext_len);
+    memset_s(plaintext, 0, plaintext_len);
 
     int num_blocks = ciphertext_len / DES_BLOCK_SIZE_BYTES;
 
@@ -518,7 +518,7 @@ crypt_status TDES_encrypt_CBC(tdes_ctx *ctx, const unsigned char *plaintext, uns
     if(ciphertext_len < padded_len) {
         return CRYPT_BAD_BUFFER_LEN;
     }
-    memset(ciphertext, 0, ciphertext_len);
+    memset_s(ciphertext, 0, ciphertext_len);
 
     // padding the plaintext
     unsigned char *plaintext_padded = (unsigned char*)malloc(padded_len);
@@ -528,7 +528,7 @@ crypt_status TDES_encrypt_CBC(tdes_ctx *ctx, const unsigned char *plaintext, uns
     memcpy(plaintext_padded, plaintext, plaintext_len);
     uint8_t len_to_pad = DES_BLOCK_SIZE_BYTES - (plaintext_len % DES_BLOCK_SIZE_BYTES);
 
-    memset(&plaintext_padded[plaintext_len], len_to_pad, len_to_pad);
+    memset_s(&plaintext_padded[plaintext_len], len_to_pad, len_to_pad);
 
     uint64_t *blocks = (uint64_t *)plaintext_padded;
     uint64_t *ciphertext_blocks = (uint64_t *)ciphertext;
@@ -552,7 +552,7 @@ crypt_status TDES_decrypt_CBC(tdes_ctx *ctx, const unsigned char *ciphertext, un
     if (plaintext_len < ciphertext_len - DES_BLOCK_SIZE_BYTES) {
         return CRYPT_BAD_BUFFER_LEN;
     }
-    memset(plaintext, 0, plaintext_len);
+    memset_s(plaintext, 0, plaintext_len);
     
     uint64_t *blocks = (uint64_t *)ciphertext;
 
@@ -581,8 +581,8 @@ crypt_status TDES_decrypt_CBC(tdes_ctx *ctx, const unsigned char *ciphertext, un
 crypt_status TDES_cleanup(tdes_ctx *ctx){
     if(!ctx) return CRYPT_NULL_PTR;
 
-    memset(ctx->subkeys1, 0, sizeof(ctx->subkeys1));
-    memset(ctx->subkeys2, 0, sizeof(ctx->subkeys2));
-    memset(ctx->subkeys3, 0, sizeof(ctx->subkeys3));
+    memset_s(ctx->subkeys1, 0, sizeof(ctx->subkeys1));
+    memset_s(ctx->subkeys2, 0, sizeof(ctx->subkeys2));
+    memset_s(ctx->subkeys3, 0, sizeof(ctx->subkeys3));
     return CRYPT_OKAY;
 }

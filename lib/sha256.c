@@ -71,7 +71,7 @@ crypt_status sha224_256_init(sha224_256_ctx *ctx, SHA2 sha){
     }
     
     ctx->bit_count = 0;
-    memset(ctx->buffer, 0, sizeof(ctx->buffer));
+    memset_s(ctx->buffer, 0, sizeof(ctx->buffer));
 
     return CRYPT_OKAY;
 }
@@ -142,7 +142,7 @@ static void sha224_256_process_block(sha224_256_ctx *ctx, const uint8_t *block){
     ctx->state[6] += G;
     ctx->state[7] += H;
 
-    memset(W, 0, sizeof(W));
+    memset_s(W, 0, sizeof(W));
 }
 
 crypt_status sha224_256_update(sha224_256_ctx *ctx, const unsigned char *input, unsigned int input_len){
@@ -216,11 +216,11 @@ crypt_status sha224_256_finish(sha224_256_ctx *ctx, unsigned char *digest,
     // and then process it, then prepare a new block with the first 56 bytes 
     // being only 0
     if(index >= 56){    
-        memset(&ctx->buffer[index], 0, SHA2_MSG_BLOCK_LEN_BYTES - index);
+        memset_s(&ctx->buffer[index], 0, SHA2_MSG_BLOCK_LEN_BYTES - index);
         sha224_256_process_block(ctx, ctx->buffer);
-        memset(ctx->buffer, 0, 56);
+        memset_s(ctx->buffer, 0, 56);
     } else {
-        memset(&ctx->buffer[index], 0, 56 - index);
+        memset_s(&ctx->buffer[index], 0, 56 - index);
     } 
 
     // append the message length as 64-bit value at index 56
@@ -246,6 +246,6 @@ crypt_status sha224_256_finish(sha224_256_ctx *ctx, unsigned char *digest,
         memcpy(digest, state_le, SHA224_DIGEST_LEN_BYTES);
     }
     
-    memset(ctx, 0, sizeof(*ctx));
+    memset_s(ctx, 0, sizeof(*ctx));
     return CRYPT_OKAY;
 }

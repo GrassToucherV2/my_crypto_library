@@ -32,7 +32,7 @@ static void form_mac_data(const unsigned char *aad, unsigned int aad_len,
     int padding_len = 16 - (current_len & 0x0F);
     if(padding_len == 0) padding_len = 0;
     
-    memset(&mac_data[current_len], 0, padding_len);
+    memset_s(&mac_data[current_len], 0, padding_len);
     current_len += padding_len;
 
     // appending ciphertext
@@ -42,7 +42,7 @@ static void form_mac_data(const unsigned char *aad, unsigned int aad_len,
     // appending padding 2
     padding_len = 16 - (current_len & 0x0F);
     if(padding_len == 16) padding_len = 0;
-    memset(&mac_data[current_len], 0, padding_len);
+    memset_s(&mac_data[current_len], 0, padding_len);
     current_len += padding_len;
 
     // appending aad length and ciphertext length as 64 bit value 
@@ -64,7 +64,7 @@ static crypt_status compute_mac(chacha20_poly1305_ctx *ctx, const unsigned char 
                         mac, POLY1305_MAC_LEN_BYTES));
     
     // wipe sensitive data
-    memset(polykey, 0, sizeof(polykey));
+    memset_s(polykey, 0, sizeof(polykey));
     
     return CRYPT_OKAY;
 }
@@ -203,7 +203,7 @@ cleanup:
 crypt_status chacha20_poly1305_cleanup(chacha20_poly1305_ctx *ctx){
     if(!ctx) return CRYPT_NULL_PTR;
 
-    memset(ctx, 0, sizeof(*ctx));
+    memset_s(ctx, 0, sizeof(*ctx));
 
     return CRYPT_OKAY;
 }

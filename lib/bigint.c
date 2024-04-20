@@ -6,10 +6,10 @@
 #include "bigint.h"
 #include <time.h>
 
-void print_bigint_ctx(const bigint *a){
-    printf("MSD              = %u\n", a->MSD);
-    printf("number of digits = %u\n", a->num_of_digit);
-}
+// static void print_bigint_ctx(const bigint *a){
+//     printf("MSD              = %u\n", a->MSD);
+//     printf("number of digits = %u\n", a->num_of_digit);
+// }
 
 bigint_err bigint_init(bigint *b, unsigned int num_of_digit){
     b->digits = (digit *)malloc(num_of_digit * sizeof(digit));
@@ -17,7 +17,7 @@ bigint_err bigint_init(bigint *b, unsigned int num_of_digit){
         printf("malloc failed in bigint_init\n");
         return BIGINT_REALLOC_FAILURE;
     }
-    memset(b->digits, 0, num_of_digit * sizeof(digit));
+    memset_s(b->digits, 0, num_of_digit * sizeof(digit));
     b->MSD = 0;
     b->num_of_digit = num_of_digit;
     return BIGINT_OKAY;
@@ -41,7 +41,7 @@ bigint_err bigint_expand(bigint *a, unsigned int num){
     digit *tmp = (digit *)malloc(num * sizeof(digit));
     if(!tmp)
         return BIGINT_REALLOC_FAILURE;
-    memset(tmp, 0, num * sizeof(digit));
+    memset_s(tmp, 0, num * sizeof(digit));
     memcpy(tmp, a->digits, a->num_of_digit * sizeof(digit));
     bigint_free(a);
 
@@ -53,7 +53,7 @@ bigint_err bigint_expand(bigint *a, unsigned int num){
 
 bigint_err bigint_set_zero(bigint *a){
     if(!a) return BIGINT_ERROR_NULLPTR;
-    memset(a->digits, 0, a->num_of_digit * sizeof(digit));
+    memset_s(a->digits, 0, a->num_of_digit * sizeof(digit));
     a->MSD = 0;
     // bigint_clamp(a);
     return BIGINT_OKAY;
@@ -133,7 +133,7 @@ bigint_err bigint_pad_zero(bigint *a, unsigned int msd){
     for(unsigned int i = a->MSD + 1; i <= msd; i++){
         a->digits[i] = 0;
     }
-    // memset(&a->digits[a->MSD + 1], 0, (msd - a->MSD) * sizeof(digit));
+    // memset_s(&a->digits[a->MSD + 1], 0, (msd - a->MSD) * sizeof(digit));
     a->MSD = msd;
 
     return BIGINT_OKAY;
@@ -562,7 +562,7 @@ bigint_err bigint_to_bytes(const bigint *a, unsigned char *output,
     if(num_bytes > len) 
         return BIGINT_ERROR_INSUFFICIENT_BUF;
     
-    memset(output, 0, len);
+    memset_s(output, 0, len);
 
     // iterating over each digit
     int i;

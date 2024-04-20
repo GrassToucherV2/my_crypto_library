@@ -348,7 +348,19 @@ void reverse_byte_order(unsigned char *arr_in, unsigned char *arr_out, int lengt
     }
 }
 
-int crypt_gen_rand(unsigned char *buffer, unsigned int bits) {
+///////////////////////////////////////////////// CRYPTO TOOLS /////////////////////////////////////////////////
+
+// using a volatile pointer instead to force the compiler not to use any optimization
+void *memset_s(void *v, int c, size_t n) {
+    volatile unsigned char *p = v;
+    while (n--) {
+        *p++ = c;
+    }
+    return v;
+}
+
+
+int crypt_gen_rand(unsigned char *buffer, unsigned int num_bits) {
     if (!buffer) {
         return -1; // Buffer is null
     }
@@ -359,10 +371,10 @@ int crypt_gen_rand(unsigned char *buffer, unsigned int bits) {
         return -1;
     }
 
-    size_t bytesRead = fread(buffer, 1, bits, f); // Read 32 bytes (256 bits)
+    size_t bytesRead = fread(buffer, 1, num_bits, f);
     fclose(f); // Close the file
 
-    if (bytesRead != bits) {
+    if (bytesRead != num_bits) {
         fprintf(stderr, "Failed to read enough random data\n");
         return -1;
     }

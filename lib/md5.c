@@ -160,7 +160,7 @@ static void md5_transformation(md5_ctx *ctx, const unsigned char *block){
     ctx->state[3] += d;
 
     // setting sensitive information to 0 at the end of the transformation
-    memset(x, 0, sizeof(x));
+    memset_s(x, 0, sizeof(x));
 }
 
 crypt_status md5_init(md5_ctx *ctx){
@@ -173,7 +173,7 @@ crypt_status md5_init(md5_ctx *ctx){
     ctx->state[2] = word_C;
     ctx->state[3] = word_D;
 
-    memset(ctx->buffer, 0, sizeof(ctx->buffer));
+    memset_s(ctx->buffer, 0, sizeof(ctx->buffer));
 
     return CRYPT_OKAY;
 }
@@ -238,11 +238,11 @@ crypt_status md5_finish(md5_ctx *ctx, unsigned char *digest){
     // and then process it, then prepare a new block with the first 56 bytes 
     // being only 0
     if(index >= 56){    
-        memset(&ctx->buffer[index], 0, MD5_BLOCK_SIZE_BYTES - index);
+        memset_s(&ctx->buffer[index], 0, MD5_BLOCK_SIZE_BYTES - index);
         md5_transformation(ctx, ctx->buffer);
-        memset(ctx->buffer, 0, 56);
+        memset_s(ctx->buffer, 0, 56);
     } else {
-        memset(&ctx->buffer[index], 0, 56 - index);
+        memset_s(&ctx->buffer[index], 0, 56 - index);
     }
 
     // append the message length as 64-bit value at index 56, MD5 is done in little endian
@@ -258,7 +258,7 @@ crypt_status md5_finish(md5_ctx *ctx, unsigned char *digest){
     state_le[3] = BE32TOLE32(ctx->state[3]);
     memcpy(digest, state_le, MD5_DIGESTS_LEN_BYTES);
     
-    memset(ctx, 0, sizeof(*ctx));
+    memset_s(ctx, 0, sizeof(*ctx));
     return CRYPT_OKAY;
 }    
 

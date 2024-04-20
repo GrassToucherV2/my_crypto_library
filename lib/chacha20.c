@@ -42,12 +42,9 @@ void chacha20_block(chacha20_ctx *ctx, unsigned char keystream[CHACHA20_KEYSTREA
     }
 
     // serialize - write the keystream in little endian
-    for (int i = 0; i < 16; i++) {
-        // Convert each 32-bit word in the state to 4 bytes in little-endian format
-        keystream[i * 4] = (uint8_t)(tmp_state[i] & 0xFF);
-        keystream[i * 4 + 1] = (uint8_t)((tmp_state[i] >> 8) & 0xFF);
-        keystream[i * 4 + 2] = (uint8_t)((tmp_state[i] >> 16) & 0xFF);
-        keystream[i * 4 + 3] = (uint8_t)((tmp_state[i] >> 24) & 0xFF);
+    uint32_t *keystream32 = (uint32_t *)keystream;
+    for(int i = 0; i < 16; i++){
+        keystream32[i] = BE32TOLE32(tmp_state[i]);
     }
 }
 
@@ -55,7 +52,7 @@ crypt_status chacha20_init(chacha20_ctx *ctx, const unsigned char *key)
 {
     if(!ctx || !key) return CRYPT_NULL_PTR;
 
-    memset(ctx->state, 0, sizeof(ctx->state));
+    memset_s(ctx->state, 0, sizeof(ctx->state));
 
     ctx->state[0] = 0x61707865;
     ctx->state[1] = 0x3320646e;
@@ -131,7 +128,7 @@ crypt_status chacha20_crypt(chacha20_ctx *ctx, unsigned int counter,
 crypt_status chacha20_cleanup(chacha20_ctx *ctx){
     if(!ctx) return CRYPT_NULL_PTR;
 
-    memset(ctx->state, 0, CHACHA20_STATE_LEN_BYTES);
+    memset_s(ctx->state, 0, CHACHA20_STATE_LEN_BYTES);
 
     return CRYPT_OKAY;
 }

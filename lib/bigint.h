@@ -9,6 +9,7 @@
 */
 
 #include <stdint.h>
+#include "common.h"
 
 #define BASE 0xFFFFFFFF // max value of unsigned int - also the max value of a digit
 #define DIGIT_BIT sizeof(digit) * 8
@@ -25,19 +26,6 @@ typedef struct {
     unsigned int MSD;           /* index of most significant digit */
 } bigint;
 
-typedef enum {
-    BIGINT_OKAY = 0,
-    BIGINT_ERROR_OVERFLOW,
-    BIGINT_ERROR_NULLPTR,
-    BIGINT_REALLOC_FAILURE, 
-    BIGINT_ERROR_SET_ZERO, 
-    BIGINT_ERROR_INSUFFICIENT_BUF,
-    BIGINT_ERROR_GENERIC,
-    BIGINT_ERROR_SHIFTING,
-    BIGINT_ERROR_DIVIDE_BY_ZERO,
-    BIGINT_ERROR_MUL_INVERSE_DOES_NOT_EXIST,
-
-} bigint_err;
 
 /* bigint utils */
 

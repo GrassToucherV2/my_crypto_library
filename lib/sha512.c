@@ -1,7 +1,8 @@
 #include "sha512.h"
 #include "sha256.h"
-#include <string.h>
 #include "../util/tools.h"
+
+#include <string.h>
 
 /*
     FIPS PUB 180-4: https://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.180-4.pdf
@@ -116,7 +117,7 @@ crypt_status sha384_512_init(sha384_512_ctx *ctx, SHA2 sha){
     }
     
     ctx->bit_count = 0;
-    memset(ctx->buffer, 0, sizeof(ctx->buffer));
+    memset_s(ctx->buffer, 0, sizeof(ctx->buffer));
 
     return CRYPT_OKAY;
 }
@@ -193,7 +194,7 @@ static void sha384_512_process_block(sha384_512_ctx *ctx, const uint8_t *block){
     ctx->state[6] += G;
     ctx->state[7] += H;
 
-    memset(W, 0, sizeof(W));
+    memset_s(W, 0, sizeof(W));
 
 }
 
@@ -271,11 +272,11 @@ crypt_status sha384_512_finish(sha384_512_ctx *ctx, unsigned char *digest,
     // and then process it, then prepare a new block with the first 56 bytes 
     // being only 0
     if(index >= 120){    
-        memset(&ctx->buffer[index], 0, SHA512_MSG_BLOCK_LEN_BYTES - index);
+        memset_s(&ctx->buffer[index], 0, SHA512_MSG_BLOCK_LEN_BYTES - index);
         sha384_512_process_block(ctx, ctx->buffer);
-        memset(ctx->buffer, 0, 120);
+        memset_s(ctx->buffer, 0, 120);
     } else {
-        memset(&ctx->buffer[index], 0, 120 - index);
+        memset_s(&ctx->buffer[index], 0, 120 - index);
     } 
 
     // append the message length as 64-bit value at index 56
@@ -306,6 +307,6 @@ crypt_status sha384_512_finish(sha384_512_ctx *ctx, unsigned char *digest,
     else if(sha == SHA512_224){
         memcpy(digest, state_le, SHA224_DIGEST_LEN_BYTES);
     }
-    memset(ctx, 0, sizeof(*ctx));
+    memset_s(ctx, 0, sizeof(*ctx));
     return CRYPT_OKAY;
 }

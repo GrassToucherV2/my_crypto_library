@@ -50,9 +50,9 @@ crypt_status poly1305_init(poly1305_ctx *ctx, const unsigned char *key, unsigned
 
     poly1305_clamp(ctx->r);
    
-    memset(ctx->accumulator, 0, sizeof(ctx->accumulator));
+    memset_s(ctx->accumulator, 0, sizeof(ctx->accumulator));
 
-    // memset(ctx->buffer, 0, sizeof(ctx->buffer));
+    // memset_s(ctx->buffer, 0, sizeof(ctx->buffer));
     // ctx->buffer_len = 0;
 
     return CRYPT_OKAY;

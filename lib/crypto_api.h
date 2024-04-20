@@ -44,7 +44,6 @@ crypt_status crypt_chacha20_decrypt(const unsigned char *ciphertext, unsigned in
 
 crypt_status crypt_poly1305(const unsigned char *input, unsigned int input_len, 
                             const unsigned char *key, unsigned int key_len, 
-                            const unsigned char *nonce, unsigned int nonce_len,
                             unsigned char *mac, unsigned int mac_len);
 
 crypt_status crypt_chacha20_poly1305_encrypt(const unsigned char *iv, unsigned int iv_len,

@@ -111,7 +111,7 @@ void sha1_process_buffer(sha1_ctx *ctx, const unsigned char *block){
     ctx->state[4] += E;
 
     // zero the local buffer to avoid leaking sensitive information
-    memset(W, 0, sizeof(W));
+    memset_s(W, 0, sizeof(W));
 }
 
 crypt_status sha1_update(sha1_ctx *ctx, const unsigned char *input, unsigned int input_len){
@@ -177,11 +177,11 @@ crypt_status sha1_finish(sha1_ctx *ctx, unsigned char digest[20], unsigned int d
     // and then process it, then prepare a new block with the first 56 bytes 
     // being only 0
     if(index >= 56){    
-        memset(&ctx->buffer[index], 0, SHA1_MSG_BLOCK_LEN_BYTES - index);
+        memset_s(&ctx->buffer[index], 0, SHA1_MSG_BLOCK_LEN_BYTES - index);
         sha1_process_buffer(ctx, ctx->buffer);
-        memset(ctx->buffer, 0, 56);
+        memset_s(ctx->buffer, 0, 56);
     } else {
-        memset(&ctx->buffer[index], 0, 56 - index);
+        memset_s(&ctx->buffer[index], 0, 56 - index);
     }
 
     // append the message length as 64-bit value at index 56
@@ -198,6 +198,6 @@ crypt_status sha1_finish(sha1_ctx *ctx, unsigned char digest[20], unsigned int d
     state_le[4] = LE32TOBE32(ctx->state[4]);
     memcpy(digest, state_le, SHA1_DIGEST_LEN_BYTES);
     
-    memset(ctx, 0, sizeof(*ctx));
+    memset_s(ctx, 0, sizeof(*ctx));
     return CRYPT_OKAY;
 }
