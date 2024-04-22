@@ -1,4 +1,9 @@
 #include "aes.h"
+#include <stdio.h>
+
+/*
+    AES algorithm implemented in this file uses PKCS#7 padding scheme
+*/
 
 static const uint8_t sbox[16][16] = {
     {0x63,0x7c,0x77,0x7b,0xf2,0x6b,0x6f,0xc5,0x30,0x01,0x67,0x2b,0xfe,0xd7,0xab,0x76},
@@ -40,7 +45,7 @@ static const uint8_t inv_sbox[16][16] = {
 };
 
 
-static const uint8_t Rcon[10] = {
+static const uint32_t Rcon[11] = {
     0x01, // Rcon[1]
     0x02, // Rcon[2]
     0x04, // Rcon[3]
@@ -158,44 +163,43 @@ static void addRoundKey(aes_ctx *ctx, uint8_t *subkey){
 }
 
 // cyclically shift all bytes in the word to the left by 1
-static void rotWord(uint8_t *word){
-    uint8_t tmp = word[0];
-    word[0] = word[1];
-    word[1] = word[2];
-    word[2] = word[3];
-    word[3] = tmp;
+static uint32_t rotWord(uint32_t word){
+    word = LE32TOBE32(word);
+    // uint32_t shifted_word = 0;
+    uint8_t *word_8 = (uint8_t *)&word;
+    // printf("%02x %02x %02x %02x\n\n", word_8[0], word_8[1], word_8[2], word_8[3]);
+    uint8_t tmp = word_8[0];
+    word_8[0] = word_8[1];
+    word_8[1] = word_8[2];
+    word_8[2] = word_8[3];
+    word_8[3] = tmp;
+    return LE32TOBE32(word);
 }
 
 // apply subByte to the 4 byte word
-static void subWord(uint8_t *word){
+static uint32_t subWord(uint32_t word){
     uint8_t row = 0;
     uint8_t col = 0;
+    uint8_t *word_8 = (uint8_t *)&word;
     for(int i = 0; i < 4; i++) {
-        row = (word[i] & 0xF0) >> 4;
-        col = word[i] & 0x0F;
-        word[i] = sbox[row][col];
+        row = (word_8[i] & 0xF0) >> 4;
+        col = word_8[i] & 0x0F;
+        word_8[i] = sbox[row][col];
     }
+
+    return word;
 }
 
-static void keyScheduleCore(uint8_t *word, int i){
-    rotWord(word);
-    subWord(word);
-    word[0] = word[0] ^ Rcon[i];
-}
 /*
     if the key is 128-bit, then byte 0 to 3 form column 0,bytes 4 - 7 form column 1 and so on
 */
-static void key_expansion(uint8_t *key, uint32_t *round_keys, int num_key_blocks, int num_rounds){
+static void key_expansion(const uint8_t *key, uint32_t *round_keys, int num_key_blocks, int num_rounds){
     
     // the key itself is break into group of four bytes as round key 0
     int i = 0;
     uint32_t * key_32 = (uint32_t *)key;
     for(; i < num_key_blocks; i++){
-        // round_keys[i] = key_32[i];
-         round_keys[i] = ((uint32_t)key[4*i] << 24) |
-                        ((uint32_t)key[4*i+1] << 16) |
-                        ((uint32_t)key[4*i+2] << 8) |
-                        (uint32_t)key[4*i+3];
+        round_keys[i] = LE32TOBE32(key_32[i]);
     }
     i = num_key_blocks;
     uint32_t tmp;
@@ -204,13 +208,29 @@ static void key_expansion(uint8_t *key, uint32_t *round_keys, int num_key_blocks
     for(; i < num_iteration; i++){
         tmp = round_keys[i - 1];
         if(i % num_key_blocks == 0){
-            keyScheduleCore((uint8_t *)&tmp, i / num_key_blocks);
+            // printf("tmp before anything = %08x\n", tmp);
+            tmp = rotWord(tmp);
+            // printf("tmp after rotword   = %08x\n", tmp);
+            tmp = subWord(tmp); 
+            // printf("tmp after subword   = %08x\n", tmp);
+            tmp ^= LE32TOBE32(Rcon[i / num_key_blocks - 1]);
+            // printf("tmp after xoring    = %08x\n", tmp);
+            // printf("======================================= \n");
         }
         // this step is specific to AES-256
-        else if(num_key_blocks > 6 && i % num_key_blocks == 4){
-            subWord((uint8_t *)&tmp);
+        else if( (num_key_blocks > 6) && (i % num_key_blocks == 4) ){
+            tmp = subWord(tmp);
         }
         round_keys[i] = round_keys[i - num_key_blocks] ^ tmp;
+    }
+}
+
+static void print_round_keys(aes_ctx *ctx){
+    for(int i = 0; i < 60; i++){
+        printf("%08x ", ctx->round_keys[i]);
+        if((i+1) % 10 == 0){
+            printf("\n");
+        }
     }
 }
 
@@ -236,19 +256,20 @@ crypt_status AES_init(aes_ctx *ctx, const uint8_t *key, AES_key_length key_len){
             key_expansion(key, ctx->round_keys, 8, AES_256_NUM_ROUNDS);
             break;
         default:
+            printf("bailed out unexpectedly\n");
             return CRYPT_AES_BAD_KEY_LEN;
     }
-
+    print_round_keys(ctx);
     return CRYPT_OKAY;
 }
 
-static void AES_encrypt_block(aes_ctx *ctx, uint8_t *input, uint8_t *output){
+static void AES_encrypt_block(aes_ctx *ctx, const uint8_t *input, uint8_t *output){
     // copy the input into the state
     for(int i =0; i < AES_BLOCK_SIZE_BYTES; i++){
         ctx->state[i] = input[i];
     }
 
-    addRoundKey(ctx, ctx->round_keys);
+    addRoundKey(ctx, (uint8_t *)ctx->round_keys);
 
     int num_rounds;
     switch (ctx->aes_key_len){
@@ -264,7 +285,7 @@ static void AES_encrypt_block(aes_ctx *ctx, uint8_t *input, uint8_t *output){
             num_rounds = AES_256_NUM_ROUNDS;
             break;
         default:
-            return CRYPT_AES_BAD_KEY_LEN;
+            return;
     }
 
     // perform rounds of AES transformation
@@ -279,10 +300,36 @@ static void AES_encrypt_block(aes_ctx *ctx, uint8_t *input, uint8_t *output){
     shiftRows(ctx);
     addRoundKey(ctx, (uint8_t *)&ctx->round_keys[num_rounds * 4]);
 
+    for(int i = 0; i < AES_BLOCK_SIZE_BYTES; i++){
+        output[i] = ctx->state[i];
+    }
+
+}
+
+crypt_status AES_encrypt_ECB(aes_ctx *ctx, 
+                            const uint8_t *plaintext, unsigned int plaintext_len,
+                            uint8_t *ciphertext, unsigned int ciphertext_len)
+{
+    if(!ctx || !plaintext || !ciphertext) return CRYPT_NULL_PTR;
+
+    if(ciphertext_len < plaintext_len){
+        return CRYPT_BAD_BUFFER_LEN;
+    }
+    
+    memset_s(ciphertext, 0, ciphertext_len);
+
+    int num_blocks = plaintext_len / AES_BLOCK_SIZE_BYTES;
+
+    // encrypt the full blocks
+    for(int i = 0; i < num_blocks; i++){
+        AES_encrypt_block(ctx, &plaintext[i * AES_BLOCK_SIZE_BYTES], &ciphertext[i * AES_BLOCK_SIZE_BYTES]);
+    }
+
+    return CRYPT_OKAY;
 }
 
 crypt_status AES_cleanup(aes_ctx *ctx){
-    if(!ctx) CRYPT_NULL_PTR;
+    if(!ctx) return CRYPT_NULL_PTR;
 
     memset_s(ctx->state, 0, sizeof(ctx->state));
     memset_s(ctx->round_keys, 0, sizeof(ctx->round_keys));
