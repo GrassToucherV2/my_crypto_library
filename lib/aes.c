@@ -39,7 +39,22 @@ static const uint8_t inv_sbox[16][16] = {
     {0x17,0x2b,0x04,0x7e,0xba,0x77,0xd6,0x26,0xe1,0x69,0x14,0x63,0x55,0x21,0x0c,0x7d}
 };
 
-static void subBytse(aes_ctx *ctx){
+
+static const uint8_t Rcon[10] = {
+    0x01, // Rcon[1]
+    0x02, // Rcon[2]
+    0x04, // Rcon[3]
+    0x08, // Rcon[4]
+    0x10, // Rcon[5]
+    0x20, // Rcon[6]
+    0x40, // Rcon[7]
+    0x80, // Rcon[8]
+    0x1b, // Rcon[9]
+    0x36  // Rcon[10]
+};
+
+
+static void subBytes(aes_ctx *ctx){
     uint8_t row = 0;
     uint8_t col = 0;
     for(int i = 0; i < AES_BLOCK_SIZE_BYTES; i++) {
@@ -142,6 +157,135 @@ static void addRoundKey(aes_ctx *ctx, uint8_t *subkey){
     }
 }
 
-static void key_expansion(uint8_t *key, uint8_t *keys){
+// cyclically shift all bytes in the word to the left by 1
+static void rotWord(uint8_t *word){
+    uint8_t tmp = word[0];
+    word[0] = word[1];
+    word[1] = word[2];
+    word[2] = word[3];
+    word[3] = tmp;
+}
+
+// apply subByte to the 4 byte word
+static void subWord(uint8_t *word){
+    uint8_t row = 0;
+    uint8_t col = 0;
+    for(int i = 0; i < 4; i++) {
+        row = (word[i] & 0xF0) >> 4;
+        col = word[i] & 0x0F;
+        word[i] = sbox[row][col];
+    }
+}
+
+static void keyScheduleCore(uint8_t *word, int i){
+    rotWord(word);
+    subWord(word);
+    word[0] = word[0] ^ Rcon[i];
+}
+/*
+    if the key is 128-bit, then byte 0 to 3 form column 0,bytes 4 - 7 form column 1 and so on
+*/
+static void key_expansion(uint8_t *key, uint32_t *round_keys, int num_key_blocks, int num_rounds){
     
+    // the key itself is break into group of four bytes as round key 0
+    int i = 0;
+    uint32_t * key_32 = (uint32_t *)key;
+    for(; i < num_key_blocks; i++){
+        // round_keys[i] = key_32[i];
+         round_keys[i] = ((uint32_t)key[4*i] << 24) |
+                        ((uint32_t)key[4*i+1] << 16) |
+                        ((uint32_t)key[4*i+2] << 8) |
+                        (uint32_t)key[4*i+3];
+    }
+    i = num_key_blocks;
+    uint32_t tmp;
+    int num_iteration = AES_NUM_BLOCK * (num_rounds + 1);
+
+    for(; i < num_iteration; i++){
+        tmp = round_keys[i - 1];
+        if(i % num_key_blocks == 0){
+            keyScheduleCore((uint8_t *)&tmp, i / num_key_blocks);
+        }
+        // this step is specific to AES-256
+        else if(num_key_blocks > 6 && i % num_key_blocks == 4){
+            subWord((uint8_t *)&tmp);
+        }
+        round_keys[i] = round_keys[i - num_key_blocks] ^ tmp;
+    }
+}
+
+crypt_status AES_init(aes_ctx *ctx, const uint8_t *key, AES_key_length key_len){
+    if(!ctx || !key) return CRYPT_NULL_PTR;
+
+    memset_s(ctx->state, 0, sizeof(ctx->state));
+    memset_s(ctx->round_keys, 0, sizeof(ctx->round_keys));
+
+    switch (key_len){
+        case AES_128:
+            ctx->aes_key_len = AES_128;
+            key_expansion(key, ctx->round_keys, 4, AES_128_NUM_ROUNDS);
+            break;
+        
+        case AES_192:
+            ctx->aes_key_len = AES_192;
+            key_expansion(key, ctx->round_keys, 6, AES_192_NUM_ROUNDS);
+            break;
+        
+        case AES_256:
+            ctx->aes_key_len = AES_256;
+            key_expansion(key, ctx->round_keys, 8, AES_256_NUM_ROUNDS);
+            break;
+        default:
+            return CRYPT_AES_BAD_KEY_LEN;
+    }
+
+    return CRYPT_OKAY;
+}
+
+static void AES_encrypt_block(aes_ctx *ctx, uint8_t *input, uint8_t *output){
+    // copy the input into the state
+    for(int i =0; i < AES_BLOCK_SIZE_BYTES; i++){
+        ctx->state[i] = input[i];
+    }
+
+    addRoundKey(ctx, ctx->round_keys);
+
+    int num_rounds;
+    switch (ctx->aes_key_len){
+        case AES_128:
+            num_rounds = AES_128_NUM_ROUNDS;
+            break;
+        
+        case AES_192:
+            num_rounds = AES_192_NUM_ROUNDS;
+            break;
+        
+        case AES_256:
+            num_rounds = AES_256_NUM_ROUNDS;
+            break;
+        default:
+            return CRYPT_AES_BAD_KEY_LEN;
+    }
+
+    // perform rounds of AES transformation
+    for(int round = 0; round < num_rounds; round++){
+        subBytes(ctx);
+        shiftRows(ctx);
+        mixColumn(ctx);
+        addRoundKey(ctx, (uint8_t *)&ctx->round_keys[(round + 1) * 4]);
+    }
+
+    subBytes(ctx);
+    shiftRows(ctx);
+    addRoundKey(ctx, (uint8_t *)&ctx->round_keys[num_rounds * 4]);
+
+}
+
+crypt_status AES_cleanup(aes_ctx *ctx){
+    if(!ctx) CRYPT_NULL_PTR;
+
+    memset_s(ctx->state, 0, sizeof(ctx->state));
+    memset_s(ctx->round_keys, 0, sizeof(ctx->round_keys));
+
+    return CRYPT_OKAY;
 }
