@@ -21,10 +21,10 @@ typedef struct tdes_ctx{
 crypt_status DES_init(des_ctx *ctx, uint64_t key);
 
 crypt_status DES_encrypt_ECB(des_ctx *ctx, const unsigned char *plaintext, unsigned int plaintext_len,
-                        unsigned char *ciphertext, unsigned int ciphertext_len, DES_padding padding);
+                        unsigned char *ciphertext, unsigned int ciphertext_len, padding_scheme padding);
 
 crypt_status DES_decrypt_ECB(des_ctx *ctx, const unsigned char *ciphertext, unsigned int ciphertext_len,
-                             unsigned char *plaintext, unsigned int plaintext_len, DES_padding padding);
+                             unsigned char *plaintext, unsigned int plaintext_len, padding_scheme padding);
 
 crypt_status DES_encrypt_CBC(des_ctx *ctx, const unsigned char *plaintext, unsigned int plaintext_len,
                             uint64_t iv, unsigned char *ciphertext, unsigned int ciphertext_len);
@@ -39,10 +39,10 @@ crypt_status DES_cleanup(des_ctx *ctx);
 crypt_status TDES_init(tdes_ctx *ctx, uint64_t key1, uint64_t key2, uint64_t key3);
 
 crypt_status TDES_encrypt_ECB(tdes_ctx *ctx, const unsigned char *plaintext, unsigned int plaintext_len,
-                        unsigned char *ciphertext, unsigned int ciphertext_len, DES_padding padding);
+                        unsigned char *ciphertext, unsigned int ciphertext_len, padding_scheme padding);
 
 crypt_status TDES_decrypt_ECB(tdes_ctx *ctx, const unsigned char *ciphertext, unsigned int ciphertext_len,
-                             unsigned char *plaintext, unsigned int plaintext_len, DES_padding padding);
+                             unsigned char *plaintext, unsigned int plaintext_len, padding_scheme padding);
 
 crypt_status TDES_encrypt_CBC(tdes_ctx *ctx, const unsigned char *plaintext, unsigned int plaintext_len,
                             uint64_t iv, unsigned char *ciphertext, unsigned int ciphertext_len);

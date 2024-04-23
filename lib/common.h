@@ -103,7 +103,7 @@ typedef enum{
 typedef enum{
     NO_PAD = 0,
     PKCS7 = 1,
-} DES_padding;
+} padding_scheme;
 
 typedef enum{
     AES_128 = 0,

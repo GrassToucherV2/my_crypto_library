@@ -310,7 +310,7 @@ void print_bytes_array_RB(const unsigned char *bytes, unsigned int size_byte, ch
 void print_as_bits_LE(uint8_t *bytes, unsigned int size_byte, char *str){
     printf("%s\n", str);
     for(unsigned int i = 0; i < size_byte; i++){
-        for(int j = 7; j >= 0; j--){ // Start from the MSB
+        for(int j = 0; j < 8; j++){ // Start from the MSB
             uint8_t bit = (bytes[i] >> j) & 1;
             printf("%d", bit);
         }

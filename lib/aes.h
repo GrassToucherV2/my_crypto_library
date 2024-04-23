@@ -40,6 +40,10 @@ crypt_status AES_encrypt_ECB(aes_ctx *ctx,
                             const uint8_t *plaintext, unsigned int plaintext_len,
                             uint8_t *ciphertext, unsigned int ciphertext_len);
 
+crypt_status AES_decrypt_ECB(aes_ctx *ctx, 
+                                const uint8_t *ciphertext, unsigned int ciphertext_len,
+                                uint8_t *plaintext, unsigned int plaintext_len);
+
 crypt_status AES_cleanup(aes_ctx *ctx);
 
 #endif /* AES_H */

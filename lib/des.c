@@ -274,7 +274,7 @@ static void DES_encrypt_block(uint64_t *keys, uint64_t block_in, uint64_t *ciphe
 
 // By default a block cipher operates in ECB mode
 crypt_status DES_encrypt_ECB(des_ctx *ctx, const unsigned char *plaintext, unsigned int plaintext_len,
-                        unsigned char *ciphertext, unsigned int ciphertext_len, DES_padding padding)
+                        unsigned char *ciphertext, unsigned int ciphertext_len,  padding_scheme padding)
 {
     if(!ctx || !plaintext || !ciphertext) return CRYPT_NULL_PTR;
 
@@ -318,7 +318,7 @@ static void DES_decrypt_block(uint64_t *keys, uint64_t block_in, uint64_t *plain
 }
 
 crypt_status DES_decrypt_ECB(des_ctx *ctx, const unsigned char *ciphertext, unsigned int ciphertext_len,
-                        unsigned char *plaintext, unsigned int plaintext_len, DES_padding padding)
+                        unsigned char *plaintext, unsigned int plaintext_len,  padding_scheme padding)
 {
     if(!ctx || !plaintext || !ciphertext) return CRYPT_NULL_PTR;
 
@@ -446,7 +446,7 @@ static void TDES_encrypt_block(tdes_ctx *ctx, uint64_t block_in, uint64_t *ciphe
 }
 
 crypt_status TDES_encrypt_ECB(tdes_ctx *ctx, const unsigned char *plaintext, unsigned int plaintext_len,
-                        unsigned char *ciphertext, unsigned int ciphertext_len, DES_padding padding)
+                        unsigned char *ciphertext, unsigned int ciphertext_len,  padding_scheme padding)
 {
     if(!ctx || !plaintext || !ciphertext) return CRYPT_NULL_PTR;
 
@@ -481,7 +481,7 @@ static void TDES_decrypt_block(tdes_ctx *ctx, uint64_t block_in, uint64_t *plain
 }
 
 crypt_status TDES_decrypt_ECB(tdes_ctx *ctx, const unsigned char *ciphertext, unsigned int ciphertext_len,
-                             unsigned char *plaintext, unsigned int plaintext_len, DES_padding padding)
+                             unsigned char *plaintext, unsigned int plaintext_len,  padding_scheme padding)
 {
     if(!ctx || !plaintext || !ciphertext) return CRYPT_NULL_PTR;
 

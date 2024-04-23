@@ -5,10 +5,12 @@
 #include "sha256.h"
 #include "sha512.h"
 
+#include "aes.h"
 #include "chacha20.h"
-#include "poly1305.h"
 #include "chacha20_poly1305.h"
 #include "des.h"
+#include "poly1305.h"
+
 
 #include <stdio.h>
 
@@ -274,7 +276,7 @@ crypt_status crypt_chacha20_poly1305_decrypt(const unsigned char *iv, unsigned i
 crypt_status crypt_DES_encrypt(uint64_t key, uint64_t iv,
                                 const unsigned char *plaintext, unsigned int plaintext_len,
                                 unsigned char *ciphertext, unsigned int ciphertext_len,
-                                DES_padding padding, block_cipher_mode mode)
+                                padding_scheme padding, block_cipher_mode mode)
 {
     if(!plaintext || !ciphertext) return CRYPT_NULL_PTR;
 
@@ -317,7 +319,7 @@ crypt_status crypt_DES_encrypt(uint64_t key, uint64_t iv,
 crypt_status crypt_DES_decrypt(uint64_t key, uint64_t iv,
                                     const unsigned char *ciphertext, unsigned int ciphertext_len,
                                     unsigned char *plaintext, unsigned int plaintext_len,
-                                    DES_padding padding, block_cipher_mode mode)
+                                    padding_scheme padding, block_cipher_mode mode)
 {
     if(!plaintext || !ciphertext) return CRYPT_NULL_PTR;
 
@@ -360,7 +362,7 @@ crypt_status crypt_DES_decrypt(uint64_t key, uint64_t iv,
 crypt_status crypt_TDES_encrypt(uint64_t key1, uint64_t key2, uint64_t key3, uint64_t iv,
                                     const unsigned char *plaintext, unsigned int plaintext_len,
                                     unsigned char *ciphertext, unsigned int ciphertext_len,
-                                    DES_padding padding, block_cipher_mode mode)
+                                    padding_scheme padding, block_cipher_mode mode)
 {
     if(!plaintext || !ciphertext) return CRYPT_NULL_PTR;
 
@@ -403,7 +405,7 @@ crypt_status crypt_TDES_encrypt(uint64_t key1, uint64_t key2, uint64_t key3, uin
 crypt_status crypt_TDES_decrypt(uint64_t key1, uint64_t key2, uint64_t key3,  uint64_t iv,
                                     const unsigned char *ciphertext, unsigned int ciphertext_len,
                                     unsigned char *plaintext, unsigned int plaintext_len,
-                                    DES_padding padding, block_cipher_mode mode)
+                                    padding_scheme padding, block_cipher_mode mode)
 {
     if(!plaintext || !ciphertext) return CRYPT_NULL_PTR;
 
@@ -441,4 +443,152 @@ crypt_status crypt_TDES_decrypt(uint64_t key1, uint64_t key2, uint64_t key3,  ui
     }
     
     return CRYPT_OKAY;
+}
+
+crypt_status crypt_AES_encrypt(const uint8_t *key, unsigned int key_size, AES_key_length key_len,
+                                const uint8_t *iv, unsigned int iv_len,
+                                const uint8_t *plaintext, unsigned int plaintext_len,
+                                uint8_t *ciphertext, unsigned int ciphertext_len,
+                                padding_scheme padding, block_cipher_mode mode)
+{
+    if(!key || !plaintext || !ciphertext) return CRYPT_NULL_PTR;
+
+    switch (key_len){
+        case AES_128:
+            if(key_size != AES_128_KEY_SIZE_BYTES)
+                return CRYPT_BAD_KEY;
+            break;
+        case AES_192:
+            if(key_size != AES_192_KEY_SIZE_BYTES)
+                return CRYPT_BAD_KEY;
+            break;
+        case AES_256:
+            if(key_size != AES_256_KEY_SIZE_BYTES)
+                return CRYPT_BAD_KEY;
+            break;
+        default:
+            return CRYPT_AES_BAD_KEY_LEN;
+    }
+
+    if (mode == CBC || mode == CTR || mode == GCM) {
+        if (!iv || iv_len != AES_BLOCK_SIZE_BYTES) return CRYPT_BAD_IV;
+    }
+
+    // if no padding is selected, then we require the plaintext be full blocks only
+    if (mode == ECB) {
+        if (padding == NO_PAD){
+            if(plaintext_len % AES_BLOCK_SIZE_BYTES != 0)
+                return CRYPT_BAD_BUFFER_LEN;
+            if (ciphertext_len < plaintext_len)
+                return CRYPT_BAD_BUFFER_LEN;
+        }        
+    } else{
+        if(ciphertext_len < plaintext_len + (plaintext_len - (plaintext_len % AES_BLOCK_SIZE_BYTES))){
+            return CRYPT_BAD_BUFFER_LEN;
+        }
+    }
+
+    if (padding != NO_PAD && padding != PKCS7) 
+        return CRYPT_INVALID_PADDING;
+
+    aes_ctx ctx = {0};
+
+    switch(mode){
+        case ECB:
+            CRYPT_CHECK_OKAY(AES_init(&ctx, key, key_len));
+            CRYPT_CHECK_OKAY(AES_encrypt_ECB(&ctx, plaintext, plaintext_len, ciphertext, ciphertext_len));
+            CRYPT_CHECK_OKAY(AES_cleanup(&ctx));
+            break;
+        
+        case CBC:
+            printf("CBC mode not implemented yet\n");
+            break;
+        
+        case CTR:
+            printf("CTR mode not implemented yet\n");
+            break;
+        
+        case GCM:
+            printf("GCM mode not implemented yet\n");
+            break;
+        
+        default:
+            printf("mode not supported\n");
+            break;
+    }
+    
+    return CRYPT_OKAY;
+
+}
+
+crypt_status crypt_AES_decrypt(const uint8_t *key, unsigned int key_size, AES_key_length key_len,
+                                const uint8_t *iv, unsigned int iv_len,
+                                const uint8_t *ciphertext, unsigned int ciphertext_len,
+                                uint8_t *plaintext, unsigned int plaintext_len,
+                                padding_scheme padding, block_cipher_mode mode)
+{
+    if(!key || !plaintext || !ciphertext) return CRYPT_NULL_PTR;
+
+    switch (key_len){
+        case AES_128:
+            if(key_size != AES_128_KEY_SIZE_BYTES)
+                return CRYPT_BAD_KEY;
+            break;
+        case AES_192:
+            if(key_size != AES_192_KEY_SIZE_BYTES)
+                return CRYPT_BAD_KEY;
+            break;
+        case AES_256:
+            if(key_size != AES_256_KEY_SIZE_BYTES)
+                return CRYPT_BAD_KEY;
+            break;
+        default:
+            return CRYPT_AES_BAD_KEY_LEN;
+    }
+
+    if (mode == CBC || mode == CTR || mode == GCM) {
+        if (!iv || iv_len != AES_BLOCK_SIZE_BYTES) return CRYPT_BAD_IV;
+    }
+
+    // if no padding is selected, then we require the plaintext be full blocks only
+    if (mode == ECB) {
+        if (padding == NO_PAD){
+            if(ciphertext_len % AES_BLOCK_SIZE_BYTES != 0)
+                return CRYPT_BAD_BUFFER_LEN;   
+        }
+    } 
+    if (plaintext_len < ciphertext_len)
+        return CRYPT_BAD_BUFFER_LEN;
+
+    if (padding != NO_PAD && padding != PKCS7) 
+        return CRYPT_INVALID_PADDING;
+
+    aes_ctx ctx = {0};
+
+    switch(mode){
+        case ECB:
+            CRYPT_CHECK_OKAY(AES_init(&ctx, key, key_len));
+            CRYPT_CHECK_OKAY(AES_decrypt_ECB(&ctx, ciphertext, ciphertext_len, plaintext, plaintext_len));
+            CRYPT_CHECK_OKAY(AES_cleanup(&ctx));
+            break;
+        
+        case CBC:
+            printf("CBC mode not implemented yet\n");
+            break;
+        
+        case CTR:
+            printf("CTR mode not implemented yet\n");
+            break;
+        
+        case GCM:
+            printf("GCM mode not implemented yet\n");
+            break;
+        
+        default:
+            printf("mode not supported\n");
+            break;
+    }
+    
+    return CRYPT_OKAY;
+
 }

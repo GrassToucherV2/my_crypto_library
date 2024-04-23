@@ -142,17 +142,23 @@ static uint8_t xtime_GF3(uint8_t x){
 */
 static void mixColumn(aes_ctx *ctx){
     for(int col = 0; col < 4; col++) {
-        ctx->state[0 + (4*col)] = xtime(ctx->state[0 + (4*col)]) ^ xtime_GF3(ctx->state[1 + (4*col)])
-                                    ^ ctx->state[2 + (4*col)] ^ ctx->state[3 + (4*col)];
-        
-        ctx->state[1 + (4*col)] = ctx->state[0 + (4*col)] ^ xtime(ctx->state[1 + (4*col)]) ^ xtime_GF3(ctx->state[2 + (4*col)]) ^
-                                    ctx->state[3 + (4*col)];
+        // Temp variables to store the current state of the column
+        uint8_t s0 = ctx->state[0 + 4*col];
+        uint8_t s1 = ctx->state[1 + 4*col];
+        uint8_t s2 = ctx->state[2 + 4*col];
+        uint8_t s3 = ctx->state[3 + 4*col];
 
-        ctx->state[2 + (4*col)] = ctx->state[0 + (4*col)] ^ ctx->state[1 + (4*col)] ^ xtime(ctx->state[2 +(4*col)]) ^
-                                    xtime_GF3(ctx->state[3 + (4*col)]);
+        // Calculating new values
+        uint8_t t0 = xtime(s0) ^ xtime_GF3(s1) ^ s2 ^ s3;
+        uint8_t t1 = s0 ^ xtime(s1) ^ xtime_GF3(s2) ^ s3;
+        uint8_t t2 = s0 ^ s1 ^ xtime(s2) ^ xtime_GF3(s3);
+        uint8_t t3 = xtime_GF3(s0) ^ s1 ^ s2 ^ xtime(s3);
 
-        ctx->state[3 + (4*col)] = xtime_GF3(ctx->state[0 + (4*col)]) ^ ctx->state[1 + (4*col)] ^ ctx->state[2 + (4*col)] ^ 
-                                    xtime(ctx->state[3 + (4*col)]);
+        // Assigning calculated values back to the state array
+        ctx->state[0 + 4*col] = t0;
+        ctx->state[1 + 4*col] = t1;
+        ctx->state[2 + 4*col] = t2;
+        ctx->state[3 + 4*col] = t3;
     }
 }
 
@@ -165,9 +171,7 @@ static void addRoundKey(aes_ctx *ctx, uint8_t *subkey){
 // cyclically shift all bytes in the word to the left by 1
 static uint32_t rotWord(uint32_t word){
     word = LE32TOBE32(word);
-    // uint32_t shifted_word = 0;
     uint8_t *word_8 = (uint8_t *)&word;
-    // printf("%02x %02x %02x %02x\n\n", word_8[0], word_8[1], word_8[2], word_8[3]);
     uint8_t tmp = word_8[0];
     word_8[0] = word_8[1];
     word_8[1] = word_8[2];
@@ -208,14 +212,9 @@ static void key_expansion(const uint8_t *key, uint32_t *round_keys, int num_key_
     for(; i < num_iteration; i++){
         tmp = round_keys[i - 1];
         if(i % num_key_blocks == 0){
-            // printf("tmp before anything = %08x\n", tmp);
             tmp = rotWord(tmp);
-            // printf("tmp after rotword   = %08x\n", tmp);
             tmp = subWord(tmp); 
-            // printf("tmp after subword   = %08x\n", tmp);
             tmp ^= LE32TOBE32(Rcon[i / num_key_blocks - 1]);
-            // printf("tmp after xoring    = %08x\n", tmp);
-            // printf("======================================= \n");
         }
         // this step is specific to AES-256
         else if( (num_key_blocks > 6) && (i % num_key_blocks == 4) ){
@@ -225,17 +224,23 @@ static void key_expansion(const uint8_t *key, uint32_t *round_keys, int num_key_
     }
 }
 
-static void print_round_keys(aes_ctx *ctx){
+static void print_round_keys(uint32_t *round_keys){
     for(int i = 0; i < 60; i++){
-        printf("%08x ", ctx->round_keys[i]);
+        printf("%08x ", round_keys[i]);
         if((i+1) % 10 == 0){
             printf("\n");
         }
     }
 }
 
+static void print_aes_state(aes_ctx *ctx){
+    for(int i = 0; i < 16; i++){
+        printf("%02x ", ctx->state[i]);
+    }
+    printf("\n");
+}
+
 crypt_status AES_init(aes_ctx *ctx, const uint8_t *key, AES_key_length key_len){
-    if(!ctx || !key) return CRYPT_NULL_PTR;
 
     memset_s(ctx->state, 0, sizeof(ctx->state));
     memset_s(ctx->round_keys, 0, sizeof(ctx->round_keys));
@@ -256,10 +261,9 @@ crypt_status AES_init(aes_ctx *ctx, const uint8_t *key, AES_key_length key_len){
             key_expansion(key, ctx->round_keys, 8, AES_256_NUM_ROUNDS);
             break;
         default:
-            printf("bailed out unexpectedly\n");
             return CRYPT_AES_BAD_KEY_LEN;
     }
-    print_round_keys(ctx);
+
     return CRYPT_OKAY;
 }
 
@@ -269,8 +273,15 @@ static void AES_encrypt_block(aes_ctx *ctx, const uint8_t *input, uint8_t *outpu
         ctx->state[i] = input[i];
     }
 
-    addRoundKey(ctx, (uint8_t *)ctx->round_keys);
-
+    // convert all round keys into big endian
+    for(int i = 0; i < 60; i++){
+        ctx->round_keys[i] = LE32TOBE32(ctx->round_keys[i]);
+    }
+    int current_round_key_index = 0;
+    uint8_t *round_key_bytes = (uint8_t *)ctx->round_keys;
+    addRoundKey(ctx, &round_key_bytes[current_round_key_index]);
+    current_round_key_index += 16;
+   
     int num_rounds;
     switch (ctx->aes_key_len){
         case AES_128:
@@ -288,18 +299,21 @@ static void AES_encrypt_block(aes_ctx *ctx, const uint8_t *input, uint8_t *outpu
             return;
     }
 
-    // perform rounds of AES transformation
-    for(int round = 0; round < num_rounds; round++){
+    // perform rounds of AES transformation - last round does not include mixColumn step, so it 
+    // is performed outside of the for loop
+    for(int round = 0; round < num_rounds - 1; round++){
         subBytes(ctx);
         shiftRows(ctx);
         mixColumn(ctx);
-        addRoundKey(ctx, (uint8_t *)&ctx->round_keys[(round + 1) * 4]);
+        addRoundKey(ctx, &round_key_bytes[current_round_key_index]);
+        current_round_key_index += 16;
     }
 
     subBytes(ctx);
     shiftRows(ctx);
-    addRoundKey(ctx, (uint8_t *)&ctx->round_keys[num_rounds * 4]);
+    addRoundKey(ctx, &round_key_bytes[current_round_key_index]);
 
+    // copying the resultant state into output
     for(int i = 0; i < AES_BLOCK_SIZE_BYTES; i++){
         output[i] = ctx->state[i];
     }
@@ -310,12 +324,6 @@ crypt_status AES_encrypt_ECB(aes_ctx *ctx,
                             const uint8_t *plaintext, unsigned int plaintext_len,
                             uint8_t *ciphertext, unsigned int ciphertext_len)
 {
-    if(!ctx || !plaintext || !ciphertext) return CRYPT_NULL_PTR;
-
-    if(ciphertext_len < plaintext_len){
-        return CRYPT_BAD_BUFFER_LEN;
-    }
-    
     memset_s(ciphertext, 0, ciphertext_len);
 
     int num_blocks = plaintext_len / AES_BLOCK_SIZE_BYTES;
@@ -328,8 +336,180 @@ crypt_status AES_encrypt_ECB(aes_ctx *ctx,
     return CRYPT_OKAY;
 }
 
+
+///////////////////////////////////////////////////////////// Decryption functions /////////////////////////////////////////////////////////////
+static void invSubBytes(aes_ctx *ctx){
+    uint8_t row = 0;
+    uint8_t col = 0;
+    for(int i = 0; i < AES_BLOCK_SIZE_BYTES; i++) {
+        row = (ctx->state[i] & 0xF0) >> 4;
+        col = ctx->state[i] & 0x0F;
+        ctx->state[i] = inv_sbox[row][col];
+    }
+}
+
+/*
+    The state matrix after shiftRows
+    0  4  8   12                    0  4  8  12
+    1  5  9   13        ===>        13 1  5   9
+    2  6  10  14                    10 14 2   6
+    3  7  11  15                    7  11 15  3
+*/
+static void invShiftRows(aes_ctx *ctx){
+    uint8_t tmp1, tmp2;
+    tmp1 = ctx->state[13];
+    ctx->state[13] = ctx->state[9];
+    ctx->state[9] = ctx->state[5];
+    ctx->state[5] = ctx->state[1];
+    ctx->state[1] = tmp1;
+
+    tmp1 = ctx->state[10];
+    tmp2 = ctx->state[14];
+    ctx->state[14] = ctx->state[6];
+    ctx->state[10] = ctx->state[2];
+    ctx->state[6] = tmp2;
+    ctx->state[2] = tmp1;
+
+    tmp1 = ctx->state[3];
+    ctx->state[3] = ctx->state[7];
+    ctx->state[7] = ctx->state[11];
+    ctx->state[11] = ctx->state[15];
+    ctx->state[15] = tmp1;
+    
+}
+
+/* 
+    This function multiplies x by y in GF(2^8), where y is a constant 0x09, 0x0b, 0x0d, or 0x0e
+    we 4 bits (0b1000, 0b0100, 0b0010, 0b0001) to figure out how to combine the products of 2^n to produce the final result 
+    This combination is specified in section 4.2.1 of NIST FIPS 197
+*/
+static uint8_t multiply_GF(uint8_t x, uint8_t y) {
+
+    uint8_t xtimes_1 = x;
+    uint8_t xtimes_2 = xtime(x);
+    uint8_t xtimes_4 = xtime(xtimes_2);
+    uint8_t xtimes_8 = xtime(xtimes_4);
+    uint8_t result = 0;
+    uint8_t mask;
+
+    mask = -((y & 1) >> 0);
+    result ^= xtimes_1 & mask;
+
+    mask = -((y & 2) >> 1);
+    result ^= xtimes_2 & mask;
+
+    mask = -((y & 4) >> 2);
+    result ^= xtimes_4 & mask;
+
+    mask = -((y & 8) >> 3);
+    result ^= xtimes_8 & mask;
+
+    return result;
+}
+
+static void invMixColumn(aes_ctx *ctx){
+    for(int col = 0; col < 4; col++) {
+        uint8_t s0 = ctx->state[0 + 4*col];
+        uint8_t s1 = ctx->state[1 + 4*col];
+        uint8_t s2 = ctx->state[2 + 4*col];
+        uint8_t s3 = ctx->state[3 + 4*col];
+
+        ctx->state[0 + 4*col] = multiply_GF(s0, 0x0e) ^ multiply_GF(s1, 0x0b) ^ multiply_GF(s2, 0x0d) ^ multiply_GF(s3, 0x09);
+        ctx->state[1 + 4*col] = multiply_GF(s0, 0x09) ^ multiply_GF(s1, 0x0e) ^ multiply_GF(s2, 0x0b) ^ multiply_GF(s3, 0x0d);
+        ctx->state[2 + 4*col] = multiply_GF(s0, 0x0d) ^ multiply_GF(s1, 0x09) ^ multiply_GF(s2, 0x0e) ^ multiply_GF(s3, 0x0b);
+        ctx->state[3 + 4*col] = multiply_GF(s0, 0x0b) ^ multiply_GF(s1, 0x0d) ^ multiply_GF(s2, 0x09) ^ multiply_GF(s3, 0x0e);
+    }
+}
+
+static void AES_decrypt_block(aes_ctx *ctx, const uint8_t *input, uint8_t *output){
+    // copy the input into the state
+    for(int i =0; i < AES_BLOCK_SIZE_BYTES; i++){
+        ctx->state[i] = input[i];
+    }
+    
+    int key_len_bytes;
+    int num_rounds;
+    int num_round_keys_32_size;
+    int current_round_key_index = 0;
+    switch(ctx->aes_key_len){
+        case AES_128:
+            key_len_bytes = 176; // 11 round keys for AES-128, so there are 16 * 11 = 176 bytes in total
+            num_round_keys_32_size = 44;
+            num_rounds = AES_128_NUM_ROUNDS;
+            break; 
+        case AES_192:
+            key_len_bytes = 208; // 13 round keys for AES-192, so there are 16 * 13 = 208 bytes in total
+            num_round_keys_32_size = 52;
+            num_rounds = AES_192_NUM_ROUNDS;
+            break; 
+        case AES_256:
+            key_len_bytes = 240; // 15 round keys for AES-256, so there are 16 * 15 = 240 bytes in total
+            num_round_keys_32_size = 60;
+            num_rounds = AES_256_NUM_ROUNDS;
+            break; 
+        default:
+            break;
+    } 
+
+    // Using reverse_byte_order to reverse the round keys array, as for decryption, the order of round keys are
+    // applied in reverse
+    reverse_byte_order((uint8_t *)ctx->round_keys, (uint8_t *)ctx->round_keys, key_len_bytes);
+    for(int i = 0; i < 60; i++){
+        ctx->round_keys[i] = (ctx->round_keys[i]);
+    }
+
+    uint32_t tmp[2] = {0};
+    for(int j = 0; j < num_round_keys_32_size; j += 4){
+        tmp[0] = ctx->round_keys[0 + j];
+        tmp[1] = ctx->round_keys[1 + j];
+        ctx->round_keys[0 + j] = ctx->round_keys[3 + j];
+        ctx->round_keys[1 + j] = ctx->round_keys[2 + j];
+        ctx->round_keys[2 + j] = tmp[1];
+        ctx->round_keys[3 + j] = tmp[0];
+    }
+    uint8_t *round_key_bytes = (uint8_t *)ctx->round_keys;
+    
+    addRoundKey(ctx, &round_key_bytes[current_round_key_index]);
+    current_round_key_index += 16;
+
+    // perform rounds of AES transformation - last round does not include mixColumn step, so it 
+    // is performed outside of the for loop
+    for(int round = num_rounds; round >= 2; round--){
+        invShiftRows(ctx);
+        invSubBytes(ctx);
+        addRoundKey(ctx, &round_key_bytes[current_round_key_index]);
+        invMixColumn(ctx);
+        current_round_key_index += 16;
+    }
+
+    invShiftRows(ctx);
+    invSubBytes(ctx);
+    addRoundKey(ctx, &round_key_bytes[current_round_key_index]);
+
+    for(int i = 0; i < AES_BLOCK_SIZE_BYTES; i++){
+        output[i] = ctx->state[i];
+    }
+
+}
+
+crypt_status AES_decrypt_ECB(aes_ctx *ctx, 
+                                const uint8_t *ciphertext, unsigned int ciphertext_len,
+                                uint8_t *plaintext, unsigned int plaintext_len)
+{
+    memset_s(plaintext, 0, plaintext_len);
+
+    int num_blocks = ciphertext_len / AES_BLOCK_SIZE_BYTES;
+
+    // decrypt the full blocks
+    for(int i = 0; i < num_blocks; i++){
+        AES_decrypt_block(ctx, &ciphertext[i * AES_BLOCK_SIZE_BYTES], &plaintext[i * AES_BLOCK_SIZE_BYTES]);
+    }
+
+    return CRYPT_OKAY;
+
+}
+
 crypt_status AES_cleanup(aes_ctx *ctx){
-    if(!ctx) return CRYPT_NULL_PTR;
 
     memset_s(ctx->state, 0, sizeof(ctx->state));
     memset_s(ctx->round_keys, 0, sizeof(ctx->round_keys));

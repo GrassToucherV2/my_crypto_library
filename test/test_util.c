@@ -142,7 +142,7 @@ void bytes_to_base64_test(){
     text1 = result 
     text2 = expected text
 */
-int assert_eq_texts(unsigned char* text1, unsigned char *text2, unsigned int size, char *str){
+int assert_eq_texts(const unsigned char* text1, const unsigned char *text2, unsigned int size, char *str){
     printf("\033[%dm", YELLOW);  
     printf("Test - %s\n", str);
     printf("\033[0m");
