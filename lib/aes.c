@@ -1,5 +1,7 @@
 #include "aes.h"
 #include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
 
 /*
     AES algorithm implemented in this file uses PKCS#7 padding scheme
@@ -222,25 +224,46 @@ static void key_expansion(const uint8_t *key, uint32_t *round_keys, int num_key_
         }
         round_keys[i] = round_keys[i - num_key_blocks] ^ tmp;
     }
-}
 
-static void print_round_keys(uint32_t *round_keys){
+    // convert all round keys into big endian
     for(int i = 0; i < 60; i++){
-        printf("%08x ", round_keys[i]);
-        if((i+1) % 10 == 0){
-            printf("\n");
-        }
+        round_keys[i] = LE32TOBE32(round_keys[i]);
     }
 }
 
-static void print_aes_state(aes_ctx *ctx){
-    for(int i = 0; i < 16; i++){
-        printf("%02x ", ctx->state[i]);
+// static void print_round_keys(uint32_t *round_keys){
+//     for(int i = 0; i < 60; i++){
+//         printf("%08x ", round_keys[i]);
+//         if((i+1) % 10 == 0){
+//             printf("\n");
+//         }
+//     }
+// }
+
+// static void print_aes_state(aes_ctx *ctx){
+//     for(int i = 0; i < 16; i++){
+//         printf("%02x ", ctx->state[i]);
+//     }
+//     printf("\n");
+// }
+
+// Using reverse_byte_order to reverse the round keys array, as for decryption, the order of round keys are
+// applied in reverse
+// reverse_byte_order((uint8_t *)ctx->round_keys, (uint8_t *)ctx->round_keys, key_len_bytes);
+static void revert_round_key_order(aes_ctx *ctx, int key_len_uint32_bytes){
+    reverse_byte_order((uint8_t *)ctx->round_keys, (uint8_t *)ctx->round_keys, key_len_uint32_bytes * 4);
+    uint32_t tmp[2] = {0};
+    for(int j = 0; j < key_len_uint32_bytes; j += 4){
+        tmp[0] = ctx->round_keys[0 + j];
+        tmp[1] = ctx->round_keys[1 + j];
+        ctx->round_keys[0 + j] = LE32TOBE32(ctx->round_keys[3 + j]);
+        ctx->round_keys[1 + j] = LE32TOBE32(ctx->round_keys[2 + j]);
+        ctx->round_keys[2 + j] = LE32TOBE32(tmp[1]);
+        ctx->round_keys[3 + j] = LE32TOBE32(tmp[0]);
     }
-    printf("\n");
 }
 
-crypt_status AES_init(aes_ctx *ctx, const uint8_t *key, AES_key_length key_len){
+crypt_status AES_init(aes_ctx *ctx, const uint8_t *key, AES_key_length key_len, int decrypt){
 
     memset_s(ctx->state, 0, sizeof(ctx->state));
     memset_s(ctx->round_keys, 0, sizeof(ctx->round_keys));
@@ -249,36 +272,47 @@ crypt_status AES_init(aes_ctx *ctx, const uint8_t *key, AES_key_length key_len){
         case AES_128:
             ctx->aes_key_len = AES_128;
             key_expansion(key, ctx->round_keys, 4, AES_128_NUM_ROUNDS);
+            if(decrypt){
+                revert_round_key_order(ctx, 44);
+            }
+                
             break;
         
         case AES_192:
             ctx->aes_key_len = AES_192;
             key_expansion(key, ctx->round_keys, 6, AES_192_NUM_ROUNDS);
+            if(decrypt){
+                revert_round_key_order(ctx, 52);
+            }
+                // reverse_byte_order((uint8_t *)ctx->round_keys, (uint8_t *)ctx->round_keys, 52);
             break;
         
         case AES_256:
             ctx->aes_key_len = AES_256;
             key_expansion(key, ctx->round_keys, 8, AES_256_NUM_ROUNDS);
+            if(decrypt){
+                revert_round_key_order(ctx, 60);
+            }
+                // reverse_byte_order((uint8_t *)ctx->round_keys, (uint8_t *)ctx->round_keys, 60);
             break;
         default:
             return CRYPT_AES_BAD_KEY_LEN;
     }
 
+    // printf("computed round keys\n");
+    // print_round_keys(ctx->round_keys);
     return CRYPT_OKAY;
 }
 
 static void AES_encrypt_block(aes_ctx *ctx, const uint8_t *input, uint8_t *output){
     // copy the input into the state
-    for(int i =0; i < AES_BLOCK_SIZE_BYTES; i++){
+    for(int i = 0; i < AES_BLOCK_SIZE_BYTES; i++){
         ctx->state[i] = input[i];
     }
-
-    // convert all round keys into big endian
-    for(int i = 0; i < 60; i++){
-        ctx->round_keys[i] = LE32TOBE32(ctx->round_keys[i]);
-    }
+    
     int current_round_key_index = 0;
     uint8_t *round_key_bytes = (uint8_t *)ctx->round_keys;
+
     addRoundKey(ctx, &round_key_bytes[current_round_key_index]);
     current_round_key_index += 16;
    
@@ -333,6 +367,43 @@ crypt_status AES_encrypt_ECB(aes_ctx *ctx,
         AES_encrypt_block(ctx, &plaintext[i * AES_BLOCK_SIZE_BYTES], &ciphertext[i * AES_BLOCK_SIZE_BYTES]);
     }
 
+    return CRYPT_OKAY;
+}
+
+// void print_block(uint8_t *bytes){
+//     for(int i = 0; i < 16; i++){
+//         printf("%02X ", bytes[i]);
+//     }
+//     printf("\n");
+// }
+
+crypt_status AES_encrypt_CBC(aes_ctx *ctx, const uint8_t *plaintext, unsigned int plaintext_len,
+                            const uint8_t *iv, uint8_t *ciphertext, unsigned int ciphertext_len)
+{
+    int num_blocks = (plaintext_len / AES_BLOCK_SIZE_BYTES) + ((plaintext_len % AES_BLOCK_SIZE_BYTES) ? 1 : 0);
+    unsigned int padded_len = num_blocks * AES_BLOCK_SIZE_BYTES + (AES_BLOCK_SIZE_BYTES - (plaintext_len % AES_BLOCK_SIZE_BYTES));
+
+    memset_s(ciphertext, 0, ciphertext_len);
+
+    uint8_t *plaintext_padded = (uint8_t *)malloc(padded_len);
+    if (!plaintext_padded) {
+        return CRYPT_FAILURE;
+    }
+    memcpy(plaintext_padded, plaintext, plaintext_len);
+    uint8_t len_to_pad = AES_BLOCK_SIZE_BYTES - (plaintext_len % AES_BLOCK_SIZE_BYTES);
+    memset_s(&plaintext_padded[plaintext_len], len_to_pad, len_to_pad);
+
+    uint8_t xor_block[AES_BLOCK_SIZE_BYTES];
+    memcpy(xor_block, iv, AES_BLOCK_SIZE_BYTES);
+    for(int i = 0; i < num_blocks; i++){
+        for(int j = 0; j < AES_BLOCK_SIZE_BYTES; j++){
+            xor_block[j] ^= plaintext_padded[j + i * AES_BLOCK_SIZE_BYTES];
+        }
+        AES_encrypt_block(ctx, xor_block, &ciphertext[i * AES_BLOCK_SIZE_BYTES]);
+        memcpy(xor_block, &ciphertext[i * AES_BLOCK_SIZE_BYTES], AES_BLOCK_SIZE_BYTES); // Copy new ciphertext to xor_block for next block
+    }
+
+    free(plaintext_padded);
     return CRYPT_OKAY;
 }
 
@@ -427,48 +498,24 @@ static void AES_decrypt_block(aes_ctx *ctx, const uint8_t *input, uint8_t *outpu
         ctx->state[i] = input[i];
     }
     
-    int key_len_bytes;
     int num_rounds;
-    int num_round_keys_32_size;
     int current_round_key_index = 0;
     switch(ctx->aes_key_len){
         case AES_128:
-            key_len_bytes = 176; // 11 round keys for AES-128, so there are 16 * 11 = 176 bytes in total
-            num_round_keys_32_size = 44;
             num_rounds = AES_128_NUM_ROUNDS;
             break; 
         case AES_192:
-            key_len_bytes = 208; // 13 round keys for AES-192, so there are 16 * 13 = 208 bytes in total
-            num_round_keys_32_size = 52;
             num_rounds = AES_192_NUM_ROUNDS;
             break; 
         case AES_256:
-            key_len_bytes = 240; // 15 round keys for AES-256, so there are 16 * 15 = 240 bytes in total
-            num_round_keys_32_size = 60;
             num_rounds = AES_256_NUM_ROUNDS;
             break; 
         default:
             break;
     } 
-
-    // Using reverse_byte_order to reverse the round keys array, as for decryption, the order of round keys are
-    // applied in reverse
-    reverse_byte_order((uint8_t *)ctx->round_keys, (uint8_t *)ctx->round_keys, key_len_bytes);
-    for(int i = 0; i < 60; i++){
-        ctx->round_keys[i] = (ctx->round_keys[i]);
-    }
-
-    uint32_t tmp[2] = {0};
-    for(int j = 0; j < num_round_keys_32_size; j += 4){
-        tmp[0] = ctx->round_keys[0 + j];
-        tmp[1] = ctx->round_keys[1 + j];
-        ctx->round_keys[0 + j] = ctx->round_keys[3 + j];
-        ctx->round_keys[1 + j] = ctx->round_keys[2 + j];
-        ctx->round_keys[2 + j] = tmp[1];
-        ctx->round_keys[3 + j] = tmp[0];
-    }
-    uint8_t *round_key_bytes = (uint8_t *)ctx->round_keys;
     
+    uint8_t *round_key_bytes = (uint8_t *)ctx->round_keys;
+
     addRoundKey(ctx, &round_key_bytes[current_round_key_index]);
     current_round_key_index += 16;
 
@@ -507,6 +554,35 @@ crypt_status AES_decrypt_ECB(aes_ctx *ctx,
 
     return CRYPT_OKAY;
 
+}
+
+crypt_status AES_decrypt_CBC(aes_ctx *ctx, const unsigned char *ciphertext, unsigned int ciphertext_len,
+                            const uint8_t *iv, unsigned char *plaintext, unsigned int plaintext_len)
+{
+
+    memset_s(plaintext, 0, plaintext_len);
+    
+    uint8_t xor_block[AES_BLOCK_SIZE_BYTES];
+    memcpy(xor_block, iv, AES_BLOCK_SIZE_BYTES);
+    
+    // for the first block we XOR the decrypted block with IV, after that the previous ciphertext 
+    // blocks becomes the IV in CBC mode
+    for(unsigned int i = 0; i < ciphertext_len / AES_BLOCK_SIZE_BYTES; i++) {
+        AES_decrypt_block(ctx, &ciphertext[i * AES_BLOCK_SIZE_BYTES], &plaintext[i * AES_BLOCK_SIZE_BYTES]);
+        for(int j = 0; j < AES_BLOCK_SIZE_BYTES; j++){
+            plaintext[j + i * AES_BLOCK_SIZE_BYTES] ^= xor_block[j];
+        }
+        
+        memcpy(xor_block, &ciphertext[i * AES_BLOCK_SIZE_BYTES], AES_BLOCK_SIZE_BYTES);
+    }
+
+    // Remove padding
+    int pad_len = plaintext[plaintext_len - 1];
+    if (pad_len > 0 && pad_len <= AES_BLOCK_SIZE_BYTES) {
+        plaintext_len -= pad_len;
+    }
+
+    return CRYPT_OKAY;
 }
 
 crypt_status AES_cleanup(aes_ctx *ctx){

@@ -74,6 +74,7 @@ cipher_tests cipher_test[] = {
     {"des_test", &des_test, 1},
     {"3DES_test", &tdes_test, 1},
     {"AES_test", &aes_test, 1},
+    {"AES_CBC_test", &AES_CBC_test, 1},
 };
 
 void run_util_tests(){

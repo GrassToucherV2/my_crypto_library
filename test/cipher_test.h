@@ -13,5 +13,5 @@ int chacha20_poly1305_test();
 int des_test();
 int tdes_test();
 int aes_test();
-
+int AES_CBC_test();
 #endif /* CIPHER_TEST_H */

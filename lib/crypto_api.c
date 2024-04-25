@@ -14,6 +14,9 @@
 
 #include <stdio.h>
 
+#define ENCRYPT 0
+#define DECRYPT 1
+
 crypt_status crypt_test(){
     printf("test function\n");
     return CRYPT_OKAY;
@@ -483,7 +486,8 @@ crypt_status crypt_AES_encrypt(const uint8_t *key, unsigned int key_size, AES_ke
                 return CRYPT_BAD_BUFFER_LEN;
         }        
     } else{
-        if(ciphertext_len < plaintext_len + (plaintext_len - (plaintext_len % AES_BLOCK_SIZE_BYTES))){
+        if(ciphertext_len < plaintext_len + (AES_BLOCK_SIZE_BYTES - (plaintext_len % AES_BLOCK_SIZE_BYTES))){
+            printf("length = %d\n", plaintext_len + (AES_BLOCK_SIZE_BYTES - (plaintext_len % AES_BLOCK_SIZE_BYTES)));
             return CRYPT_BAD_BUFFER_LEN;
         }
     }
@@ -495,13 +499,15 @@ crypt_status crypt_AES_encrypt(const uint8_t *key, unsigned int key_size, AES_ke
 
     switch(mode){
         case ECB:
-            CRYPT_CHECK_OKAY(AES_init(&ctx, key, key_len));
+            CRYPT_CHECK_OKAY(AES_init(&ctx, key, key_len, ENCRYPT));
             CRYPT_CHECK_OKAY(AES_encrypt_ECB(&ctx, plaintext, plaintext_len, ciphertext, ciphertext_len));
             CRYPT_CHECK_OKAY(AES_cleanup(&ctx));
             break;
         
         case CBC:
-            printf("CBC mode not implemented yet\n");
+            CRYPT_CHECK_OKAY(AES_init(&ctx, key, key_len, ENCRYPT));
+            CRYPT_CHECK_OKAY(AES_encrypt_CBC(&ctx, plaintext, plaintext_len, iv, ciphertext, ciphertext_len));
+            CRYPT_CHECK_OKAY(AES_cleanup(&ctx));
             break;
         
         case CTR:
@@ -567,13 +573,15 @@ crypt_status crypt_AES_decrypt(const uint8_t *key, unsigned int key_size, AES_ke
 
     switch(mode){
         case ECB:
-            CRYPT_CHECK_OKAY(AES_init(&ctx, key, key_len));
+            CRYPT_CHECK_OKAY(AES_init(&ctx, key, key_len, DECRYPT));
             CRYPT_CHECK_OKAY(AES_decrypt_ECB(&ctx, ciphertext, ciphertext_len, plaintext, plaintext_len));
             CRYPT_CHECK_OKAY(AES_cleanup(&ctx));
             break;
         
         case CBC:
-            printf("CBC mode not implemented yet\n");
+            CRYPT_CHECK_OKAY(AES_init(&ctx, key, key_len, DECRYPT));
+            CRYPT_CHECK_OKAY(AES_decrypt_CBC(&ctx, ciphertext, ciphertext_len, iv, plaintext, plaintext_len));
+            CRYPT_CHECK_OKAY(AES_cleanup(&ctx));
             break;
         
         case CTR:
