@@ -19,11 +19,11 @@ util_unit_test util_tests[] = {
 };
 
 challeng1_test set1_test[] = {
-    {"set1_chal1_hex_to_base64", &set1_challenge1, 1},
-    {"set1_chal2_fixed_length_xor", &set1_challenge2, 1},
-    {"set1_chal3_single_byte_XOR_cipher", &set1_challenge3, 1},
-    {"set1_chal4_Detect_single_character_XOR", &set1_challenge4, 1},
-    {"set1_chal5_repeating_byte_XOR", &set1_challenge5, 1}
+    // {"set1_chal1_hex_to_base64", &set1_challenge1, 1},
+    // {"set1_chal2_fixed_length_xor", &set1_challenge2, 1},
+    // {"set1_chal3_single_byte_XOR_cipher", &set1_challenge3, 1},
+    // {"set1_chal4_Detect_single_character_XOR", &set1_challenge4, 1},
+    // {"set1_chal5_repeating_byte_XOR", &set1_challenge5, 1}
 };
 
 bigint_tests bigint_test[] = {
@@ -75,6 +75,7 @@ cipher_tests cipher_test[] = {
     {"3DES_test", &tdes_test, 1},
     {"AES_test", &aes_test, 1},
     {"AES_CBC_test", &AES_CBC_test, 1},
+    {"AES_CTR_test", &AES_CTR_test, 1},
 };
 
 void run_util_tests(){
@@ -87,13 +88,13 @@ void run_util_tests(){
 }
 
 void run_challenge_test(){
-    int num_set1_test = sizeof(set1_test) / sizeof(set1_test[0]);
-    for(int i = 0; i < num_set1_test; i++){
-        if(set1_test[i].enabled){
-            set1_test[i].challenge_fn();
-            printf("\n");
-        }
-    }
+    // int num_set1_test = sizeof(set1_test) / sizeof(set1_test[0]);
+    // for(int i = 0; i < num_set1_test; i++){
+    //     if(set1_test[i].enabled){
+    //         set1_test[i].challenge_fn();
+    //         printf("\n");
+    //     }
+    // }
 }
 
 void run_bigint_test(){

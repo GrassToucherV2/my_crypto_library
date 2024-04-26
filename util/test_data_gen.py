@@ -4,6 +4,7 @@ import math
 import hashlib
 import os
 from Crypto.Cipher import DES, DES3, AES
+from Crypto.Util import Counter
 # from Crypto.Random import get_random_bytes
 
 def extended_gcd(a, b):
@@ -41,8 +42,8 @@ def generate_random_numbers(bits):
     return secrets.randbits(bits)
 
 
-def bytes_to_int(bytes_value):
-    return int.from_bytes(bytes_value, byteorder='big')
+def bytes_to_int(bytes_value, endian="big"):
+    return int.from_bytes(bytes_value, byteorder=endian)
 
 
 def des_ecb():
@@ -308,6 +309,62 @@ def aes_cbc():
     return ' '
 
 
+def aes_ctr():
+    keys = [    
+        bytes([0x01, 0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF,
+               0x01, 0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF]),  # 128-bit key
+        
+        bytes([0x01, 0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF,
+               0x01, 0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF]),  # 128-bit key
+        
+        bytes([0x01, 0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF,
+               0x01, 0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF,
+               0x75, 0x28, 0x78, 0x39, 0x74, 0x93, 0xCB, 0x70]),  # 192-bit key
+        
+        bytes([0x01, 0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF,
+               0x01, 0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF,
+               0x75, 0x28, 0x78, 0x39, 0x74, 0x93, 0xCB, 0x70,
+               0x01, 0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF]),  # 256-bit key
+    ]
+
+    nonces = [
+        bytes([0x0a, 0x12, 0x3d, 0x56, 0x01, 0x11, 0xae, 0xff]),
+        bytes([0x0a, 0x12, 0x3d, 0x56, 0x01, 0x11, 0xae, 0xff]),
+        bytes([0x12, 0x34, 0x56, 0x78, 0x90, 0xAB, 0xCD, 0xEF]),
+        bytes([0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF, 0x01]),
+    ]
+
+    test_vectors = [
+        b'Now is the time for all good men to come to the aid of their country.',
+        b'The quick brown fox jumps over the lazy dog',
+        b'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.',
+        b'Sample message for encryption',
+    ]
+    for nonce, key, plaintext in zip(nonces, keys, test_vectors):
+        # Combine the nonce and initial counter value into a single 128-bit block
+        nonce_int = int.from_bytes(nonce, byteorder='big')
+        # Assuming the counter starts at 1 and is 64 bits
+        initial_counter_value = generate_random_numbers(64)
+        iv = (nonce_int << 64) | initial_counter_value
+
+        counter = Counter.new(128, initial_value=iv)
+        cipher = AES.new(key, AES.MODE_CTR, counter=counter)
+        ciphertext = cipher.encrypt(plaintext)
+        print("Counter")
+        print_hex_format(counter.get('initial_value'))
+        print("Nonce")
+        print_hex_format(bytes_to_int(nonce))
+        print("Key")
+        print_hex_format(bytes_to_int(key))
+        print("Plaintext")
+        print_hex_format(bytes_to_int(plaintext))
+        print("Ciphertext")
+        print_hex_format(bytes_to_int(ciphertext))
+        print("================================================")
+        # counter = Counter.new(128, initial_value=1)
+
+    return ' '
+
 
 def print_help_menu():
     print("""
@@ -356,6 +413,7 @@ Arguments:
             - 3des_ecb     Generate 3DES_ECB test vectors
             - 3des_cbc     Generate 3DES_CBC test vectors
             - aes_cbc      Generate AES_CBC test vectors for all three key lengths
+            - aes_ctr      Generate AES_CTR test vectors for all three key lengths
           
 """)
 
@@ -426,6 +484,8 @@ def perform_operation(num1, num2, num3, op):
         return tdes_cbc()
     elif op == "aes_cbc":
         return aes_cbc()
+    elif op == "aes_ctr":
+        return aes_ctr()
 
 if __name__ == "__main__":
     bits1 = 0

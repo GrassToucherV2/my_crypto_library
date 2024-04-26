@@ -14,4 +14,5 @@ int des_test();
 int tdes_test();
 int aes_test();
 int AES_CBC_test();
+int AES_CTR_test();
 #endif /* CIPHER_TEST_H */

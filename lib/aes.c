@@ -263,37 +263,39 @@ static void revert_round_key_order(aes_ctx *ctx, int key_len_uint32_bytes){
     }
 }
 
-crypt_status AES_init(aes_ctx *ctx, const uint8_t *key, AES_key_length key_len, int decrypt){
+crypt_status AES_init(aes_ctx *ctx, const uint8_t *key, AES_key_length key_len, int decrypt, block_cipher_mode mode){
 
     memset_s(ctx->state, 0, sizeof(ctx->state));
     memset_s(ctx->round_keys, 0, sizeof(ctx->round_keys));
 
+    // I don't like these if statements in core crypto algorithms, perhaps I should have different init functins 
+    // for different modes. But then, if we use a specific mode, CTR for example, the branching will never happen, or
+    // if we use CBC, then the branching will always happen, so the timing variance is perhaps benign?
+    // modern processors' branch prediction will introduce a small timing difference at the beginning I guess, but since
+    // the branching behavior is consistent, so I don't think this is a significant threat. 
     switch (key_len){
         case AES_128:
             ctx->aes_key_len = AES_128;
             key_expansion(key, ctx->round_keys, 4, AES_128_NUM_ROUNDS);
-            if(decrypt){
+            if(decrypt && (mode == CBC || mode ==ECB)){
                 revert_round_key_order(ctx, 44);
             }
-                
             break;
         
         case AES_192:
             ctx->aes_key_len = AES_192;
             key_expansion(key, ctx->round_keys, 6, AES_192_NUM_ROUNDS);
-            if(decrypt){
+            if(decrypt && (mode == CBC || mode == ECB)){
                 revert_round_key_order(ctx, 52);
             }
-                // reverse_byte_order((uint8_t *)ctx->round_keys, (uint8_t *)ctx->round_keys, 52);
             break;
         
         case AES_256:
             ctx->aes_key_len = AES_256;
             key_expansion(key, ctx->round_keys, 8, AES_256_NUM_ROUNDS);
-            if(decrypt){
+            if(decrypt && (mode == CBC || mode ==ECB)){
                 revert_round_key_order(ctx, 60);
             }
-                // reverse_byte_order((uint8_t *)ctx->round_keys, (uint8_t *)ctx->round_keys, 60);
             break;
         default:
             return CRYPT_AES_BAD_KEY_LEN;
@@ -404,6 +406,42 @@ crypt_status AES_encrypt_CBC(aes_ctx *ctx, const uint8_t *plaintext, unsigned in
     }
 
     free(plaintext_padded);
+    return CRYPT_OKAY;
+}
+
+crypt_status AES_encrypt_CTR(aes_ctx *ctx, const uint8_t *plaintext, unsigned int plaintext_len,
+                            const uint64_t nonce, uint64_t counter, uint8_t *ciphertext, unsigned int ciphertext_len)
+{
+    uint64_t iv[2] = {nonce, counter};
+    
+    // the first block of the ciphertext is the IV in CTR mode
+    memcpy(ciphertext, iv, AES_BLOCK_SIZE_BYTES);
+
+    int num_complete_blocks = plaintext_len / AES_BLOCK_SIZE_BYTES;
+    int partial_block_len = plaintext_len % AES_BLOCK_SIZE_BYTES;
+    int current_index = AES_BLOCK_SIZE_BYTES;
+    uint8_t xor_block[AES_BLOCK_SIZE_BYTES];
+   
+    for(int i = 0; i < num_complete_blocks; i++){
+        AES_encrypt_block(ctx, (uint8_t *)iv, xor_block);
+        for(int j = 0; j < AES_BLOCK_SIZE_BYTES; j++){
+            ciphertext[j + current_index] = plaintext[j + current_index - AES_BLOCK_SIZE_BYTES] ^ xor_block[j];
+        }
+        current_index += AES_BLOCK_SIZE_BYTES;
+        // flip the endianness to make sure counter is incremented on the correct byte, then flip it back
+        // there must be a better way to do it, maybe use iv as a byte array?
+        iv[1] = LE64TOBE64(iv[1]); 
+        iv[1]++;
+        iv[1] = LE64TOBE64(iv[1]); 
+    }
+
+    if (partial_block_len > 0) {
+        AES_encrypt_block(ctx, (uint8_t *)iv, xor_block);
+        for(int j = 0; j < partial_block_len; j++) {
+            ciphertext[j + current_index] = plaintext[j + current_index - AES_BLOCK_SIZE_BYTES] ^ xor_block[j];
+        }
+    }
+
     return CRYPT_OKAY;
 }
 
@@ -589,6 +627,39 @@ crypt_status AES_cleanup(aes_ctx *ctx){
 
     memset_s(ctx->state, 0, sizeof(ctx->state));
     memset_s(ctx->round_keys, 0, sizeof(ctx->round_keys));
+
+    return CRYPT_OKAY;
+}
+
+crypt_status AES_decrypt_CTR(aes_ctx *ctx, const uint8_t *ciphertext, unsigned int ciphertext_len,
+                            uint8_t *plaintext, unsigned int plaintext_len)
+{
+    uint64_t iv[2];
+    // The first block of the ciphertext is the IV used to encrypt the message in CTR mode
+    memcpy(iv, ciphertext, AES_BLOCK_SIZE_BYTES);
+
+    int num_complete_blocks = plaintext_len / AES_BLOCK_SIZE_BYTES;
+    int partial_block_len = plaintext_len % AES_BLOCK_SIZE_BYTES;
+    int current_index = 0;
+    uint8_t xor_block[AES_BLOCK_SIZE_BYTES];
+
+    for(int i = 0; i < num_complete_blocks; i++){
+        AES_encrypt_block(ctx, (uint8_t *)iv, xor_block);
+        for(int j = 0; j < AES_BLOCK_SIZE_BYTES; j++){
+            plaintext[j + current_index] = ciphertext[j + current_index + AES_BLOCK_SIZE_BYTES] ^ xor_block[j];
+        }
+        current_index += AES_BLOCK_SIZE_BYTES;
+        iv[1] = LE64TOBE64(iv[1]); 
+        iv[1]++;
+        iv[1] = LE64TOBE64(iv[1]); 
+    }
+
+    if (partial_block_len > 0) {
+        AES_encrypt_block(ctx, (uint8_t *)iv, xor_block);
+        for(int j = 0; j < partial_block_len; j++) {
+            plaintext[j + current_index] = ciphertext[j + current_index + AES_BLOCK_SIZE_BYTES] ^ xor_block[j];
+        }
+    }
 
     return CRYPT_OKAY;
 }
