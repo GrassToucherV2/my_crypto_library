@@ -6,10 +6,10 @@
 #include "bigint.h"
 #include <time.h>
 
-// static void print_bigint_ctx(const bigint *a){
-//     printf("MSD              = %u\n", a->MSD);
-//     printf("number of digits = %u\n", a->num_of_digit);
-// }
+void print_bigint_ctx(const bigint *a){
+    printf("MSD              = %u\n", a->MSD);
+    printf("number of digits = %u\n", a->num_of_digit);
+}
 
 bigint_err bigint_init(bigint *b, unsigned int num_of_digit){
     b->digits = (digit *)malloc(num_of_digit * sizeof(digit));
@@ -1148,8 +1148,8 @@ bigint_err bigint_mod(const bigint *a, const bigint *b, bigint *r){
 }
 
 /*
-    this is essentially bitwise AND with 2^b - 1
-    this function is not constant-time
+    This function computes a % 2^b, which is essentially
+    a bitwise AND with 2^b - 1
 */
 bigint_err bigint_mod_pow_2(const bigint *a, unsigned int b, bigint *c){
     if(!a || !c) return BIGINT_ERROR_NULLPTR;
@@ -1164,7 +1164,7 @@ bigint_err bigint_mod_pow_2(const bigint *a, unsigned int b, bigint *c){
     unsigned int required_digits = num_whole_digits + 1;
     unsigned int i;
 
-    if(c->num_of_digit < num_whole_digits){
+    if(c->num_of_digit < required_digits){
         CHECK_OKAY(bigint_expand(c, required_digits));
     }
 
