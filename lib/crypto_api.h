@@ -83,7 +83,6 @@ crypt_status crypt_TDES_decrypt(uint64_t key1, uint64_t key2, uint64_t key3,  ui
 
 crypt_status crypt_AES_encrypt(const uint8_t *key, unsigned int key_size, AES_key_length key_len,
                                 const uint8_t *iv, unsigned int iv_len,
-                                uint8_t *counter, unsigned int counter_len,
                                 const uint8_t *plaintext, unsigned int plaintext_len,
                                 uint8_t *ciphertext, unsigned int ciphertext_len,
                                 padding_scheme padding, block_cipher_mode mode);

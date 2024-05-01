@@ -410,9 +410,10 @@ crypt_status AES_encrypt_CBC(aes_ctx *ctx, const uint8_t *plaintext, unsigned in
 }
 
 crypt_status AES_encrypt_CTR(aes_ctx *ctx, const uint8_t *plaintext, unsigned int plaintext_len,
-                            const uint64_t nonce, uint64_t counter, uint8_t *ciphertext, unsigned int ciphertext_len)
+                            const uint8_t *iv, uint8_t *ciphertext)
 {
-    uint64_t iv[2] = {nonce, counter};
+    uint32_t iv_32[4];
+    memcpy(iv_32, iv, AES_BLOCK_SIZE_BYTES);
     
     // the first block of the ciphertext is the IV in CTR mode
     memcpy(ciphertext, iv, AES_BLOCK_SIZE_BYTES);
@@ -423,20 +424,20 @@ crypt_status AES_encrypt_CTR(aes_ctx *ctx, const uint8_t *plaintext, unsigned in
     uint8_t xor_block[AES_BLOCK_SIZE_BYTES];
    
     for(int i = 0; i < num_complete_blocks; i++){
-        AES_encrypt_block(ctx, (uint8_t *)iv, xor_block);
+        AES_encrypt_block(ctx, (uint8_t *)iv_32, xor_block);
         for(int j = 0; j < AES_BLOCK_SIZE_BYTES; j++){
             ciphertext[j + current_index] = plaintext[j + current_index - AES_BLOCK_SIZE_BYTES] ^ xor_block[j];
         }
         current_index += AES_BLOCK_SIZE_BYTES;
         // flip the endianness to make sure counter is incremented on the correct byte, then flip it back
         // there must be a better way to do it, maybe use iv as a byte array?
-        iv[1] = LE64TOBE64(iv[1]); 
-        iv[1]++;
-        iv[1] = LE64TOBE64(iv[1]); 
+        iv_32[3] = LE32TOBE32(iv_32[3]); 
+        iv_32[3]++;
+        iv_32[3] = LE32TOBE32(iv_32[3]); 
     }
 
     if (partial_block_len > 0) {
-        AES_encrypt_block(ctx, (uint8_t *)iv, xor_block);
+        AES_encrypt_block(ctx, (uint8_t *)iv_32, xor_block);
         for(int j = 0; j < partial_block_len; j++) {
             ciphertext[j + current_index] = plaintext[j + current_index - AES_BLOCK_SIZE_BYTES] ^ xor_block[j];
         }
@@ -631,10 +632,10 @@ crypt_status AES_cleanup(aes_ctx *ctx){
     return CRYPT_OKAY;
 }
 
-crypt_status AES_decrypt_CTR(aes_ctx *ctx, const uint8_t *ciphertext, unsigned int ciphertext_len,
+crypt_status AES_decrypt_CTR(aes_ctx *ctx, const uint8_t *ciphertext,
                             uint8_t *plaintext, unsigned int plaintext_len)
 {
-    uint64_t iv[2];
+    uint32_t iv[4];
     // The first block of the ciphertext is the IV used to encrypt the message in CTR mode
     memcpy(iv, ciphertext, AES_BLOCK_SIZE_BYTES);
 
@@ -649,9 +650,9 @@ crypt_status AES_decrypt_CTR(aes_ctx *ctx, const uint8_t *ciphertext, unsigned i
             plaintext[j + current_index] = ciphertext[j + current_index + AES_BLOCK_SIZE_BYTES] ^ xor_block[j];
         }
         current_index += AES_BLOCK_SIZE_BYTES;
-        iv[1] = LE64TOBE64(iv[1]); 
-        iv[1]++;
-        iv[1] = LE64TOBE64(iv[1]); 
+        iv[3] = LE32TOBE32(iv[3]); 
+        iv[3]++;
+        iv[3] = LE32TOBE32(iv[3]); 
     }
 
     if (partial_block_len > 0) {

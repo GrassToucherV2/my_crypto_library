@@ -994,16 +994,16 @@ int aes_test(){
     uint8_t plain1[16];
     uint8_t cipher1_ecb[16];
    
-    crypt_AES_encrypt(key1_128, sizeof(key1_128), AES_128, NULL, 0, NULL, 0, plaintext1, sizeof(plaintext1), cipher1_ecb, sizeof(cipher1_ecb), NO_PAD, ECB);
+    crypt_AES_encrypt(key1_128, sizeof(key1_128), AES_128, NULL, 0, plaintext1, sizeof(plaintext1), cipher1_ecb, sizeof(cipher1_ecb), NO_PAD, ECB);
     failed |= assert_eq_texts(cipher1_ecb, ciphertext1_ecb, sizeof(ciphertext1_ecb), "AES-128-ECB encryption test 1 NO_PAD");
 
-    crypt_AES_encrypt(key2_128, sizeof(key2_128), AES_128, NULL, 0, NULL, 0, plaintext2, sizeof(plaintext2), cipher1_ecb, sizeof(cipher1_ecb), NO_PAD, ECB);
+    crypt_AES_encrypt(key2_128, sizeof(key2_128), AES_128, NULL, 0, plaintext2, sizeof(plaintext2), cipher1_ecb, sizeof(cipher1_ecb), NO_PAD, ECB);
     failed |= assert_eq_texts(cipher1_ecb, ciphertext1_ecb_128, sizeof(ciphertext1_ecb_128), "AES-128-ECB encryption test 2 NO_PAD");
 
-    crypt_AES_encrypt(key1_192, sizeof(key1_192), AES_192, NULL, 0, NULL, 0, plaintext2, sizeof(plaintext2), cipher1_ecb, sizeof(cipher1_ecb), NO_PAD, ECB);
+    crypt_AES_encrypt(key1_192, sizeof(key1_192), AES_192, NULL, 0, plaintext2, sizeof(plaintext2), cipher1_ecb, sizeof(cipher1_ecb), NO_PAD, ECB);
     failed |= assert_eq_texts(cipher1_ecb, ciphertext1_ecb_192, sizeof(ciphertext1_ecb_192), "AES-192-ECB encryption test 1 NO_PAD");
 
-    crypt_AES_encrypt(key1_256, sizeof(key1_256), AES_256, NULL, 0, NULL, 0, plaintext2, sizeof(plaintext2), cipher1_ecb, sizeof(cipher1_ecb), NO_PAD, ECB);
+    crypt_AES_encrypt(key1_256, sizeof(key1_256), AES_256, NULL, 0, plaintext2, sizeof(plaintext2), cipher1_ecb, sizeof(cipher1_ecb), NO_PAD, ECB);
     failed |= assert_eq_texts(cipher1_ecb, ciphertext1_ecb_256, sizeof(ciphertext1_ecb_256), "AES-256-ECB encryption test 1 NO_PAD");
 
     crypt_AES_decrypt(key2_128, sizeof(key2_128), AES_128, NULL, 0, ciphertext1_ecb_128, sizeof(ciphertext1_ecb_128), plain1, sizeof(plain1), NO_PAD, ECB);
@@ -1186,38 +1186,38 @@ int AES_CBC_test() {
     uint8_t plain3_cbc[80];
     uint8_t plain4_cbc[192];
 
-    crypt_AES_encrypt(key_128_1, sizeof(key_128_1), AES_128, iv1, sizeof(iv1), NULL, 0, plaintext3, sizeof(plaintext3), cipher1_cbc, 32, NO_PAD, CBC);
+    crypt_AES_encrypt(key_128_1, sizeof(key_128_1), AES_128, iv1, sizeof(iv1), plaintext3, sizeof(plaintext3), cipher1_cbc, 32, NO_PAD, CBC);
     failed |= assert_eq_texts(cipher1_cbc, ciphertext3, sizeof(ciphertext3), "AES-128-CBC encryption test 1");
 
     crypt_AES_decrypt(key_128_1, sizeof(key_128_1), AES_128, iv1, sizeof(iv1), ciphertext3, sizeof(ciphertext3), plain1_cbc, 16, NO_PAD, CBC);
     failed |= assert_eq_texts(plain1_cbc, plaintext3, sizeof(plaintext3), "AES-128-CBC decryption test 1");
 
-    crypt_AES_encrypt(key_128_1, sizeof(key_128_1), AES_128, iv1, sizeof(iv1), NULL, 0, plaintext4, sizeof(plaintext4), cipher1_cbc, 16, NO_PAD, CBC);
+    crypt_AES_encrypt(key_128_1, sizeof(key_128_1), AES_128, iv1, sizeof(iv1), plaintext4, sizeof(plaintext4), cipher1_cbc, 16, NO_PAD, CBC);
     failed |= assert_eq_texts(cipher1_cbc, ciphertext4, sizeof(ciphertext4), "AES-128-CBC encryption test 2");
 
     crypt_AES_decrypt(key_128_1, sizeof(key_128_1), AES_128, iv1, sizeof(iv1), ciphertext4, sizeof(ciphertext4), plain1_cbc, 16, NO_PAD, CBC);
     failed |= assert_eq_texts(plain1_cbc, plaintext4, sizeof(plaintext4), "AES-128-CBC decryption test 2");
 
-    crypt_AES_encrypt(key_128_cbc, sizeof(key_128_cbc), AES_128, iv_cbc, sizeof(iv_cbc), NULL, 0, plaintext_cbc, sizeof(plaintext_cbc), cipher3_cbc, 80, NO_PAD, CBC);
+    crypt_AES_encrypt(key_128_cbc, sizeof(key_128_cbc), AES_128, iv_cbc, sizeof(iv_cbc), plaintext_cbc, sizeof(plaintext_cbc), cipher3_cbc, 80, NO_PAD, CBC);
     failed |= assert_eq_texts(cipher3_cbc, ciphertext_cbc, sizeof(ciphertext_cbc), "AES-128-CBC encryption test 3");
 
     crypt_AES_decrypt(key_128_cbc, sizeof(key_128_cbc), AES_128, iv_cbc, sizeof(iv_cbc), cipher3_cbc, sizeof(cipher3_cbc), plain3_cbc, 80, NO_PAD, CBC);
     failed |= assert_eq_texts(plain3_cbc, plaintext_cbc, sizeof(plaintext_cbc), "AES-128-CBC decryption test 3");
 
-    crypt_AES_encrypt(key_192_1, sizeof(key_192_1), AES_192, iv2, sizeof(iv2), NULL, 0, plaintext5, sizeof(plaintext5), cipher2_cbc, 32, NO_PAD, CBC);
+    crypt_AES_encrypt(key_192_1, sizeof(key_192_1), AES_192, iv2, sizeof(iv2),plaintext5, sizeof(plaintext5), cipher2_cbc, 32, NO_PAD, CBC);
     failed |= assert_eq_texts(cipher2_cbc, ciphertext5, sizeof(ciphertext5), "AES-192-CBC encryption test 1");
 
     crypt_AES_decrypt(key_192_1, sizeof(key_192_1), AES_192, iv2, sizeof(iv2), ciphertext5, sizeof(ciphertext5), plain2_cbc, 32, NO_PAD, CBC);
     failed |= assert_eq_texts(plain2_cbc, plaintext5, sizeof(plaintext5), "AES-192-CBC decryption test 1");
 
-    crypt_AES_encrypt(key_256_1, sizeof(key_256_1), AES_256, iv3, sizeof(iv3), NULL, 0, plaintext6, sizeof(plaintext6), cipher1_cbc, 32, NO_PAD, CBC);
+    crypt_AES_encrypt(key_256_1, sizeof(key_256_1), AES_256, iv3, sizeof(iv3), plaintext6, sizeof(plaintext6), cipher1_cbc, 32, NO_PAD, CBC);
     failed |= assert_eq_texts(cipher1_cbc, ciphertext6, sizeof(ciphertext6), "AES-256-CBC encryption test 1");
 
     crypt_AES_decrypt(key_256_1, sizeof(key_256_1), AES_256, iv3, sizeof(iv3), ciphertext6, sizeof(ciphertext6), plain2_cbc, 32, NO_PAD, CBC);
     failed |= assert_eq_texts(plain2_cbc, plaintext6, sizeof(plaintext6), "AES-256-CBC decryption test 1");
 
     // using sizeof(plaintext_cbc2) - 1 to not encrypt the null character as the python script used to generate test data does not encrypt the null char
-    crypt_AES_encrypt(key_256_cbc, sizeof(key_256_cbc), AES_256, iv_cbc2, sizeof(iv_cbc2), NULL, 0, plaintext_cbc2, sizeof(plaintext_cbc2) - 1, cipher4_cbc, 192, NO_PAD, CBC);
+    crypt_AES_encrypt(key_256_cbc, sizeof(key_256_cbc), AES_256, iv_cbc2, sizeof(iv_cbc2), plaintext_cbc2, sizeof(plaintext_cbc2) - 1, cipher4_cbc, 192, NO_PAD, CBC);
     failed |= assert_eq_texts(cipher4_cbc, ciphertext2_cbc, sizeof(ciphertext2_cbc), "AES-256-CBC encryption test 2");
 
     crypt_AES_decrypt(key_256_cbc, sizeof(key_256_cbc), AES_256, iv_cbc2, sizeof(iv_cbc2), ciphertext2_cbc, sizeof(ciphertext2_cbc), plain4_cbc, 192, NO_PAD, CBC);
@@ -1230,8 +1230,7 @@ int AES_CBC_test() {
 int AES_CTR_test(){
     int failed = 0;
 
-    uint8_t nonce1_128[8] = {0xF0, 0xF1, 0xF2, 0xF3, 0xF4, 0xF5, 0xF6, 0xF7};
-    uint8_t counter1_128[8] = {0xF8, 0xF9, 0xFA, 0xFB, 0xFC, 0xFD, 0xFE, 0xFF};
+    uint8_t iv1_128[16] = {0xF0, 0xF1, 0xF2, 0xF3, 0xF4, 0xF5, 0xF6, 0xF7, 0xF8, 0xF9, 0xFA, 0xFB, 0xFC, 0xFD, 0xFE, 0xFF};
 
     const uint8_t plaintext1[] = {
         0x6B, 0xC1, 0xBE, 0xE2, 0x2E, 0x40, 0x9F, 0x96, 
@@ -1265,7 +1264,7 @@ int AES_CTR_test(){
     uint8_t cipher1[80];
     uint8_t plain1[64];
 
-    crypt_AES_encrypt(key1_128, sizeof(key1_128), AES_128, nonce1_128, sizeof(uint64_t), counter1_128, sizeof(uint64_t), 
+    crypt_AES_encrypt(key1_128, sizeof(key1_128), AES_128, iv1_128, sizeof(iv1_128), 
                         plaintext1, sizeof(plaintext1), cipher1, sizeof(cipher1), NO_PAD, CTR);
     failed |= assert_eq_texts(cipher1, ciphertext1, sizeof(ciphertext1), "AES-128-CTR encryption - test 1");
 
@@ -1278,8 +1277,7 @@ int AES_CTR_test(){
         0x01, 0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF
     };
 
-    uint8_t counter2[] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01};
-    const uint8_t nonce2[] = {0x0A, 0x12, 0x3D, 0x56, 0x01, 0x11, 0xAE, 0xFF};
+    uint8_t iv2_128[] = {0x0A, 0x12, 0x3D, 0x56, 0x01, 0x11, 0xAE, 0xFF, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01};
 
     const uint8_t plaintext2[] = {
         "Now is the time for all good men to come to the aid of their country."
@@ -1303,7 +1301,7 @@ int AES_CTR_test(){
     uint8_t cipher2[85];
     uint8_t plain2[69]; // excluding null char
 
-    crypt_AES_encrypt(key2_128, sizeof(key2_128), AES_128, nonce2, sizeof(uint64_t), counter2, sizeof(uint64_t), 
+    crypt_AES_encrypt(key2_128, sizeof(key2_128), AES_128, iv2_128, sizeof(iv2_128),  
                         plaintext2, sizeof(plaintext2)-1, cipher2, sizeof(cipher2), NO_PAD, CTR);
     failed |= assert_eq_texts(cipher2, ciphertext2, sizeof(ciphertext2), "AES-128-CTR encryption - test 2");
 
@@ -1311,8 +1309,7 @@ int AES_CTR_test(){
     failed |= assert_eq_texts(plain2, plaintext2, sizeof(plaintext2)-1, "AES-128-CTR decryption - test 2");
 
     ///////// test 3 //////////
-    const uint8_t nonce3[] = {0x0A, 0x12, 0x3D, 0x56, 0x01, 0x11, 0xAE, 0xFF};
-    uint8_t counter3[] = {0x91, 0xA7, 0x27, 0x61, 0xC7, 0x90, 0x0C, 0xEE};
+    uint8_t iv3_128[] = {0x0A, 0x12, 0x3D, 0x56, 0x01, 0x11, 0xAE, 0xFF, 0x91, 0xA7, 0x27, 0x61, 0xC7, 0x90, 0x0C, 0xEE};
     const uint8_t key3_128[] = {
         0x01, 0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF,
         0x01, 0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF
@@ -1336,7 +1333,7 @@ int AES_CTR_test(){
     uint8_t cipher3[43 + 16];
     uint8_t plain3[43];
 
-    crypt_AES_encrypt(key3_128, sizeof(key3_128), AES_128, nonce3, sizeof(uint64_t), counter3, sizeof(uint64_t), 
+    crypt_AES_encrypt(key3_128, sizeof(key3_128), AES_128, iv3_128, sizeof(iv3_128), 
                         plaintext3, sizeof(plaintext3)-1, cipher3, sizeof(cipher3), NO_PAD, CTR);
     failed |= assert_eq_texts(cipher3, ciphertext3, sizeof(ciphertext3), "AES-128-CTR encryption - test 3");
 
@@ -1349,9 +1346,8 @@ int AES_CTR_test(){
         0x01, 0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF,
         0x75, 0x28, 0x78, 0x39, 0x74, 0x93, 0xCB, 0x70
     };
-    const uint8_t nonce4[] = {0x12, 0x34, 0x56, 0x78, 0x90, 0xAB, 0xCD, 0xEF};
-    uint8_t counter4[] = {0xCB, 0x6E, 0x5A, 0x2E, 0x27, 0x79, 0x28, 0x8D};
-
+    uint8_t iv4_192[] = {0x12, 0x34, 0x56, 0x78, 0x90, 0xAB, 0xCD, 0xEF, 0xCB, 0x6E, 0x5A, 0x2E, 0x27, 0x79, 0x28, 0x8D};
+    
     const uint8_t plaintext4[] = {
         "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua."
     };
@@ -1380,7 +1376,7 @@ int AES_CTR_test(){
     uint8_t cipher4[123 + 16];
     uint8_t plain4[123];
 
-    crypt_AES_encrypt(key_192, sizeof(key_192), AES_192, nonce4, sizeof(uint64_t), counter4, sizeof(uint64_t), 
+    crypt_AES_encrypt(key_192, sizeof(key_192), AES_192, iv4_192, sizeof(iv4_192),  
                         plaintext4, sizeof(plaintext4)-1, cipher4, sizeof(cipher4), NO_PAD, CTR);
     failed |= assert_eq_texts(cipher4, ciphertext4, sizeof(ciphertext4), "AES-192-CTR encryption - test 4");
 
@@ -1397,8 +1393,7 @@ int AES_CTR_test(){
         0x75, 0x28, 0x78, 0x39, 0x74, 0x93, 0xCB, 0x70,
         0x01, 0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF
     };
-    const uint8_t nonce5[] = {0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF, 0x01};
-    uint8_t counter5[] = {0xF2, 0xD9, 0xBF, 0xF4, 0x5A, 0x55, 0xCA, 0xCF};
+    uint8_t iv5_256[] = {0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF, 0x01, 0xF2, 0xD9, 0xBF, 0xF4, 0x5A, 0x55, 0xCA, 0xCF};
 
     const uint8_t plaintext5[] = {
         "Sample message for encryption"
@@ -1416,7 +1411,7 @@ int AES_CTR_test(){
     uint8_t cipher5[29 + 16];
     uint8_t plain5[29];
 
-    crypt_AES_encrypt(key_256, sizeof(key_256), AES_256, nonce5, sizeof(uint64_t), counter5, sizeof(uint64_t), 
+    crypt_AES_encrypt(key_256, sizeof(key_256), AES_256, iv5_256, sizeof(iv5_256),  
                         plaintext5, sizeof(plaintext5)-1, cipher5, sizeof(cipher5), NO_PAD, CTR);
     failed |= assert_eq_texts(cipher5, ciphertext5, sizeof(ciphertext5), "AES-256-CTR encryption - test 5");
     

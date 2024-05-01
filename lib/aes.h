@@ -44,7 +44,7 @@ crypt_status AES_encrypt_CBC(aes_ctx *ctx, const uint8_t *plaintext, unsigned in
                             const uint8_t *iv, uint8_t *ciphertext, unsigned int ciphertext_len);
 
 crypt_status AES_encrypt_CTR(aes_ctx *ctx, const uint8_t *plaintext, unsigned int plaintext_len,
-                            const uint64_t nonce, uint64_t counter, uint8_t *ciphertext, unsigned int ciphertext_len);
+                            const uint8_t *iv, uint8_t *ciphertext);
 
 crypt_status AES_decrypt_ECB(aes_ctx *ctx, 
                                 const uint8_t *ciphertext, unsigned int ciphertext_len,
@@ -53,7 +53,7 @@ crypt_status AES_decrypt_ECB(aes_ctx *ctx,
 crypt_status AES_decrypt_CBC(aes_ctx *ctx, const unsigned char *ciphertext, unsigned int ciphertext_len,
                             const uint8_t *iv, unsigned char *plaintext, unsigned int plaintext_len);
 
-crypt_status AES_decrypt_CTR(aes_ctx *ctx, const uint8_t *ciphertext, unsigned int ciphertext_len,
+crypt_status AES_decrypt_CTR(aes_ctx *ctx, const uint8_t *ciphertext,
                            uint8_t *plaintext, unsigned int plaintext_len);
 
 crypt_status AES_cleanup(aes_ctx *ctx);

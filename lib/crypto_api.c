@@ -450,7 +450,6 @@ crypt_status crypt_TDES_decrypt(uint64_t key1, uint64_t key2, uint64_t key3,  ui
 
 crypt_status crypt_AES_encrypt(const uint8_t *key, unsigned int key_size, AES_key_length key_len,
                                 const uint8_t *iv, unsigned int iv_len,
-                                uint8_t *counter, unsigned int counter_len,
                                 const uint8_t *plaintext, unsigned int plaintext_len,
                                 uint8_t *ciphertext, unsigned int ciphertext_len,
                                 padding_scheme padding, block_cipher_mode mode)
@@ -480,8 +479,8 @@ crypt_status crypt_AES_encrypt(const uint8_t *key, unsigned int key_size, AES_ke
 
     if(mode == CTR){
         // for CTR mode, nonce is passed into iv's slot, the IV will be nonce + counter
-        if(!iv || iv_len != sizeof(uint64_t)) return CRYPT_BAD_IV;
-        if(!counter || counter_len != sizeof(uint64_t)) return CRYPT_FAILURE;
+        if(!iv || iv_len != AES_BLOCK_SIZE_BYTES) return CRYPT_BAD_IV;
+        // if(!counter || counter_len != sizeof(uint64_t)) return CRYPT_FAILURE;
     }
 
     // if no padding is selected, then we require the plaintext be full blocks only
@@ -518,11 +517,8 @@ crypt_status crypt_AES_encrypt(const uint8_t *key, unsigned int key_size, AES_ke
             break;
         
         case CTR:
-            uint64_t nonce, counter_64;
-            memcpy(&nonce, iv, sizeof(uint64_t));
-            memcpy(&counter_64, counter, sizeof(uint64_t));
             CRYPT_CHECK_OKAY(AES_init(&ctx, key, key_len, ENCRYPT, CTR));
-            CRYPT_CHECK_OKAY(AES_encrypt_CTR(&ctx, plaintext, plaintext_len, nonce, counter_64, ciphertext, ciphertext_len));
+            CRYPT_CHECK_OKAY(AES_encrypt_CTR(&ctx, plaintext, plaintext_len, iv, ciphertext));
             CRYPT_CHECK_OKAY(AES_cleanup(&ctx));
             break;
         
@@ -604,7 +600,7 @@ crypt_status crypt_AES_decrypt(const uint8_t *key, unsigned int key_size, AES_ke
         
         case CTR:
             CRYPT_CHECK_OKAY(AES_init(&ctx, key, key_len, DECRYPT, CTR));
-            CRYPT_CHECK_OKAY(AES_decrypt_CTR(&ctx, ciphertext, ciphertext_len, plaintext, plaintext_len));
+            CRYPT_CHECK_OKAY(AES_decrypt_CTR(&ctx, ciphertext, plaintext, plaintext_len));
             CRYPT_CHECK_OKAY(AES_cleanup(&ctx));
             break;
         
