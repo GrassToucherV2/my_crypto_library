@@ -8,10 +8,14 @@ on:
 
 jobs:
   build_and_test:
-    runs-on: ubuntu-latest  # or another OS if needed
+    runs-on: ubuntu-latest
 
     steps:
     - uses: actions/checkout@v2
+
+    - name: Install Valgrind
+      run: sudo apt-get update && sudo apt-get install -y valgrind
+
     - name: Execute build script
       run: |
         chmod +x build.sh
