@@ -10,6 +10,7 @@
 #include "chacha20_poly1305.h"
 #include "des.h"
 #include "poly1305.h"
+#include "hmac.h"
 
 
 #include <stdio.h>
@@ -615,4 +616,44 @@ crypt_status crypt_AES_decrypt(const uint8_t *key, unsigned int key_size, AES_ke
     
     return CRYPT_OKAY;
 
+}
+
+crypt_status crypt_hmac(const uint8_t *key, unsigned int key_len, SHA2 sha, 
+                        const uint8_t *text, unsigned int text_len,
+                        uint8_t *mac, unsigned int mac_len)
+{
+    if(!key || !text || !mac) return CRYPT_NULL_PTR;
+
+    hmac_ctx ctx;
+    switch (sha)
+    {
+        case SHA256:
+            if(mac_len != SHA256_DIGEST_LEN_BYTES)
+                return CRYPT_BAD_BUFFER_LEN;
+            hmac_init(&ctx, key, key_len, SHA2_MSG_BLOCK_LEN_BYTES);
+            hmac_sha256_compute_mac(&ctx, text, text_len, mac, mac_len);
+            hmac_cleanup(&ctx);    
+            break;
+        
+        case SHA384:
+            if(mac_len != SHA384_DIGEST_LEN_BYTES)
+                return CRYPT_BAD_BUFFER_LEN;
+            hmac_init(&ctx, key, key_len, SHA512_MSG_BLOCK_LEN_BYTES);
+            hmac_sha384_compute_mac(&ctx, text, text_len, mac, mac_len);
+            hmac_cleanup(&ctx);
+            break; 
+        
+        case SHA512:
+            if(mac_len != SHA512_DIGEST_LEN_BYTES)
+                return CRYPT_BAD_BUFFER_LEN;
+            hmac_init(&ctx, key, key_len, SHA512_MSG_BLOCK_LEN_BYTES);
+            hmac_sha512_compute_mac(&ctx, text, text_len, mac, mac_len);
+            hmac_cleanup(&ctx);
+            break;
+        default:
+            printf("hash algorithm not supported\n");
+            break;
+    }
+
+    return CRYPT_OKAY;
 }

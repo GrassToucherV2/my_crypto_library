@@ -17,6 +17,7 @@ FILES=(
     "lib/chacha20_poly1305.c" 
     "lib/des.c"
     "lib/aes.c"
+    "lib/hmac.c"
     "test/bigint_test.c"  
     "test/hash_test.c"                     
     "test/cipher_test.c"                         

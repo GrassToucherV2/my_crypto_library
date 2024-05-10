@@ -92,5 +92,9 @@ crypt_status crypt_AES_decrypt(const uint8_t *key, unsigned int key_size, AES_ke
                                 const uint8_t *ciphertext, unsigned int ciphertext_len,
                                 uint8_t *plaintext, unsigned int plaintext_len,
                                 padding_scheme padding, block_cipher_mode mode);
+
+crypt_status crypt_hmac(const uint8_t *key, unsigned int key_len, SHA2 sha, 
+                        const uint8_t *text, unsigned int text_len,
+                        uint8_t *mac, unsigned int mac_len);
                                     
 #endif /* CRYPTO_API_H */

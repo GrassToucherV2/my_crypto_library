@@ -76,6 +76,7 @@ cipher_tests cipher_test[] = {
     {"AES_test", &aes_test, 1},
     {"AES_CBC_test", &AES_CBC_test, 1},
     {"AES_CTR_test", &AES_CTR_test, 1},
+    {"HMAC_SHA256_test", &hmac_test, 1},
 };
 
 void run_util_tests(){
