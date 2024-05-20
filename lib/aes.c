@@ -624,14 +624,6 @@ crypt_status AES_decrypt_CBC(aes_ctx *ctx, const unsigned char *ciphertext, unsi
     return CRYPT_OKAY;
 }
 
-crypt_status AES_cleanup(aes_ctx *ctx){
-
-    memset_s(ctx->state, 0, sizeof(ctx->state));
-    memset_s(ctx->round_keys, 0, sizeof(ctx->round_keys));
-
-    return CRYPT_OKAY;
-}
-
 crypt_status AES_decrypt_CTR(aes_ctx *ctx, const uint8_t *ciphertext,
                             uint8_t *plaintext, unsigned int plaintext_len)
 {
@@ -661,6 +653,15 @@ crypt_status AES_decrypt_CTR(aes_ctx *ctx, const uint8_t *ciphertext,
             plaintext[j + current_index] = ciphertext[j + current_index + AES_BLOCK_SIZE_BYTES] ^ xor_block[j];
         }
     }
+
+    return CRYPT_OKAY;
+}
+
+
+crypt_status AES_cleanup(aes_ctx *ctx){
+
+    memset_s(ctx->state, 0, sizeof(ctx->state));
+    memset_s(ctx->round_keys, 0, sizeof(ctx->round_keys));
 
     return CRYPT_OKAY;
 }

@@ -58,6 +58,7 @@ bigint_tests bigint_test[] = {
     {"bigint_mul_mod_test", &bigint_mul_mod_test, 1},
     {"bigint_square_mod_test", &bigint_square_mod_test, 1},
     {"bigint_expt_mod_test", &bigint_expt_mod_test, 1},
+    {"bigint_is_bit_set_test", &bigint_is_bit_set_test, 1},
 };
 
 hash_tests hash_test[] = {

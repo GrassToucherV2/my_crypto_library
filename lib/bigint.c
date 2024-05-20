@@ -387,8 +387,8 @@ bigint_err bigint_left_shift_bits(bigint *a, unsigned int b){
     if(b == 0) 
         return BIGINT_OKAY;
     
-    // unsigned int num_digits_to_shift = b / DIGIT_BIT;
-    // unsigned int num_bits_to_shift = b % DIGIT_BIT;
+    // unsigned int num_digits_to_shift = b / NUM_BIT_IN_DIGIT;
+    // unsigned int num_bits_to_shift = b % NUM_BIT_IN_DIGIT;
 
     // printf("b = %u\n", b);
     // printf("num_digits = %u\n", num_digits_to_shift);
@@ -477,7 +477,7 @@ bigint_err bigint_right_shift_digits(bigint *a, unsigned int b){
 
 bigint_err bigint_right_shift_bits(bigint *a, unsigned int b){
     if(!a) return BIGINT_ERROR_NULLPTR;
-    if(b >= DIGIT_BIT)  return BIGINT_ERROR_SHIFTING;
+    if(b >= NUM_BIT_IN_DIGIT)  return BIGINT_ERROR_SHIFTING;
 
     if(a->num_of_digit < a->MSD + 1){
         CHECK_OKAY(bigint_expand(a, a->MSD + 1));
@@ -651,7 +651,7 @@ bigint_err bigint_add(const bigint *a, const bigint *b, bigint *c){
     // compute lower "min" digits 
     for(; i <= min; i++){
         tmp = (uint64_t)a->digits[i] + (uint64_t)b->digits[i] + carry;
-        carry = (tmp >> DIGIT_BIT) & 1;
+        carry = (tmp >> NUM_BIT_IN_DIGIT) & 1;
         c->digits[i] = tmp & BASE;  // only keeping the lower 32 bits, works like "tmp mod BASE"
     }
 
@@ -659,7 +659,7 @@ bigint_err bigint_add(const bigint *a, const bigint *b, bigint *c){
     if(min != max){
         for(; i <= max; i++){
             tmp = x->digits[i] + carry;
-            carry = (tmp >> DIGIT_BIT) & 1;
+            carry = (tmp >> NUM_BIT_IN_DIGIT) & 1;
             c->digits[i] = tmp & BASE; 
         }
     }
@@ -686,7 +686,7 @@ bigint_err bigint_inc(bigint *a){
     for(unsigned int i = 0; i < a->MSD + 1; i++){
         tmp = (int64_t)a->digits[i] + 1 + carry;
         a->digits[i] = tmp & BASE;
-        carry = (tmp >> DIGIT_BIT) & 1;
+        carry = (tmp >> NUM_BIT_IN_DIGIT) & 1;
     }
 
     if(carry){
@@ -834,7 +834,7 @@ bigint_err bigint_mul(const bigint *a, const bigint *b, bigint *c){
             // printf("c at i = %u, j = %u is %u\n",i, j, c->digits[i + j]);
             tmp = (uint64_t)a->digits[i] * (uint64_t)b->digits[j] + tmp_res.digits[i + j] + carry;
             tmp_res.digits[i + j] = tmp & BASE;  
-            carry = tmp >> DIGIT_BIT;
+            carry = tmp >> NUM_BIT_IN_DIGIT;
         }
         tmp_res.digits[i + b_digits_used] = carry;
     }
@@ -1087,7 +1087,7 @@ int bigint_bits_count(const bigint *a){
     if(!a) return BIGINT_ERROR_NULLPTR;
 
     // (number of digits - 1) * 32 bits 
-    int bits_count = a->MSD * DIGIT_BIT;
+    int bits_count = a->MSD * NUM_BIT_IN_DIGIT;
 
     digit last_digit = a->digits[a->MSD];
     while(last_digit != 0){
@@ -1629,3 +1629,12 @@ bigint_err bigint_not(const bigint *a, bigint *c){
     return BIGINT_OKAY;
 }
 
+int bigint_is_bit_set(const bigint *a, unsigned int bit_index){
+    if(!a) return -1;
+
+    // digit is defined as uint32_t
+    unsigned int digit_index = bit_index / 32;
+    unsigned int bit_index_in_digit = bit_index % 32;
+    
+    return ((a->digits[digit_index] >> bit_index_in_digit) & 1);
+}

@@ -4511,3 +4511,121 @@ int bigint_inverse_mod_test(){
     bigint_free(&one);
     return failed;
 }
+
+int bigint_is_bit_set_test() {
+    int failed = 0;
+    int res = 0;
+    bigint a;
+
+    // Initialize the bigint a with a known value
+    unsigned char a1[] = {
+        0x1B, 0x76, 0xFE, 0x29, 0x04, 0x5C, 0xEE, 0x77,
+        0xE5, 0x48, 0x1E, 0xE7, 0x85, 0x5C, 0xF3, 0xF5
+    };
+
+    bigint_init(&a, 1);
+    bigint_from_bytes(&a, a1, sizeof(a1));
+
+    // Test case 1: Checking the least significant bit of the least significant byte
+    res = bigint_is_bit_set(&a, 0); // Least significant bit in 0xF5 should be 1 - 0Xf5 = 1111 0101
+    if (res == 1) {
+        print_passed("bigint_is_bit_set_test 1 - passed");
+    } else {
+        failed = 1;
+        print_failed("bigint_is_bit_set_test 1 - failed");
+    }
+
+    // Test case 2: Checking the second bit of the least significant byte
+    res = bigint_is_bit_set(&a, 1); // Second bit from the right in 0xF5 should be 0
+    if (res == 0) {
+        print_passed("bigint_is_bit_set_test 2 - passed");
+    } else {
+        failed = 1;
+        print_failed("bigint_is_bit_set_test 2 - failed");
+    }
+
+    // Test case 3: Checking the fifth bit of the least significant byte
+    res = bigint_is_bit_set(&a, 4); // Fifth bit from the right in 0xF5 should be 1
+    if (res == 1) {
+        print_passed("bigint_is_bit_set_test 3 - passed");
+    } else {
+        failed = 1;
+        print_failed("bigint_is_bit_set_test 3 - failed");
+    }
+
+    // Test case 4: Checking the eighth bit of the least significant byte
+    res = bigint_is_bit_set(&a, 7); // Eighth bit from the right in 0xF5 should be 1
+    if (res == 1) {
+        print_passed("bigint_is_bit_set_test 4 - passed");
+    } else {
+        failed = 1;
+        print_failed("bigint_is_bit_set_test 4 - failed");
+    }
+
+    // Additional test cases for other bytes
+    // Test case 5: Checking the first bit of the second least significant byte
+    res = bigint_is_bit_set(&a, 8); // First bit in 0xF3 should be 1
+    if (res == 1) {
+        print_passed("bigint_is_bit_set_test 5 - passed");
+    } else {
+        failed = 1;
+        print_failed("bigint_is_bit_set_test 5 - failed");
+    }
+
+    // Test case 6: Checking the fourth bit of the second least significant byte
+    res = bigint_is_bit_set(&a, 11); // Fourth bit from the right in 0xF3 should be 0 0xF3 = 1111 0011
+    if (res == 0) {
+        print_passed("bigint_is_bit_set_test 6 - passed");
+    } else {
+        failed = 1;
+        print_failed("bigint_is_bit_set_test 6 - failed");
+    }
+
+    // Test case 7: Checking the first bit of the third least significant byte 
+    res = bigint_is_bit_set(&a, 16); // First bit in 0x5C should be 0 0X5C = 0101 1100 
+    if (res == 0) {
+        print_passed("bigint_is_bit_set_test 7 - passed");
+    } else {
+        failed = 1;
+        print_failed("bigint_is_bit_set_test 7 - failed");
+    }
+
+    // Test case 8: Checking the seventh bit of the third least significant byte
+    res = bigint_is_bit_set(&a, 22); // Seventh bit from the right in 0x5C should be 1
+    if (res == 1) {
+        print_passed("bigint_is_bit_set_test 8 - passed");
+    } else {
+        failed = 1;
+        print_failed("bigint_is_bit_set_test 8 - failed");
+    }
+
+    // Test case 9: Checking the first bit of the most significant byte
+    res = bigint_is_bit_set(&a, 120); // First bit in 0x1B should be 1 - 0x1B = 0001 1011
+    if (res == 1) {
+        print_passed("bigint_is_bit_set_test 9 - passed");
+    } else {
+        failed = 1;
+        print_failed("bigint_is_bit_set_test 9 - failed");
+    }
+
+    // Test case 10: Checking the eighth bit of the most significant byte
+    res = bigint_is_bit_set(&a, 127); // Eighth bit from the right in 0x1B should be 0
+    if (res == 0) {
+        print_passed("bigint_is_bit_set_test 10 - passed");
+    } else {
+        failed = 1;
+        print_failed("bigint_is_bit_set_test 10 - failed");
+    }
+
+    // Test case 11: Null pointer check
+    res = bigint_is_bit_set(NULL, 7);
+    if (res == -1) {
+        print_passed("bigint_is_bit_set_test 11 - passed");
+    } else {
+        failed = 1;
+        print_failed("bigint_is_bit_set_test 11 - failed");
+    }
+
+    return failed;
+}
+

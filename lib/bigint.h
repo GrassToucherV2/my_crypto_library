@@ -12,7 +12,7 @@
 #include "common.h"
 
 #define BASE 0xFFFFFFFF // max value of unsigned int - also the max value of a digit
-#define DIGIT_BIT sizeof(digit) * 8
+#define NUM_BIT_IN_DIGIT sizeof(digit) * 8
 
 #define CHECK_OKAY(a) do {if (a != BIGINT_OKAY) return a; } while(0) 
 #define MIN(a, b) ((a) < (b) ? (a) : (b)) // returns min(a, b)
@@ -170,6 +170,8 @@ bigint_err bigint_or(const bigint *a, const bigint *b, bigint *c);
 bigint_err bigint_xor(const bigint *a, const bigint *b, bigint *c);
 /* c = ~a */
 bigint_err bigint_not(const bigint *a, bigint *c);
+/* check if the bit at bit_index is set */
+int bigint_is_bit_set(const bigint *a, unsigned int bit_index);
 
 
 // These shifting functions are not constant-time, more works needed
