@@ -3,7 +3,7 @@
 
 This library is developed for fun and educational purposes. I am hoping to eventually learn more about cryptanalysis and implement attacks to exploit the cryptographic algorithms implemented here.
 
-Note that it is strongly discouraged to use this code in any actual software projects due to potential security vulnerabilities in the code, and thorough testing is required to ensure security.
+Note that this code should not be used in any real software projects due to potential security vulnerabilities in the code, and thorough testing is required to ensure security.
 
 I welcome and appreciate anyone who tests and points out any problem in my code :)
 
