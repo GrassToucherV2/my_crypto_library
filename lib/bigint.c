@@ -265,11 +265,12 @@ int bigint_cmp(const bigint *a, const bigint *b){
     bigint_free(&tmp_a);
     bigint_free(&tmp_b);
     
-    if(a_lt_b_flag){
-        a_lt_b_mask = -1;
-    } else {
-        a_lt_b_mask = 0;
-    }
+    a_lt_b_mask = -a_lt_b_flag;
+    // if(a_lt_b_flag){
+    //     a_lt_b_mask = -1;
+    // } else {
+    //     a_lt_b_mask = 0;
+    // }
 
     equal_mask = ((-c >> (sizeof(digit) * 8)) & 1) - 1;
     /*
@@ -998,7 +999,7 @@ bigint_err bigint_square(const bigint *a, bigint *c){
 
     This function allows q to be NULL
 
-    better division and modular algorithm needed 
+    better division and modulo algorithm needed 
 */
 // let r = a
 // let count = 0
@@ -1036,9 +1037,6 @@ bigint_err bigint_div(const bigint *a, const bigint *b, bigint *q, bigint *r) {
         CHECK_OKAY(bigint_set_zero(q));
         CHECK_OKAY(bigint_init(&tmp_q, q->num_of_digit + 1));
     }
-    // if(r){ 
-    //     CHECK_OKAY(bigint_set_zero(r));
-    // }
 
     CHECK_OKAY(bigint_copy(a, r));
     int count = 0;    
@@ -1488,6 +1486,71 @@ bigint_err bigint_inverse_mod(const bigint *a, const bigint *m, bigint *c){
     return BIGINT_OKAY;    
 }
 
+// static void compute_mu(const bigint *modulus, unsigned int num_bits, bigint *mu, bigint *two_pow_2k){
+    
+//     // the smallest choice for k is the ceiling of log_2(modulus), log_2 is basically the bit count
+//     // so to be safe, I will make it log_2(modulus) + 1
+//     unsigned int k = num_bits + 1;
+    
+//     bigint tmp; // current division algorithm requires the remainder argument to work properly
+
+//     bigint_init(&tmp, 1);
+//     bigint_from_small_int(two_pow_2k, 1);
+//     bigint_mul_pow_2(&two_pow_2k, 2*k, &two_pow_2k);
+
+//     bigint_div(&two_pow_2k, modulus, mu, &tmp);
+
+//     bigint_free(&tmp);
+// }
+
+// // precomputes mu for barrett reduction, supports 1024 bits and 2048 bits modulus
+// // I will use a switch case here, as I am implementing this mainly for RSA use, and the modulus is not a sensitive value
+// bigint_err bigint_precompute_mu(const bigint *modulus, unsigned int num_bits, bigint *mu, bigint *two_pow_2k) {
+//     if (!modulus || !mu) return BIGINT_ERROR_NULLPTR;
+
+//     switch(num_bits){
+//         case 1024:
+//             compute_mu(modulus, 1024, mu, two_pow_2k);
+//             break;
+//         case 2048:
+//             compute_mu(modulus, 2048, mu, two_pow_2k);
+//             break;
+//         case 4096: // slow due to very large number and unoptimized division algorithm
+//             compute_mu(modulus, 4096, mu, two_pow_2k);
+//             break;
+//         default:
+//             return BIGINT_ERROR_GENERIC;
+//     }
+
+//     return BIGINT_OKAY;
+
+// }
+
+// // at the time of implementing this function, I am mainly trying to speed up arithmetic in RSA, may need it 
+// // for other stuff later on
+// // computes c = a mod m, mu and two_pow_2k are precomputed
+// bigint_err bigint_barrett_reduce(const bigint *a, const bigint *m, const bigint *mu, const bigint *two_pow_2k, bigint *c) {
+//     // compute c = a - floor(a * mu / 2^2k)) * m, if c < m then return c, otherwise return c - m
+//     bigint amu, tmp;
+//     bigint_init(&amu, a->num_of_digit + mu->num_of_digit);
+//     bigint_init(&tmp, 1);
+
+//     bigint_mul(a, mu, &amu);
+//     bigint_div(&amu, two_pow_2k, &amu, &tmp);
+//     bigint_mul(&amu, m, c);
+
+//     int res = bigint_cmp(m, &amu);
+//     if(res != 1){
+//         bigint_sub(c, m, c);
+//     }
+
+//     bigint_free(&amu);
+//     bigint_free(&tmp);
+
+//     return BIGINT_OKAY;
+
+// }
+
 
 bigint_err bigint_and(const bigint *a, const bigint *b, bigint *c){
     if(!a || !b || !c) return BIGINT_ERROR_NULLPTR;
@@ -1633,8 +1696,11 @@ int bigint_is_bit_set(const bigint *a, unsigned int bit_index){
     if(!a) return -1;
 
     // digit is defined as uint32_t
-    unsigned int digit_index = bit_index / 32;
-    unsigned int bit_index_in_digit = bit_index % 32;
+    // unsigned int digit_index = bit_index / 32;
+    // unsigned int bit_index_in_digit = bit_index % 32;
+    unsigned int digit_index = bit_index >> 5;
+    unsigned int bit_index_in_digit = bit_index & 0x1F;
+
     
     return ((a->digits[digit_index] >> bit_index_in_digit) & 1);
 }

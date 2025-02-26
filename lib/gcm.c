@@ -3,6 +3,9 @@
 #include "common.h"
 #include "util/tools.h"
 
+// GCM standard: https://nvlpubs.nist.gov/nistpubs/legacy/sp/nistspecialpublication800-38d.pdf
+
+#define GCM_R 0xE100000000000000ULL  // Irreducible polynomial in GF(2^128) defined in the standard
 uint8_t R[16] = {
     0xE1, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
@@ -16,108 +19,75 @@ static void xor_arrays(uint8_t *x, uint8_t *y, uint8_t *z){
 }
 
 /*
-    s-bit increment function described in NIST GMC, sec 6.2
-    - X is a bit string
-    - s is an integer, denoting the number of bits
-
-    /////// check for endianness when testing
+    in AES-GCM, as per NIST standard for GCM, the first 96 bits is the IV, left unchanged
+    thus we only increment the last 32 bits (mod 2^32)
 */
-static void increment_s(uint8_t *X, int X_size_bytes, int s, uint8_t *out){
+static void inc32(uint8_t *X){
 
-    reverse_byte_order(X, X, X_size_bytes);
+    // assuming little endian
+    uint32_t lsb = (X[12] << 24) | (X[13] << 16) | (X[14] << 8) | X[15];
 
-    // extract s left most bits of X
-    int MSB_num_bytes = (X_size_bytes * NUM_BITS_IN_BYTE - s) >> 3;                // (len(X) - s) / 8
-    int MSB_num_remaining_bits = 0;
-    if(!s){
-        MSB_num_remaining_bits = (X_size_bytes * NUM_BITS_IN_BYTE - s) & 0x07;     // (len(X) - s) % 8
-    }
-    
-    uint8_t tmp_X_MSB[GCM_BLOCK_SIZE_BYTES] = {0};
+    lsb = (lsb + 1) & 0xFFFFFFFF;   // 0xFFFFFFFF = 2^32 - 1
 
-    // extract full MSB bytes first
-    memcpy(tmp_X_MSB, X, MSB_num_bytes);
-
-    // extract the remaining bits
-    tmp_X_MSB[MSB_num_bytes] = X[MSB_num_bytes] >> (NUM_BITS_IN_BYTE - MSB_num_remaining_bits);
-
-
-    int LSB_num_bytes = 0;
-    int LSB_num_bits = 0;
-    if(!MSB_num_remaining_bits){
-        LSB_num_bytes = X_size_bytes - MSB_num_bytes - 1;
-        LSB_num_bits = NUM_BITS_IN_BYTE - MSB_num_remaining_bits;
-    } else{
-        LSB_num_bytes = X_size_bytes - MSB_num_bytes;
-    }
-
-    uint8_t tmp_X_LSB[16] = {0};
-    tmp_X_LSB[0] = X[MSB_num_bytes] & ((1 << (NUM_BITS_IN_BYTE - MSB_num_remaining_bits)) - 1);
-    memcpy(&tmp_X_LSB[1], &X[MSB_num_bytes + 1], LSB_num_bytes - 1);
-
-
-    bigint lsb, lsb1, r;
-    bigint_init(&lsb, GCM_BLOCK_SIZE_BYTES / sizeof(digit));
-    bigint_init(&r, GCM_BLOCK_SIZE_BYTES / sizeof(digit));
-    bigint_init(&lsb1, GCM_BLOCK_SIZE_BYTES / sizeof(digit));
-
-    int lsb_num_bytes_bigint = X_size_bytes - MSB_num_bytes;
-    bigint_from_bytes(&lsb, tmp_X_LSB, lsb_num_bytes_bigint);
-
-    bigint_add_digit(&lsb, 1, &lsb1);
-    bigint_mod_pow_2(&lsb1, s, &r);
-
-    bigint_to_bytes(&r, tmp_X_LSB, GCM_BLOCK_SIZE_BYTES, 0);
-    bigint_free(&r);
-    bigint_free(&lsb1);
-    bigint_free(&lsb);
-
-    int max_len_lsb = s >> 3;
-    // assemble the final result
-    memcpy(out, tmp_X_MSB, MSB_num_bytes + 1);
-    // out[MSB_num_bytes] = (out[MSB_num_bytes] << MSB_num_remaining_bits) | tmp_X_LSB[0];
-    if (MSB_num_remaining_bits > 0) {
-        out[MSB_num_bytes] = (out[MSB_num_bytes] << MSB_num_remaining_bits) | tmp_X_LSB[0];
-    }
-    memcpy(&out[MSB_num_bytes + 1], &tmp_X_LSB[1], max_len_lsb); 
-
+    // back to big endian order
+    X[12] = (lsb >> 24) & 0xFF;
+    X[13] = (lsb >> 16) & 0xFF;
+    X[14] = (lsb >> 8) & 0xFF;
+    X[15] = lsb & 0xFF;
 }
 
 // this function performs the multiplication of two blocks in GF(2^128)
-static void GF_mul_blocks(uint8_t *X, uint8_t *Y, uint8_t *res){
-    uint8_t Z0[16] = {0};
-    uint8_t V0[16];
-    memcpy(V0, X, sizeof(V0));
+static void GF_mul_blocks(uint8_t *X, uint8_t *Y, uint8_t *res) {
+    uint64_t Z_high = 0, Z_low = 0;  // 128-bit accumulator (Z)
+    uint64_t V_high, V_low;          // 128-bit register (V)
+    uint64_t Y_high, Y_low;
 
-    bigint Z, V, bi_Y, bi_R, tmp, one;
-    bigint_init(&Z, GCM_BLOCK_SIZE_BYTES / sizeof(digit));
-    bigint_init(&bi_Y, GCM_BLOCK_SIZE_BYTES / sizeof(digit));
-    bigint_init(&bi_R, GCM_BLOCK_SIZE_BYTES / sizeof(digit));
-    bigint_init(&V, GCM_BLOCK_SIZE_BYTES / sizeof(digit));
-    bigint_init(&tmp, GCM_BLOCK_SIZE_BYTES / sizeof(digit));
-    bigint_init(&one, 1);
+    // Load X and Y into two 64-bit words (big-endian format)
+    memcpy(&V_high, X, 8);
+    memcpy(&V_low, X + 8, 8);
+    memcpy(&Y_high, Y, 8);
+    memcpy(&Y_low, Y + 8, 8);
 
-    bigint_from_small_int(&one, 1);
-    bigint_from_bytes(&V, X, GCM_BLOCK_SIZE_BYTES);
-    bigint_from_bytes(&bi_R, R, sizeof(R));
+    // Convert to host endianness (assume input is big-endian)
+    V_high = LE64TOBE64(V_high);
+    V_low = LE64TOBE64(V_low);
+    Y_high = LE64TOBE64(Y_high);
+    Y_low = LE64TOBE64(Y_low);
 
-    for(int i = 0; i < 128; i++){
-        if (bigint_is_bit_set(&bi_Y, i)){
-            bigint_xor(&Z, &V, &Z);
+    bigint bi_X;
+    bigint_init(&bi_X, GCM_BLOCK_SIZE_BYTES / sizeof(digit));
+    bigint_from_bytes(&bi_X, X, GCM_BLOCK_SIZE_BYTES);
+
+    for (int i = 127; i >= 0; i--) {
+        // TODO: make it constant-time
+        if(bigint_is_bit_set(&bi_X, i)){
+            Z_high ^= V_high;
+            Z_low ^= V_low;
         }
-        if (!bigint_is_bit_set(&V, 127)) {
-            bigint_right_bit_shift(&V, &V);
-        } else {
-            bigint_right_bit_shift(&V, &V);
-            bigint_xor(&V, &bi_R, &V);
-        }
+        
+        // mask used to determine whether we need to reduce (V >> 1) or not
+        // if V's LSB is set, then we reduce it
+        uint64_t msb_mask = -(V_low & 1);
+
+        // right shift V by 1, LSB of V_high becomes the MSB of V_low after shifting
+        V_low = (V_low >> 1) | (V_high << 63);
+        V_high >>= 1;
+
+        // It's not necessary to use the entire 16-byte R array due to all lower bytes being 0
+        // and XORing 0 does pretty much nothing
+        V_high ^= (msb_mask & GCM_R);
     }
 
+    bigint_free(&bi_X);
 
-    bigint_free(&Z);
-    bigint_free(&V);
-    bigint_free(&tmp);
-    bigint_free(&one);
-    bigint_free(&bi_Y);
+    // Convert back to big-endian - only LE conversions would work on little-endidan systems, kinda goofy
+    // TODO: change endian swapping macro to be independent of system endianness, it simply needs to swap
+    // byte order
+    Z_high = LE64TOBE64(Z_high);
+    Z_low = LE64TOBE64(Z_low);
 
+    memcpy(res, &Z_high, 8);
+    memcpy(res + 8, &Z_low, 8);
 }
+
+//TODO: GHASH and GCTR

@@ -2,7 +2,7 @@
 #define BIGINT_H
 
 /*
-    My attempt at creating a big integer library, heavily inspired by
+    My attempt to write a big integer library, heavily inspired by
     BigNum Math - Implementing Cryptographic Multiple Precision Arithmetic,
     Mozilla NSS library, the HAC and cryptographic coding rules from 
     https://web.archive.org/web/20160525230135/https://cryptocoding.net/index.php/Coding_rules
@@ -113,7 +113,7 @@ bigint_err bigint_mul_pow_2(const bigint *a, unsigned int b, bigint *c);
 /* c = a^2 */
 bigint_err bigint_square(const bigint *a, bigint *c);
 
-/* c = |a / b| */
+/* q = |a / b|, r is the remainder, see the function definition for more comments */
 bigint_err bigint_div(const bigint *a, const bigint *b, bigint *q, bigint *r);
 bigint_err bigint_int_div(const bigint *a, const bigint *b, bigint *q, bigint *r);
 bigint_err bigint_div_digit(const bigint *a, digit b, bigint *c);
@@ -139,6 +139,10 @@ bigint_err bigint_expt_mod(const bigint *a, const bigint *e, const bigint *m, bi
 /* c = a^(-1) (mod m) */
 bigint_err bigint_inverse_mod(const bigint *a, const bigint *m, bigint *c);
 
+/* Optimized modulo operation using Barrett reduction algorithm */
+bigint_err bigint_precompute_mu(const bigint *modulus, unsigned int num_bits, bigint *mu);
+bigint_err bigint_barrett_reduce(const bigint *a, const bigint *m, bigint *c);
+
 /////////////////////////////////////////////////////////////////////////////////////////
 
 /* bigint number theory stuff */
@@ -151,7 +155,6 @@ bigint_err bigint_lcm(const bigint *a, const bigint *b, bigint *c);
 
 /* Extended Euclidean algorithm, used to find modular multiplicative inverse here */
 bigint_err bigint_extended_gcd(const bigint *a, const bigint *m, bigint *gcd, bigint *x);
-
 
 
 /////////////////////////////////////////////////////////////////////////////////////////
