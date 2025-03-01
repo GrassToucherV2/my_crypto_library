@@ -447,6 +447,12 @@ crypt_status AES_encrypt_CTR(aes_ctx *ctx, const uint8_t *plaintext, unsigned in
     return CRYPT_OKAY;
 }
 
+crypt_status AES_encrypt_GCTR(aes_ctx *ctx, const uint8_t *plaintext, unsigned int plaintext_len,
+    const uint8_t *iv, uint8_t *ciphertext)
+{
+    
+    return CRYPT_OKAY;
+}
 
 ///////////////////////////////////////////////////////////// Decryption functions /////////////////////////////////////////////////////////////
 static void invSubBytes(aes_ctx *ctx){

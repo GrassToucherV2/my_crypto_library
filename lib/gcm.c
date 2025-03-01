@@ -24,7 +24,7 @@ static void xor_arrays(uint8_t *x, uint8_t *y, uint8_t *z){
     in AES-GCM, as per NIST standard for GCM, the first 96 bits is the IV, left unchanged
     thus we only increment the last 32 bits (mod 2^32)
 */
-static void inc32(uint8_t *X){
+void inc32(uint8_t *X){
 
     // assuming little endian
     uint32_t lsb = (X[12] << 24) | (X[13] << 16) | (X[14] << 8) | X[15];
@@ -39,7 +39,7 @@ static void inc32(uint8_t *X){
 }
 
 // this function performs the multiplication of two blocks in GF(2^128)
-static void GF_mul_blocks(uint8_t *X, uint8_t *Y, uint8_t *res) {
+void GF_mul_blocks(uint8_t *X, uint8_t *Y, uint8_t *res) {
     uint64_t Z_high = 0, Z_low = 0;  // 128-bit accumulator (Z)
     uint64_t V_high, V_low;          // 128-bit register (V)
     uint64_t Y_high, Y_low;
