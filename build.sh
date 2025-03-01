@@ -18,6 +18,7 @@ FILES=(
     "lib/des.c"
     "lib/aes.c"
     "lib/hmac.c"
+    "lib/gcm.c"
     "test/bigint_test.c"  
     "test/hash_test.c"                     
     "test/cipher_test.c"                         

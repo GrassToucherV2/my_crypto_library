@@ -1,7 +1,9 @@
 #include "gcm.h"
 #include "bigint.h"
 #include "common.h"
-#include "util/tools.h"
+#include "../util/tools.h"
+
+#include <stdlib.h>
 
 // GCM standard: https://nvlpubs.nist.gov/nistpubs/legacy/sp/nistspecialpublication800-38d.pdf
 
@@ -90,4 +92,20 @@ static void GF_mul_blocks(uint8_t *X, uint8_t *Y, uint8_t *res) {
     memcpy(res + 8, &Z_low, 8);
 }
 
-//TODO: GHASH and GCTR
+// this function assumes the input text (text_in) has been padded and processed
+// such that the length is a multiple of 16 in bytes
+// validate that output_len is 16 bytes
+void GHASH(uint8_t *H, uint8_t *text_in,
+            uint32_t text_in_len, uint8_t *output, uint32_t output_len)
+{
+    int loop_counter = text_in_len >> 4; // >> 7 = / 16
+    memset(output, 0, output_len);
+    uint8_t X[16] = {0};
+
+    for(int i = 0; i < loop_counter; i++){
+        memcpy(X, &text_in[i * GCM_BLOCK_SIZE_BYTES], GCM_BLOCK_SIZE_BYTES);
+        xor_arrays(X, output, output);
+        GF_mul_blocks(output, H, output);
+    }
+
+}

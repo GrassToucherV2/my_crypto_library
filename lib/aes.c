@@ -1,4 +1,5 @@
 #include "aes.h"
+#include "gcm.h"
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -271,7 +272,7 @@ crypt_status AES_init(aes_ctx *ctx, const uint8_t *key, AES_key_length key_len, 
     // I don't like these if statements in core crypto algorithms, perhaps I should have different init functins 
     // for different modes. But then, if we use a specific mode, CTR for example, the branching will never happen, or
     // if we use CBC, then the branching will always happen, so the timing variance is perhaps benign?
-    // modern processors' branch prediction will introduce a small timing difference at the beginning I guess, but since
+    // modern processors' branch prediction will introduce a small timing difference at the beginning, but since
     // the branching behavior is consistent, so I don't think this is a significant threat. 
     switch (key_len){
         case AES_128:
