@@ -8,13 +8,8 @@
 // GCM standard: https://nvlpubs.nist.gov/nistpubs/legacy/sp/nistspecialpublication800-38d.pdf
 
 #define GCM_R 0xE100000000000000ULL  // Irreducible polynomial in GF(2^128) defined in the standard
-uint8_t R[16] = {
-    0xE1, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
-    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
-};
-
 // this function assumes all inputs and output are 16 bytes long 
-static void xor_arrays(uint8_t *x, uint8_t *y, uint8_t *z){
+void xor_blocks(const uint8_t *x, const uint8_t *y, uint8_t *z){
     for(int i = 0; i < 16; i++){
         z[i] = x[i] ^ y[i];
     }
@@ -38,53 +33,40 @@ void inc32(uint8_t *X){
     X[15] = lsb & 0xFF;
 }
 
-// this function performs the multiplication of two blocks in GF(2^128)
-void GF_mul_blocks(uint8_t *X, uint8_t *Y, uint8_t *res) {
-    uint64_t Z_high = 0, Z_low = 0;  // 128-bit accumulator (Z)
-    uint64_t V_high, V_low;          // 128-bit register (V)
-    uint64_t Y_high, Y_low;
+/*
+ * Multiply X * Y in GF(2^128), producing 'res'.
+ * All pointers are 16-byte blocks in big-endian form.
+ */
+void GF_mul_blocks(const uint8_t *X, const uint8_t *Y, uint8_t *res) {
+    uint64_t Z_high = 0, Z_low = 0;
+    uint64_t V_high, V_low;
+    uint64_t X_high, X_low;
 
-    // Load X and Y into two 64-bit words (big-endian format)
-    memcpy(&V_high, X, 8);
-    memcpy(&V_low, X + 8, 8);
-    memcpy(&Y_high, Y, 8);
-    memcpy(&Y_low, Y + 8, 8);
+    memcpy(&V_high, Y, 8);
+    memcpy(&V_low, Y + 8, 8);
+    memcpy(&X_high, X, 8);
+    memcpy(&X_low, X + 8, 8);
 
-    // Convert to host endianness (assume input is big-endian)
     V_high = LE64TOBE64(V_high);
     V_low = LE64TOBE64(V_low);
-    Y_high = LE64TOBE64(Y_high);
-    Y_low = LE64TOBE64(Y_low);
+    X_high = LE64TOBE64(X_high);
+    X_low = LE64TOBE64(X_low);
 
-    bigint bi_X;
-    bigint_init(&bi_X, GCM_BLOCK_SIZE_BYTES / sizeof(digit));
-    bigint_from_bytes(&bi_X, X, GCM_BLOCK_SIZE_BYTES);
-
-    for (int i = 127; i >= 0; i--) {
-        // TODO: make it constant-time
-        if(bigint_is_bit_set(&bi_X, i)){
+    for (int i = 0; i < 128; i++) {
+        uint64_t is_high_half = (i <= 63);
+        uint64_t mask = (is_high_half ? ((uint64_t)1 << (63 - i))
+                                      : ((uint64_t)1 << (127 - i)));
+        if ((is_high_half ? X_high : X_low) & mask) {
             Z_high ^= V_high;
             Z_low ^= V_low;
         }
-        
-        // mask used to determine whether we need to reduce (V >> 1) or not
-        // if V's LSB is set, then we reduce it
-        uint64_t msb_mask = -(V_low & 1);
 
-        // right shift V by 1, LSB of V_high becomes the MSB of V_low after shifting
-        V_low = (V_low >> 1) | (V_high << 63);
+        uint64_t lsb_mask = 0ULL - (V_low & 1ULL);
+        V_low = (V_low >> 1) | ((V_high & 1ULL) << 63);
         V_high >>= 1;
-
-        // It's not necessary to use the entire 16-byte R array due to all lower bytes being 0
-        // and XORing 0 does pretty much nothing
-        V_high ^= (msb_mask & GCM_R);
+        V_high ^= (lsb_mask & GCM_R);
     }
 
-    bigint_free(&bi_X);
-
-    // Convert back to big-endian - only LE conversions would work on little-endidan systems, kinda goofy
-    // TODO: change endian swapping macro to be independent of system endianness, it simply needs to swap
-    // byte order
     Z_high = LE64TOBE64(Z_high);
     Z_low = LE64TOBE64(Z_low);
 
@@ -95,17 +77,29 @@ void GF_mul_blocks(uint8_t *X, uint8_t *Y, uint8_t *res) {
 // this function assumes the input text (text_in) has been padded and processed
 // such that the length is a multiple of 16 in bytes
 // validate that output_len is 16 bytes
-void GHASH(uint8_t *H, uint8_t *text_in,
+void GHASH(const uint8_t *H, const uint8_t *text_in,
             uint32_t text_in_len, uint8_t *output, uint32_t output_len)
 {
-    int loop_counter = text_in_len >> 4; // >> 7 = / 16
-    memset(output, 0, output_len);
-    uint8_t X[16] = {0};
-
-    for(int i = 0; i < loop_counter; i++){
-        memcpy(X, &text_in[i * GCM_BLOCK_SIZE_BYTES], GCM_BLOCK_SIZE_BYTES);
-        xor_arrays(X, output, output);
-        GF_mul_blocks(output, H, output);
+    if (output_len < GCM_BLOCK_SIZE_BYTES) {
+        return;
     }
 
+    uint8_t Y[GCM_BLOCK_SIZE_BYTES] = {0};
+    int loop_counter = text_in_len >> 4; // >> 4 = / 16
+
+    for (int i = 0; i < loop_counter; i++) {
+        xor_blocks(&text_in[i * GCM_BLOCK_SIZE_BYTES], Y, Y);
+        GF_mul_blocks(Y, H, Y);
+    }
+
+    uint8_t len_block[GCM_BLOCK_SIZE_BYTES] = {0};
+    uint64_t cipher_bits = (uint64_t)text_in_len * NUM_BITS_IN_BYTE;
+    for (int i = 0; i < 8; i++) {
+        len_block[8 + i] = (uint8_t)(cipher_bits >> (56 - 8 * i));
+    }
+
+    xor_blocks(len_block, Y, Y);
+    GF_mul_blocks(Y, H, Y);
+
+    memcpy(output, Y, GCM_BLOCK_SIZE_BYTES);
 }
