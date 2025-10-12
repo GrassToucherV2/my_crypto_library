@@ -447,12 +447,25 @@ crypt_status AES_encrypt_CTR(aes_ctx *ctx, const uint8_t *plaintext, unsigned in
     return CRYPT_OKAY;
 }
 
-crypt_status AES_encrypt_GCTR(aes_ctx *ctx, const uint8_t *plaintext, unsigned int plaintext_len,
-    const uint8_t *iv, uint8_t *ciphertext)
+// this function assumes the input has been padded properly and input_len = output_len
+void AES_GCTR(aes_ctx *ctx, const uint8_t *input, 
+            unsigned int input_len, const uint8_t *ibc, 
+            uint8_t *output)
 {
+    int n = input_len / GCM_BLOCK_SIZE_BYTES;
+    uint8_t counter_block[GCM_BLOCK_SIZE_BYTES] = {0};
+    uint8_t encrypted_counter_block[GCM_BLOCK_SIZE_BYTES] = {0};
+    memcpy(counter_block, ibc, GCM_BLOCK_SIZE_BYTES);
     
-    return CRYPT_OKAY;
+    for(int i = 0; i < n; i++){
+        AES_encrypt_block(ctx, counter_block, encrypted_counter_block);
+        xor_blocks(&input[i * GCM_BLOCK_SIZE_BYTES], encrypted_counter_block, &output[i * GCM_BLOCK_SIZE_BYTES]);
+        inc32(counter_block);
+    }
+    
 }
+
+
 
 ///////////////////////////////////////////////////////////// Decryption functions /////////////////////////////////////////////////////////////
 static void invSubBytes(aes_ctx *ctx){

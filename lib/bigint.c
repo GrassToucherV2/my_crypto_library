@@ -624,6 +624,34 @@ bigint_err bigint_random(bigint *a, unsigned int num_digits){
     return BIGINT_OKAY;
 }
 
+void bigint_reverse_digit(bigint *a){
+    if(!a) return;
+
+    int left = 0;
+    int right = a->MSD;
+    
+    digit tmp = 0;
+    while(right > left){
+        tmp = a->digits[left];
+        a->digits[left] = a->digits[right];
+        a->digits[right] = tmp;
+        left++;
+        right--;
+    }
+}
+
+void bigint_reverse_bytes(bigint *a){
+    if (!a || !a->digits || a->num_of_digit == 0) return;
+    
+    for (unsigned int i = 0; i < a->num_of_digit; i++) {
+        digit d = a->digits[i];
+        a->digits[i] = ((d & 0x000000FF) << 24) |
+                       ((d & 0x0000FF00) << 8)  |
+                       ((d & 0x00FF0000) >> 8)  |
+                       ((d & 0xFF000000) >> 24);
+    }
+}
+
 bigint_err bigint_add(const bigint *a, const bigint *b, bigint *c){
     if(!a || !b || !c) return BIGINT_ERROR_NULLPTR;
 
@@ -1696,8 +1724,6 @@ int bigint_is_bit_set(const bigint *a, unsigned int bit_index){
     if(!a) return -1;
 
     // digit is defined as uint32_t
-    // unsigned int digit_index = bit_index / 32;
-    // unsigned int bit_index_in_digit = bit_index % 32;
     unsigned int digit_index = bit_index >> 5;
     unsigned int bit_index_in_digit = bit_index & 0x1F;
 

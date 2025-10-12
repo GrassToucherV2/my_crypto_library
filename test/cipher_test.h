@@ -16,5 +16,6 @@ int hmac_test();
 int aes_test();
 int AES_CBC_test();
 int AES_CTR_test();
+int ghash_test();
 
 #endif /* CIPHER_TEST_H */

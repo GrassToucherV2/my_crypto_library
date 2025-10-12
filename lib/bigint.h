@@ -82,6 +82,12 @@ int bigint_bits_count(const bigint *a);
 /* Generate a random number with the given number of digits (need to prove that it is cryptographically secure) */
 bigint_err bigint_random(bigint *a, unsigned int num_digits);
 
+/* Reverse the digits */
+void bigint_reverse_digit(bigint *a);
+
+/* Reverse the byte order of a bigint */
+void bigint_reverse_bytes(bigint *a);
+
 //////////////////////////////////////////////////////////////////////////////////////////////
 
 /* bigint arithmetic */

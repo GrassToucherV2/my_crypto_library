@@ -6,9 +6,9 @@
 #include "set1/set1_challenge.h"
 
 #define NUM_UTIL_TEST 4
-#define NUM_CHAL_TEST 5
 #define NUM_BIGINT_TEST (sizeof(bigint_test) / sizeof(bigint_test[0]))
 #define NUM_HASH_TEST (sizeof(hash_test) / sizeof(hash_test[0]))
+#define NUM_CIPHER_TEST (sizeof(cipher_test) / sizeof(cipher_test[0]))
 
 util_unit_test util_tests[] = {
     {"hex_to_bytes_conv_test", &hex_to_bytes_conv_test, 1},
@@ -16,14 +16,6 @@ util_unit_test util_tests[] = {
     {"is_odd_test", &is_odd_test, 1},
     {"bytes_to_base64_test", &bytes_to_base64_test, 1},
         
-};
-
-challeng1_test set1_test[] = {
-    // {"set1_chal1_hex_to_base64", &set1_challenge1, 1},
-    // {"set1_chal2_fixed_length_xor", &set1_challenge2, 1},
-    // {"set1_chal3_single_byte_XOR_cipher", &set1_challenge3, 1},
-    // {"set1_chal4_Detect_single_character_XOR", &set1_challenge4, 1},
-    // {"set1_chal5_repeating_byte_XOR", &set1_challenge5, 1}
 };
 
 bigint_tests bigint_test[] = {
@@ -78,6 +70,7 @@ cipher_tests cipher_test[] = {
     {"AES_CBC_test", &AES_CBC_test, 1},
     {"AES_CTR_test", &AES_CTR_test, 1},
     {"HMAC_SHA256_test", &hmac_test, 1},
+    {"ghash_test", &ghash_test, 1},
 };
 
 void run_util_tests(){
@@ -87,16 +80,6 @@ void run_util_tests(){
             util_tests[i].unit_test_fn();  
         }
     }
-}
-
-void run_challenge_test(){
-    // int num_set1_test = sizeof(set1_test) / sizeof(set1_test[0]);
-    // for(int i = 0; i < num_set1_test; i++){
-    //     if(set1_test[i].enabled){
-    //         set1_test[i].challenge_fn();
-    //         printf("\n");
-    //     }
-    // }
 }
 
 void run_bigint_test(){
@@ -166,7 +149,6 @@ int main(int argc, char *argv[]){
     if(argc == 1){
         printf("Running all tests\n\n");
         run_util_tests();
-        // run_challenge_test();
         run_bigint_test();
         run_hash_test();
         run_cipher_test();
@@ -175,10 +157,6 @@ int main(int argc, char *argv[]){
             printf("Running util tests\n\n");
             run_util_tests();
         } 
-        // else if(!strcmp(argv[1], "c")){
-        //     printf("Running challenge tests\n\n");
-        //     run_challenge_test();
-        // }
         else if(!strcmp(argv[1], "b")){
             printf("Running bigint tests\n\n");
             run_bigint_test();
@@ -207,17 +185,6 @@ int main(int argc, char *argv[]){
             printf("Test %s not found\n", argv[2]);
             return 0;
         } 
-        // else if(!strcmp(argv[1], "c")){
-        //     for(int i = 0; i < NUM_CHAL_TEST; i++){
-        //         if(!strcmp(argv[2], set1_test[i].name)){
-        //             set1_test[i].challenge_fn();
-        //             printf("\n");
-        //             return 0;
-        //         }
-        //     }
-        //     printf("Test %s not found\n", argv[2]);
-        //     return 0;
-        // }
         else if(!strcmp(argv[1], "b")){
             for(int i = 0; i < (int)NUM_BIGINT_TEST; i++){
                 if(!strcmp(argv[2], bigint_test[i].name)){
@@ -231,8 +198,19 @@ int main(int argc, char *argv[]){
         }
         else if(!strcmp(argv[1], "h")){
             for(int i = 0; i < (int)NUM_HASH_TEST; i++){
-                if(!strcmp(argv[2], bigint_test[i].name)){
+                if(!strcmp(argv[2], hash_test[i].name)){
                     bigint_test[i].unit_test_fn();
+                    printf("\n");
+                    return 0;
+                }
+            }
+            printf("Test %s not found\n", argv[2]);
+            return 0;
+        }
+        else if(!strcmp(argv[1], "c")){
+            for(int i = 0; i < (int)NUM_CIPHER_TEST; i++){
+                if(!strcmp(argv[2], cipher_test[i].name)){
+                    cipher_test[i].unit_test_fn();
                     printf("\n");
                     return 0;
                 }

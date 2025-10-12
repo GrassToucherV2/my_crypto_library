@@ -362,17 +362,17 @@ void *memset_s(void *v, int c, size_t n) {
 
 int crypt_gen_rand(unsigned char *buffer, unsigned int num_bits) {
     if (!buffer) {
-        return -1; // Buffer is null
+        return -1;
     }
 
-    FILE *f = fopen("/dev/urandom", "rb"); // Open /dev/urandom for reading
+    FILE *f = fopen("/dev/urandom", "rb");
     if (f == NULL) {
         perror("Error opening /dev/urandom");
         return -1;
     }
 
     size_t bytesRead = fread(buffer, 1, num_bits, f);
-    fclose(f); // Close the file
+    fclose(f);
 
     if (bytesRead != num_bits) {
         fprintf(stderr, "Failed to read enough random data\n");
