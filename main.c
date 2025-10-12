@@ -3,7 +3,6 @@
 #include "test/bigint_test.h"
 #include "test/hash_test.h"
 #include "test/cipher_test.h"
-#include "set1/set1_challenge.h"
 
 #define NUM_UTIL_TEST 4
 #define NUM_BIGINT_TEST (sizeof(bigint_test) / sizeof(bigint_test[0]))
