@@ -3,7 +3,7 @@
 
 This library is developed for **educational purposes** and serves as a "cryptography playground."
 
-**Disclaimer:** This code is strictly for learning and experimentation. It **must not be used in any real-world software projects**, as custom-implemented cryptographic libraries and vulnerabilities go hand-in-hand. However, it does make the library an excellent target for cryptanalysis exercises :)
+**Disclaimer:** This is not production grade cryptography and the code is strictly for learning and experimenting. It **must not be used in any real-world software projects**, as custom-implemented cryptographic libraries and vulnerabilities are usually a package deal. However, it does make the library an excellent target for cryptanalysis exercises :)
 
 I welcome and appreciate anyone who tests the code and reports any issues.
 
