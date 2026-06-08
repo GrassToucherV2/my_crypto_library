@@ -21,6 +21,7 @@ int bigint_inc_test();
 int bigint_sub_test();
 int bigint_mul_test();
 int bigint_div_test();
+int bigint_div_knuth_test();
 int bigint_mod_test();
 int bigint_double_test();
 int bigint_halve_test();

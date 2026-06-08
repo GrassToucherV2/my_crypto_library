@@ -123,6 +123,8 @@ bigint_err bigint_square(const bigint *a, bigint *c);
 bigint_err bigint_div(const bigint *a, const bigint *b, bigint *q, bigint *r);
 bigint_err bigint_int_div(const bigint *a, const bigint *b, bigint *q, bigint *r);
 bigint_err bigint_div_digit(const bigint *a, digit b, bigint *c);
+
+bigint_err bigint_div_knuth(const bigint *a, const bigint *b, bigint *q, bigint *r);
 /* c = a / 2 - wrapper for bigint_right_bit_shift */
 bigint_err bigint_halve(const bigint *a, bigint *c);
 /* Divide the given bigint by the base - wrapper for bigint_left_shift */

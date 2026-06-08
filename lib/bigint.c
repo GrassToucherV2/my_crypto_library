@@ -77,7 +77,7 @@ bigint_err bigint_clamp(bigint *a){
     for(unsigned int i = a->MSD; i > 0; i--){
         found_nonzero_mask |= -(a->digits[i] != 0);
         a->MSD -= (~found_nonzero_mask) & 1;
-        a->num_of_digit -= (~found_nonzero_mask) & 1;
+        // a->num_of_digit -= (~found_nonzero_mask) & 1;
     }
     return BIGINT_OKAY;
 }
@@ -99,7 +99,6 @@ bigint_err bigint_copy(const bigint *src, bigint *dest){
 }
 
 void bigint_swap(bigint *a, bigint *b){
-    printf("bigint_swap\n");
     bigint tmp;
     bigint_init(&tmp, a->num_of_digit);
     bigint_copy(a, &tmp);
@@ -1109,6 +1108,243 @@ bigint_err bigint_div(const bigint *a, const bigint *b, bigint *q, bigint *r) {
     return BIGINT_OKAY;
 }
 
+bigint_err bigint_div_digit_helper(const bigint *a, digit b, bigint *q, digit *rem) {
+    if (!a || !q) return BIGINT_ERROR_NULLPTR;
+    if (b == 0) return BIGINT_ERROR_DIVIDE_BY_ZERO;
+
+    // make sure q has enough space
+    if (q->num_of_digit < a->MSD + 1) {
+        CHECK_OKAY(bigint_expand(q, a->MSD + 1));
+    }
+    CHECK_OKAY(bigint_set_zero(q));
+
+    uint64_t carry = 0;
+    for (int i = (int)a->MSD; i >= 0; i--) {
+        uint64_t cur = (carry << NUM_BIT_IN_DIGIT) | (uint64_t)a->digits[i];
+        uint32_t qd = (uint32_t)(cur / b);
+        carry = cur % b;
+        q->digits[i] = qd;
+    }
+
+    // determine MSD for q
+    int q_msd = (int)a->MSD;
+    while (q_msd > 0 && q->digits[q_msd] == 0) q_msd--;
+    q->MSD = (q_msd >= 0) ? (unsigned)q_msd : 0;
+
+    if (rem) *rem = (digit)carry;
+    return BIGINT_OKAY;
+}
+
+bigint_err bigint_div_knuth(const bigint *a, const bigint *b, bigint *q, bigint *r) {
+    if (!a || !b || !r) return BIGINT_ERROR_NULLPTR;
+    if (!bigint_cmp_zero(b)) return BIGINT_ERROR_DIVIDE_BY_ZERO;
+
+    // Clamp inputs to be safe
+    bigint tmp_a, tmp_b;
+    CHECK_OKAY(bigint_init(&tmp_a, a->num_of_digit));
+    CHECK_OKAY(bigint_init(&tmp_b, b->num_of_digit));
+    CHECK_OKAY(bigint_copy(a, &tmp_a));
+    CHECK_OKAY(bigint_copy(b, &tmp_b));
+    CHECK_OKAY(bigint_clamp(&tmp_a));
+    CHECK_OKAY(bigint_clamp(&tmp_b));
+
+    // If a < b -> q = 0, r = a
+    if (bigint_cmp(&tmp_a, &tmp_b) == -1) {
+        if (q) {
+            if (q->num_of_digit < 1) CHECK_OKAY(bigint_expand(q, 1));
+            CHECK_OKAY(bigint_set_zero(q));
+            q->MSD = 0;
+        }
+        CHECK_OKAY(bigint_copy(&tmp_a, r));
+        bigint_free(&tmp_a);
+        bigint_free(&tmp_b);
+        return BIGINT_OKAY;
+    }
+
+    // If divisor fits in one digit -> fast path
+    if (tmp_b.MSD == 0) {
+        digit rem_digit = 0;
+        if (q) {
+            CHECK_OKAY(bigint_div_digit_helper(&tmp_a, tmp_b.digits[0], q, &rem_digit));
+        } else {
+            // compute remainder only: perform division algorithm but discard quotient
+            bigint qtmp;
+            CHECK_OKAY(bigint_init(&qtmp, tmp_a.num_of_digit));
+            CHECK_OKAY(bigint_div_digit_helper(&tmp_a, tmp_b.digits[0], &qtmp, &rem_digit));
+            bigint_free(&qtmp);
+        }
+        CHECK_OKAY(bigint_from_small_int(r, rem_digit));
+        bigint_free(&tmp_a);
+        bigint_free(&tmp_b);
+        return BIGINT_OKAY;
+    }
+
+    // General Knuth D algorithm
+    unsigned int n = tmp_b.MSD + 1;          // length of v
+    unsigned int m = tmp_a.MSD + 1 - n;      // m >= 0, quotient will have m+1 digits
+
+    // ensure q has space
+    if (q && q->num_of_digit < m + 1) CHECK_OKAY(bigint_expand(q, m + 1));
+    if (r && r->num_of_digit < n) CHECK_OKAY(bigint_expand(r, n));
+
+    // allocate normalized arrays: un length m + n + 1, vn length n
+    unsigned int un_len = m + n + 1;
+    digit *un = (digit *)calloc(un_len, sizeof(digit));
+    digit *vn = (digit *)calloc(n, sizeof(digit));
+    if (!un || !vn) {
+        free(un); free(vn);
+        bigint_free(&tmp_a); bigint_free(&tmp_b);
+        return BIGINT_REALLOC_FAILURE;
+    }
+
+    // copy u into un (least-significant at index 0)
+    for (unsigned int i = 0; i <= tmp_a.MSD; i++) un[i] = tmp_a.digits[i];
+    for (unsigned int i = 0; i < n; i++) vn[i] = tmp_b.digits[i];
+
+    // compute normalization shift s = count leading zeros of vn[n-1]
+    unsigned int top = vn[n - 1];
+    unsigned int s = (top == 0) ? 0 : (unsigned)__builtin_clz(top) - (sizeof(digit) * 8 - NUM_BIT_IN_DIGIT);
+    // The above expression normalizes for platforms where __builtin_clz returns count on 32-bit.
+    // Simpler: compute s as leading zeros in 32-bit:
+    s = (top == 0) ? 0 : (unsigned)__builtin_clz(top);
+
+    if (s != 0) {
+        // left shift vn by s bits
+        uint64_t carry = 0;
+        for (unsigned int i = 0; i < n; i++) {
+            uint64_t val = ((uint64_t)vn[i] << s) | carry;
+            vn[i] = (digit)(val & 0xFFFFFFFFULL);
+            carry = val >> NUM_BIT_IN_DIGIT;
+        }
+        // left shift un by s bits
+        carry = 0;
+        for (unsigned int i = 0; i < un_len; i++) {
+            uint64_t val = ((uint64_t)un[i] << s) | carry;
+            un[i] = (digit)(val & 0xFFFFFFFFULL);
+            carry = val >> NUM_BIT_IN_DIGIT;
+        }
+        // extra carry (may be discarded because un_len sized)
+    }
+
+    // allocate q digits in local array
+    digit *qhat = NULL;
+    if (q) {
+        qhat = (digit *)calloc(m + 1, sizeof(digit));
+        if (!qhat) { 
+            free(un); 
+            free(vn); 
+            bigint_free(&tmp_a); 
+            bigint_free(&tmp_b); 
+            return BIGINT_REALLOC_FAILURE;
+        }
+    } else {
+        qhat = (digit *)calloc(m + 1, sizeof(digit)); // still useful for internal steps; will drop result
+        if (!qhat) { 
+            free(un); 
+            free(vn); 
+            bigint_free(&tmp_a); 
+            bigint_free(&tmp_b); 
+            return BIGINT_REALLOC_FAILURE; 
+        }
+    }
+
+    const uint64_t B = (1ULL << NUM_BIT_IN_DIGIT); // 2^32
+
+    for (int j = (int)m; j >= 0; j--) {
+        // Estimate q̂
+        uint64_t uj_n = ((uint64_t)un[j + n] << NUM_BIT_IN_DIGIT) | (uint64_t)un[j + n - 1];
+        uint64_t v_n1 = (uint64_t)vn[n - 1];
+
+        uint64_t q_est = uj_n / v_n1;
+        uint64_t r_est = uj_n % v_n1;
+        if (q_est >= B) q_est = B - 1;
+
+        // Correct q_est if necessary
+        if (n > 1) {
+            while (1) {
+                uint64_t left = q_est * (uint64_t)vn[n - 2];
+                uint64_t right = (r_est << NUM_BIT_IN_DIGIT) | (uint64_t)un[j + n - 2];
+                if (left <= right) break;
+                q_est--;
+                r_est += v_n1;
+                if (r_est >= B) break;
+            }
+        }
+
+        // multiply vn by q_est and subtract from un at position j
+        uint64_t borrow = 0;
+        for (unsigned int i = 0; i < n; i++) {
+            uint64_t p = q_est * (uint64_t)vn[i];
+            uint64_t p_low = p & 0xFFFFFFFFULL;
+            uint64_t p_high = p >> NUM_BIT_IN_DIGIT;
+
+            uint64_t u_val = (uint64_t)un[j + i];
+            uint64_t sub = p_low + borrow;
+            if (u_val >= sub) {
+                un[j + i] = (digit)(u_val - sub);
+                borrow = p_high;
+            } else {
+                un[j + i] = (digit)((B + u_val) - sub);
+                borrow = p_high + 1;
+            }
+        }
+
+        // subtract borrow from un[j + n]
+        uint64_t u_last = (uint64_t)un[j + n];
+        if (u_last >= borrow) {
+            un[j + n] = (digit)(u_last - borrow);
+            qhat[j] = (digit)q_est;
+        } else {
+            // q_est was too big, fix by decrementing and adding back vn
+            qhat[j] = (digit)(q_est - 1);
+            uint64_t carry = 0;
+            for (unsigned int i = 0; i < n; i++) {
+                uint64_t sum = (uint64_t)un[j + i] + (uint64_t)vn[i] + carry;
+                un[j + i] = (digit)(sum & 0xFFFFFFFFULL);
+                carry = sum >> NUM_BIT_IN_DIGIT;
+            }
+            un[j + n] = (digit)((uint64_t)un[j + n] + carry);
+        }
+    }
+
+    // produce quotient q if requested
+    if (q) {
+        // ensure q has enough digits already checked
+        for (unsigned int i = 0; i <= m; i++) q->digits[i] = qhat[i];
+        // determine q->MSD
+        int q_msd = (int)m;
+        while (q_msd > 0 && q->digits[q_msd] == 0) q_msd--;
+        q->MSD = (q_msd >= 0) ? (unsigned)q_msd : 0;
+    }
+
+    // unnormalize remainder: shift right by s bits into r[0..n-1]
+    if (r) {
+        // clear r
+        CHECK_OKAY(bigint_set_zero(r));
+        // right shift un by s
+        if (s != 0) {
+            uint64_t carry = 0;
+            for (int i = (int)(n - 1); i >= 0; i--) {
+                uint64_t cur = ((uint64_t)un[i + 1] << NUM_BIT_IN_DIGIT) | (uint64_t)un[i];
+                uint64_t val = cur >> s;
+                r->digits[i] = (digit)(val & 0xFFFFFFFFULL);
+            }
+        } else {
+            for (unsigned int i = 0; i < n; i++) r->digits[i] = un[i];
+        }
+        r->MSD = n - 1;
+        CHECK_OKAY(bigint_clamp(r));
+    }
+
+    free(un);
+    free(vn);
+    free(qhat);
+
+    bigint_free(&tmp_a);
+    bigint_free(&tmp_b);
+    return BIGINT_OKAY;
+}
+
 int bigint_bits_count(const bigint *a){
     if(!a) return BIGINT_ERROR_NULLPTR;
 
@@ -1240,6 +1476,8 @@ bigint_err bigint_square_mod(const bigint *a, const bigint *m, bigint *c){
     Right-to-left shift binary method, algorithm based on Applied Cryptography by Bruce Schneier
     https://en.wikipedia.org/wiki/Modular_exponentiation
 */
+
+// square and multiplication variant
 bigint_err bigint_expt_mod(const bigint *a, const bigint *e, const bigint *m, bigint *c){
     if(!a || !e || !m || !c) return BIGINT_ERROR_NULLPTR;
 
