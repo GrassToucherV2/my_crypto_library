@@ -524,7 +524,7 @@ crypt_status crypt_AES_encrypt(const uint8_t *key, unsigned int key_size, AES_ke
             break;
         
         case GCM:
-            printf("GCM mode not implemented yet\n");
+            printf("AAED - call crypt_AES_GCM_encrypt instead\n");
             break;
         
         default:
@@ -534,6 +534,16 @@ crypt_status crypt_AES_encrypt(const uint8_t *key, unsigned int key_size, AES_ke
     
     return CRYPT_OKAY;
 
+}
+
+crypt_status crypt_AES_GCM_encrypt(const uint8_t *key, unsigned int key_size, AES_key_length key_len,
+                                const uint8_t *iv, unsigned int iv_len,
+                                const uint8_t *aad, unsigned int aad_len,
+                                const uint8_t *plaintext, unsigned int plaintext_len,
+                                uint8_t *ciphertext, unsigned int ciphertext_len,
+                                padding_scheme padding, block_cipher_mode mode)
+{
+    return CRYPT_OKAY;
 }
 
 crypt_status crypt_AES_decrypt(const uint8_t *key, unsigned int key_size, AES_key_length key_len,
@@ -606,7 +616,7 @@ crypt_status crypt_AES_decrypt(const uint8_t *key, unsigned int key_size, AES_ke
             break;
         
         case GCM:
-            printf("GCM mode not implemented yet\n");
+            printf("AAED - call crypt_AES_GCM_decrypt instead\n");
             break;
         
         default:
@@ -616,6 +626,16 @@ crypt_status crypt_AES_decrypt(const uint8_t *key, unsigned int key_size, AES_ke
     
     return CRYPT_OKAY;
 
+}
+
+crypt_status crypt_AES_GCM_decrypt(const uint8_t *key, unsigned int key_size, AES_key_length key_len,
+                                const uint8_t *iv, unsigned int iv_len,
+                                const uint8_t *aad, unsigned int aad_len,
+                                const uint8_t *ciphertext, unsigned int ciphertext_len,
+                                uint8_t *plaintext, unsigned int plaintext_len,
+                                padding_scheme padding, block_cipher_mode mode)
+{
+    return CRYPT_OKAY;
 }
 
 crypt_status crypt_hmac(const uint8_t *key, unsigned int key_len, SHA2 sha, 

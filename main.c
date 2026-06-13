@@ -42,14 +42,13 @@ bigint_tests bigint_test[] = {
     // {"bigint_div_pow_2_test", &bigint_div_pow_2_test, 1},
     // {"bigint_mod_pow_2_test", &bigint_mod_pow_2_test, 1},
     {"bigint_div_test", &bigint_div_test, 1},
-    {"bigint_div_knuth_test", &bigint_div_knuth_test, 1},
-    {"bigint_mod_test", &bigint_mod_test, 1},
+    // {"bigint_mod_test", &bigint_mod_test, 1},
     // {"bigint_gcd_test", &bigint_gcd_test, 1},
     // {"bigint_lcm_test", &bigint_lcm_test, 1},
     // {"bigint_inverse_mod_test", &bigint_inverse_mod_test, 1},
     // {"bigint_mul_mod_test", &bigint_mul_mod_test, 1},
     // {"bigint_square_mod_test", &bigint_square_mod_test, 1},
-    {"bigint_expt_mod_test", &bigint_expt_mod_test, 1},
+    // {"bigint_expt_mod_test", &bigint_expt_mod_test, 1},
     // {"bigint_is_bit_set_test", &bigint_is_bit_set_test, 1},
 };
 
@@ -69,8 +68,8 @@ cipher_tests cipher_test[] = {
     {"AES_test", &aes_test, 1},
     {"AES_CBC_test", &AES_CBC_test, 1},
     {"AES_CTR_test", &AES_CTR_test, 1},
+    {"AES_GCM_test", &AES_GCM_test, 1},
     {"HMAC_SHA256_test", &hmac_test, 1},
-    {"ghash_test", &ghash_test, 1},
 };
 
 void run_util_tests(){

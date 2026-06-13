@@ -46,6 +46,12 @@ crypt_status AES_encrypt_CBC(aes_ctx *ctx, const uint8_t *plaintext, unsigned in
 crypt_status AES_encrypt_CTR(aes_ctx *ctx, const uint8_t *plaintext, unsigned int plaintext_len,
                             const uint8_t *iv, uint8_t *ciphertext);
 
+crypt_status AES_encrypt_GCM(aes_ctx *ctx, 
+                             const uint8_t *plaintext, uint32_t plaintext_len,
+                             const uint8_t *aad, uint32_t aad_len,
+                             const uint8_t *iv, uint32_t iv_len, 
+                             uint8_t *ciphertext, uint8_t *auth_tag);
+
 crypt_status AES_decrypt_ECB(aes_ctx *ctx, 
                                 const uint8_t *ciphertext, unsigned int ciphertext_len,
                                 uint8_t *plaintext, unsigned int plaintext_len);

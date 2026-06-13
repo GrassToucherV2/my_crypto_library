@@ -82,29 +82,63 @@ void GF_mul_blocks(const uint8_t *X, const uint8_t *Y, uint8_t *res) {
 // this function assumes the input text (text_in) has been padded and processed
 // such that the length is a multiple of 16 in bytes
 // validate that output_len is 16 bytes
-void GHASH(const uint8_t *H, const uint8_t *text_in,
-            uint32_t text_in_len, uint8_t *output, uint32_t output_len)
+void GHASH(const uint8_t *H, 
+           const uint8_t *aad, uint32_t aad_len,
+           const uint8_t *ciphertext, uint32_t ciphertext_len,
+           uint8_t *output)
 {
-    if (output_len < GCM_BLOCK_SIZE_BYTES) {
-        return;
+    // The GHASH state block, initialized to 0
+    uint8_t Y[16] = {0};
+    uint8_t partial_block[16];   // Buffer for handling partial blocks
+    uint32_t i;
+
+    // hash aad
+    if (aad != NULL && aad_len > 0) {
+        i = 0;
+        while (i < aad_len) {
+            uint32_t copy_len = (aad_len - i >= 16) ? 16 : (aad_len - i);
+            
+            // zero pad the block first
+            memset(partial_block, 0, 16); 
+            memcpy(partial_block, aad + i, copy_len);
+            
+            xor_blocks(partial_block, Y, Y);
+            GF_mul_blocks(Y, H, Y);
+            
+            i += copy_len;
+        }
     }
 
-    uint8_t Y[GCM_BLOCK_SIZE_BYTES] = {0};
-    int loop_counter = text_in_len >> 4; // >> 4 = / 16
-
-    for (int i = 0; i < loop_counter; i++) {
-        xor_blocks(&text_in[i * GCM_BLOCK_SIZE_BYTES], Y, Y);
-        GF_mul_blocks(Y, H, Y);
+    // hash the Ciphertext
+    if (ciphertext != NULL && ciphertext_len > 0) {
+        i = 0;
+        while (i < ciphertext_len) {
+            uint32_t copy_len = (ciphertext_len - i >= 16) ? 16 : (ciphertext_len - i);
+            
+            // zero-pad the block first, then copy up to 16 bytes
+            memset(partial_block, 0, 16); 
+            memcpy(partial_block, ciphertext + i, copy_len);
+            
+            xor_blocks(partial_block, Y, Y);
+            GF_mul_blocks(Y, H, Y);
+            
+            i += copy_len;
+        }
     }
 
-    uint8_t len_block[GCM_BLOCK_SIZE_BYTES] = {0};
-    uint64_t cipher_bits = (uint64_t)text_in_len * NUM_BITS_IN_BYTE;
-    for (int i = 0; i < 8; i++) {
-        len_block[8 + i] = (uint8_t)(cipher_bits >> (56 - 8 * i));
+    // hash the length block
+    // "64-bit aad length in bits" || "64-bit ciphertext length in bits"
+    uint8_t len_block[16] = {0};
+    uint64_t aad_bits = (uint64_t)aad_len * 8;
+    uint64_t ciphertext_bits = (uint64_t)ciphertext_len * 8;
+
+    for (int j = 0; j < 8; j++) {
+        len_block[j]     = (uint8_t)(aad_bits >> (56 - 8 * j));
+        len_block[8 + j] = (uint8_t)(ciphertext_bits >> (56 - 8 * j));
     }
 
     xor_blocks(len_block, Y, Y);
     GF_mul_blocks(Y, H, Y);
 
-    memcpy(output, Y, GCM_BLOCK_SIZE_BYTES);
+    memcpy(output, Y, 16);
 }

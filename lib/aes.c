@@ -447,22 +447,62 @@ crypt_status AES_encrypt_CTR(aes_ctx *ctx, const uint8_t *plaintext, unsigned in
     return CRYPT_OKAY;
 }
 
-// this function assumes the input has been padded properly and input_len = output_len
-void AES_GCTR(aes_ctx *ctx, const uint8_t *input, 
-            unsigned int input_len, const uint8_t *ibc, 
-            uint8_t *output)
+
+// GCM helper functions live in gcm.c
+crypt_status AES_encrypt_GCM(aes_ctx *ctx, 
+                             const uint8_t *plaintext, uint32_t plaintext_len,
+                             const uint8_t *aad, uint32_t aad_len,
+                             const uint8_t *iv, uint32_t iv_len, 
+                             uint8_t *ciphertext, uint8_t *auth_tag)
 {
-    int n = input_len / GCM_BLOCK_SIZE_BYTES;
-    uint8_t counter_block[GCM_BLOCK_SIZE_BYTES] = {0};
-    uint8_t encrypted_counter_block[GCM_BLOCK_SIZE_BYTES] = {0};
-    memcpy(counter_block, ibc, GCM_BLOCK_SIZE_BYTES);
+    // I think NIST recommends IV of at laest 96 bits, perhaps a check is needed here
+    uint8_t H[AES_BLOCK_SIZE_BYTES] = {0};
+    uint8_t zero_block[AES_BLOCK_SIZE_BYTES] = {0};
     
-    for(int i = 0; i < n; i++){
-        AES_encrypt_block(ctx, counter_block, encrypted_counter_block);
-        xor_blocks(&input[i * GCM_BLOCK_SIZE_BYTES], encrypted_counter_block, &output[i * GCM_BLOCK_SIZE_BYTES]);
-        inc32(counter_block);
+    // generate the hash subkey H = E_K(0^128)
+    AES_encrypt_block(ctx, zero_block, H);
+
+    // prepare the initial counter block (J0). For a 96-bit IV, J0 = IV || 0^31 || 1
+    uint8_t J0[AES_BLOCK_SIZE_BYTES] = {0};
+    memcpy(J0, iv, 12);
+    J0[15] = 0x01;
+
+    // compute E_K(J0), this will be used at the end to mask the GHASH output and create the final tag
+    uint8_t tag_mask[AES_BLOCK_SIZE_BYTES] = {0};
+    AES_encrypt_block(ctx, J0, tag_mask);
+
+    // encrypt the Plaintext in CTR mode
+    uint8_t J[AES_BLOCK_SIZE_BYTES];
+    memcpy(J, J0, AES_BLOCK_SIZE_BYTES); // J_i starts at J0
+
+    uint32_t num_blocks = plaintext_len / AES_BLOCK_SIZE_BYTES;
+    uint32_t remainder = plaintext_len % AES_BLOCK_SIZE_BYTES;
+    uint8_t keystream[AES_BLOCK_SIZE_BYTES];
+
+    // encrypt full blocks
+    for (uint32_t i = 0; i < num_blocks; i++) {
+        inc32(J);
+        AES_encrypt_block(ctx, J, keystream);
+        xor_blocks(&plaintext[i * AES_BLOCK_SIZE_BYTES], keystream, &ciphertext[i * AES_BLOCK_SIZE_BYTES]);
     }
-    
+
+    // encrypt any remaining partial blocks 
+    if (remainder > 0) {
+        inc32(J);
+        AES_encrypt_block(ctx, J, keystream);
+        for (uint32_t i = 0; i < remainder; i++) {
+            ciphertext[num_blocks * AES_BLOCK_SIZE_BYTES + i] = plaintext[num_blocks * AES_BLOCK_SIZE_BYTES + i] ^ keystream[i];
+        }
+    }
+
+    // compute GHASH
+    uint8_t S[AES_BLOCK_SIZE_BYTES] = {0};
+    GHASH(H, aad, aad_len, ciphertext, plaintext_len, S);
+
+    // tag = GHASH_Output ^ E_K(J0)
+    xor_blocks(S, tag_mask, auth_tag);
+
+    return CRYPT_OKAY;
 }
 
 
