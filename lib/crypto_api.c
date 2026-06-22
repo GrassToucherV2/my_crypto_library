@@ -537,13 +537,37 @@ crypt_status crypt_AES_encrypt(const uint8_t *key, unsigned int key_size, AES_ke
 }
 
 crypt_status crypt_AES_GCM_encrypt(const uint8_t *key, unsigned int key_size, AES_key_length key_len,
-                                const uint8_t *iv, unsigned int iv_len,
-                                const uint8_t *aad, unsigned int aad_len,
-                                const uint8_t *plaintext, unsigned int plaintext_len,
-                                uint8_t *ciphertext, unsigned int ciphertext_len,
-                                padding_scheme padding, block_cipher_mode mode)
+                                   const uint8_t *iv, unsigned int iv_len,
+                                   const uint8_t *aad, unsigned int aad_len,
+                                   const uint8_t *plaintext, unsigned int plaintext_len,
+                                   uint8_t *ciphertext, unsigned int ciphertext_len,
+                                   uint8_t *auth_tag)
 {
-    return CRYPT_OKAY;
+    if(!key || !auth_tag) return CRYPT_NULL_PTR;
+    if(plaintext_len > 0 && !plaintext) return CRYPT_NULL_PTR;
+    if(ciphertext_len > 0 && !ciphertext) return CRYPT_NULL_PTR;
+    if(aad_len > 0 && !aad) return CRYPT_NULL_PTR;
+
+    switch (key_len){
+        case AES_128: if(key_size != AES_128_KEY_SIZE_BYTES) return CRYPT_BAD_KEY; break;
+        case AES_192: if(key_size != AES_192_KEY_SIZE_BYTES) return CRYPT_BAD_KEY; break;
+        case AES_256: if(key_size != AES_256_KEY_SIZE_BYTES) return CRYPT_BAD_KEY; break;
+        default: return CRYPT_AES_BAD_KEY_LEN;
+    }
+
+    if (!iv || iv_len != AES_IV_LEN_BYTES) return CRYPT_BAD_IV; // GCM strictly expects 96-bits
+    if (ciphertext_len < plaintext_len) return CRYPT_BAD_BUFFER_LEN;
+
+    aes_ctx ctx = {0};
+    crypt_status status = CRYPT_OKAY;
+
+    CRYPT_CHECK_OKAY(AES_init(&ctx, key, key_len, ENCRYPT, GCM));
+    
+    // Defer to the internal GCM implementation you wrote
+    status = AES_encrypt_GCM(&ctx, plaintext, plaintext_len, aad, aad_len, iv, iv_len, ciphertext, auth_tag);
+    
+    AES_cleanup(&ctx);
+    return status;
 }
 
 crypt_status crypt_AES_decrypt(const uint8_t *key, unsigned int key_size, AES_key_length key_len,
@@ -629,13 +653,37 @@ crypt_status crypt_AES_decrypt(const uint8_t *key, unsigned int key_size, AES_ke
 }
 
 crypt_status crypt_AES_GCM_decrypt(const uint8_t *key, unsigned int key_size, AES_key_length key_len,
-                                const uint8_t *iv, unsigned int iv_len,
-                                const uint8_t *aad, unsigned int aad_len,
-                                const uint8_t *ciphertext, unsigned int ciphertext_len,
-                                uint8_t *plaintext, unsigned int plaintext_len,
-                                padding_scheme padding, block_cipher_mode mode)
+                                   const uint8_t *iv, unsigned int iv_len,
+                                   const uint8_t *aad, unsigned int aad_len,
+                                   const uint8_t *ciphertext, unsigned int ciphertext_len,
+                                   uint8_t *plaintext, unsigned int plaintext_len,
+                                   const uint8_t *auth_tag)
 {
-    return CRYPT_OKAY;
+    if(!key || !auth_tag) return CRYPT_NULL_PTR;
+    if(ciphertext_len > 0 && !ciphertext) return CRYPT_NULL_PTR;
+    if(plaintext_len > 0 && !plaintext) return CRYPT_NULL_PTR;
+    if(aad_len > 0 && !aad) return CRYPT_NULL_PTR;
+
+    switch (key_len){
+        case AES_128: if(key_size != AES_128_KEY_SIZE_BYTES) return CRYPT_BAD_KEY; break;
+        case AES_192: if(key_size != AES_192_KEY_SIZE_BYTES) return CRYPT_BAD_KEY; break;
+        case AES_256: if(key_size != AES_256_KEY_SIZE_BYTES) return CRYPT_BAD_KEY; break;
+        default: return CRYPT_AES_BAD_KEY_LEN;
+    }
+
+    if (!iv || iv_len != AES_IV_LEN_BYTES) return CRYPT_BAD_IV;
+    if (plaintext_len < ciphertext_len) return CRYPT_BAD_BUFFER_LEN;
+
+    aes_ctx ctx = {0};
+    crypt_status status = CRYPT_OKAY;
+
+    // GCM decrypt relies on AES forward (ENCRYPT) block transformations for CTR masking
+    CRYPT_CHECK_OKAY(AES_init(&ctx, key, key_len, DECRYPT, GCM));
+    
+    status = AES_decrypt_GCM(&ctx, ciphertext, ciphertext_len, aad, aad_len, iv, iv_len, plaintext, auth_tag);
+    
+    AES_cleanup(&ctx);
+    return status;
 }
 
 crypt_status crypt_hmac(const uint8_t *key, unsigned int key_len, SHA2 sha, 

@@ -94,18 +94,18 @@ crypt_status crypt_AES_decrypt(const uint8_t *key, unsigned int key_size, AES_ke
                                 padding_scheme padding, block_cipher_mode mode);
 
 crypt_status crypt_AES_GCM_encrypt(const uint8_t *key, unsigned int key_size, AES_key_length key_len,
-                                const uint8_t *iv, unsigned int iv_len,
-                                const uint8_t *aad, unsigned int aad_len,
-                                const uint8_t *plaintext, unsigned int plaintext_len,
-                                uint8_t *ciphertext, unsigned int ciphertext_len,
-                                padding_scheme padding, block_cipher_mode mode);
+                                   const uint8_t *iv, unsigned int iv_len,
+                                   const uint8_t *aad, unsigned int aad_len,
+                                   const uint8_t *plaintext, unsigned int plaintext_len,
+                                   uint8_t *ciphertext, unsigned int ciphertext_len,
+                                   uint8_t *auth_tag);
 
 crypt_status crypt_AES_GCM_decrypt(const uint8_t *key, unsigned int key_size, AES_key_length key_len,
-                                const uint8_t *iv, unsigned int iv_len,
-                                const uint8_t *aad, unsigned int aad_len,
-                                const uint8_t *ciphertext, unsigned int ciphertext_len,
-                                uint8_t *plaintext, unsigned int plaintext_len,
-                                padding_scheme padding, block_cipher_mode mode);
+                                   const uint8_t *iv, unsigned int iv_len,
+                                   const uint8_t *aad, unsigned int aad_len,
+                                   const uint8_t *ciphertext, unsigned int ciphertext_len,
+                                   uint8_t *plaintext, unsigned int plaintext_len,
+                                   const uint8_t *auth_tag);
 
 crypt_status crypt_hmac(const uint8_t *key, unsigned int key_len, SHA2 sha, 
                         const uint8_t *text, unsigned int text_len,

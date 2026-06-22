@@ -88,6 +88,7 @@ typedef enum {
     CRYPT_INVALID_TEXT = 9,
     CRYPT_INVALID_PADDING = 10,
     CRYPT_AES_BAD_KEY_LEN = 11,
+    CRYPT_DECRYPT_FAILURE = 12,
 } crypt_status;
 
 typedef enum{

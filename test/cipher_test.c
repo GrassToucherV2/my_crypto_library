@@ -1,4 +1,5 @@
 #include <string.h>
+#include <stdio.h>
 
 #include "cipher_test.h"
 #include "test_util.h"
@@ -1455,9 +1456,13 @@ int hmac_test(){
     return failed;
 }
 
+
+// test cases taken from 
+// https://csrc.nist.rip/groups/ST/toolkit/BCM/documents/proposedmodes/gcm/gcm-spec.pdf
+#include <stdio.h>
+
 int AES_GCM_test() {
     int failed = 0;
-    aes_ctx ctx;
 
     // Dummy pointers to safely pass to functions when length is 0 (avoids undefined NULL arithmetic)
     uint8_t empty_pt[1] = {0};  
@@ -1489,12 +1494,20 @@ int AES_GCM_test() {
 
     uint8_t cipher1[16] = {0};
     uint8_t tag1[16] = {0};
+    uint8_t plain_out1[16] = {0};
 
-    AES_init(&ctx, key1, AES_128, 0, GCM);
-    AES_encrypt_GCM(&ctx, plaintext1, sizeof(plaintext1), empty_aad, 0, iv1, sizeof(iv1), cipher1, tag1);
+    // Encrypt
+    crypt_AES_GCM_encrypt(key1, sizeof(key1), AES_128, iv1, sizeof(iv1), empty_aad, 0, plaintext1, sizeof(plaintext1), cipher1, sizeof(cipher1), tag1);
     
     failed |= assert_eq_texts(cipher1, expected_cipher1, sizeof(expected_cipher1), "AES-128-GCM encryption (No AAD) - Ciphertext");
     failed |= assert_eq_texts(tag1, expected_tag1, sizeof(expected_tag1), "AES-128-GCM encryption (No AAD) - Tag");
+
+    // Decrypt
+    if (crypt_AES_GCM_decrypt(key1, sizeof(key1), AES_128, iv1, sizeof(iv1), empty_aad, 0, cipher1, sizeof(cipher1), plain_out1, sizeof(plain_out1), tag1) != CRYPT_OKAY) {
+        printf("FAIL: AES-128-GCM decryption (No AAD) rejected valid authentication tag!\n");
+        failed = 1;
+    }
+    failed |= assert_eq_texts(plain_out1, plaintext1, sizeof(plaintext1), "AES-128-GCM decryption (No AAD) - Plaintext");
 
 
     // =========================================================================
@@ -1524,12 +1537,20 @@ int AES_GCM_test() {
 
     uint8_t cipher2[60] = {0};
     uint8_t tag2[16] = {0};
+    uint8_t plain_out2[60] = {0};
 
-    AES_init(&ctx, key1, AES_128, 0, GCM);
-    AES_encrypt_GCM(&ctx, plaintext2, sizeof(plaintext2), aad2, sizeof(aad2), iv1, sizeof(iv1), cipher2, tag2);
+    // Encrypt
+    crypt_AES_GCM_encrypt(key1, sizeof(key1), AES_128, iv1, sizeof(iv1), aad2, sizeof(aad2), plaintext2, sizeof(plaintext2), cipher2, sizeof(cipher2), tag2);
 
     failed |= assert_eq_texts(cipher2, expected_cipher2, sizeof(expected_cipher2), "AES-128-GCM encryption (With AAD) - Ciphertext");
     failed |= assert_eq_texts(tag2, expected_tag2, sizeof(expected_tag2), "AES-128-GCM encryption (With AAD) - Tag");
+
+    // Decrypt
+    if (crypt_AES_GCM_decrypt(key1, sizeof(key1), AES_128, iv1, sizeof(iv1), aad2, sizeof(aad2), cipher2, sizeof(cipher2), plain_out2, sizeof(plain_out2), tag2) != CRYPT_OKAY) {
+        printf("FAIL: AES-128-GCM decryption (With AAD) rejected valid authentication tag!\n");
+        failed = 1;
+    }
+    failed |= assert_eq_texts(plain_out2, plaintext2, sizeof(plaintext2), "AES-128-GCM decryption (With AAD) - Plaintext");
 
 
     // =========================================================================
@@ -1550,10 +1571,16 @@ int AES_GCM_test() {
 
     uint8_t tag3[16] = {0};
 
-    AES_init(&ctx, key3, AES_128, 0, GCM);
-    AES_encrypt_GCM(&ctx, empty_pt, 0, empty_aad, 0, iv3, sizeof(iv3), NULL, tag3);
+    // Encrypt
+    crypt_AES_GCM_encrypt(key3, sizeof(key3), AES_128, iv3, sizeof(iv3), empty_aad, 0, empty_pt, 0, empty_pt, 0, tag3);
     
     failed |= assert_eq_texts(tag3, expected_tag3, sizeof(expected_tag3), "AES-128-GCM Image Test 1 (Empty PT) - Tag");
+
+    // Decrypt
+    if (crypt_AES_GCM_decrypt(key3, sizeof(key3), AES_128, iv3, sizeof(iv3), empty_aad, 0, empty_pt, 0, empty_pt, 0, tag3) != CRYPT_OKAY) {
+        printf("FAIL: AES-128-GCM Image Test 1 (Empty PT) decryption rejected valid authentication tag!\n");
+        failed = 1;
+    }
 
 
     // =========================================================================
@@ -1574,12 +1601,20 @@ int AES_GCM_test() {
 
     uint8_t cipher4[16] = {0};
     uint8_t tag4[16] = {0};
+    uint8_t plain_out4[16] = {0};
 
-    AES_init(&ctx, key3, AES_128, 0, GCM); // Re-using key3
-    AES_encrypt_GCM(&ctx, plaintext4, sizeof(plaintext4), empty_aad, 0, iv3, sizeof(iv3), cipher4, tag4);
+    // Encrypt
+    crypt_AES_GCM_encrypt(key3, sizeof(key3), AES_128, iv3, sizeof(iv3), empty_aad, 0, plaintext4, sizeof(plaintext4), cipher4, sizeof(cipher4), tag4);
 
     failed |= assert_eq_texts(cipher4, expected_cipher4, sizeof(expected_cipher4), "AES-128-GCM Image Test 2 (16-byte Zero PT) - Ciphertext");
     failed |= assert_eq_texts(tag4, expected_tag4, sizeof(expected_tag4), "AES-128-GCM Image Test 2 (16-byte Zero PT) - Tag");
+
+    // Decrypt
+    if (crypt_AES_GCM_decrypt(key3, sizeof(key3), AES_128, iv3, sizeof(iv3), empty_aad, 0, cipher4, sizeof(cipher4), plain_out4, sizeof(plain_out4), tag4) != CRYPT_OKAY) {
+        printf("FAIL: AES-128-GCM Image Test 2 decryption rejected valid authentication tag!\n");
+        failed = 1;
+    }
+    failed |= assert_eq_texts(plain_out4, plaintext4, sizeof(plaintext4), "AES-128-GCM Image Test 2 (16-byte Zero PT) - Plaintext");
 
 
     // =========================================================================
@@ -1612,12 +1647,20 @@ int AES_GCM_test() {
 
     uint8_t cipher5[64] = {0};
     uint8_t tag5[16] = {0};
+    uint8_t plain_out5[64] = {0};
 
-    AES_init(&ctx, key5, AES_128, 0, GCM);
-    AES_encrypt_GCM(&ctx, plaintext5, sizeof(plaintext5), empty_aad, 0, iv5, sizeof(iv5), cipher5, tag5);
+    // Encrypt
+    crypt_AES_GCM_encrypt(key5, sizeof(key5), AES_128, iv5, sizeof(iv5), empty_aad, 0, plaintext5, sizeof(plaintext5), cipher5, sizeof(cipher5), tag5);
     
     failed |= assert_eq_texts(cipher5, expected_cipher5, sizeof(expected_cipher5), "AES-128-GCM NIST Test 3 - Ciphertext");
     failed |= assert_eq_texts(tag5, expected_tag5, sizeof(expected_tag5), "AES-128-GCM NIST Test 3 - Tag");
+
+    // Decrypt
+    if (crypt_AES_GCM_decrypt(key5, sizeof(key5), AES_128, iv5, sizeof(iv5), empty_aad, 0, cipher5, sizeof(cipher5), plain_out5, sizeof(plain_out5), tag5) != CRYPT_OKAY) {
+        printf("FAIL: AES-128-GCM NIST Test 3 decryption rejected valid authentication tag!\n");
+        failed = 1;
+    }
+    failed |= assert_eq_texts(plain_out5, plaintext5, sizeof(plaintext5), "AES-128-GCM NIST Test 3 - Plaintext");
 
 
     // =========================================================================
@@ -1639,10 +1682,16 @@ int AES_GCM_test() {
 
     uint8_t tag6[16] = {0};
 
-    AES_init(&ctx, key6, AES_192, 0, GCM);
-    AES_encrypt_GCM(&ctx, empty_pt, 0, empty_aad, 0, iv6, sizeof(iv6), NULL, tag6);
+    // Encrypt
+    crypt_AES_GCM_encrypt(key6, sizeof(key6), AES_192, iv6, sizeof(iv6), empty_aad, 0, empty_pt, 0, empty_pt, 0, tag6);
 
     failed |= assert_eq_texts(tag6, expected_tag6, sizeof(expected_tag6), "AES-192-GCM NIST Test 7 (Empty PT) - Tag");
+
+    // Decrypt
+    if (crypt_AES_GCM_decrypt(key6, sizeof(key6), AES_192, iv6, sizeof(iv6), empty_aad, 0, empty_pt, 0, empty_pt, 0, tag6) != CRYPT_OKAY) {
+        printf("FAIL: AES-192-GCM NIST Test 7 decryption rejected valid authentication tag!\n");
+        failed = 1;
+    }
 
 
     // =========================================================================
@@ -1663,12 +1712,20 @@ int AES_GCM_test() {
 
     uint8_t cipher7[16] = {0};
     uint8_t tag7[16] = {0};
+    uint8_t plain_out7[16] = {0};
 
-    AES_init(&ctx, key6, AES_192, 0, GCM); // Same key and IV as Test 6
-    AES_encrypt_GCM(&ctx, plaintext7, sizeof(plaintext7), empty_aad, 0, iv6, sizeof(iv6), cipher7, tag7);
+    // Encrypt
+    crypt_AES_GCM_encrypt(key6, sizeof(key6), AES_192, iv6, sizeof(iv6), empty_aad, 0, plaintext7, sizeof(plaintext7), cipher7, sizeof(cipher7), tag7);
 
     failed |= assert_eq_texts(cipher7, expected_cipher7, sizeof(expected_cipher7), "AES-192-GCM NIST Test 8 - Ciphertext");
     failed |= assert_eq_texts(tag7, expected_tag7, sizeof(expected_tag7), "AES-192-GCM NIST Test 8 - Tag");
+
+    // Decrypt
+    if (crypt_AES_GCM_decrypt(key6, sizeof(key6), AES_192, iv6, sizeof(iv6), empty_aad, 0, cipher7, sizeof(cipher7), plain_out7, sizeof(plain_out7), tag7) != CRYPT_OKAY) {
+        printf("FAIL: AES-192-GCM NIST Test 8 decryption rejected valid authentication tag!\n");
+        failed = 1;
+    }
+    failed |= assert_eq_texts(plain_out7, plaintext7, sizeof(plaintext7), "AES-192-GCM NIST Test 8 - Plaintext");
 
     return failed;
 }

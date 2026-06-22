@@ -380,6 +380,7 @@ crypt_status AES_encrypt_ECB(aes_ctx *ctx,
 //     printf("\n");
 // }
 
+// TODO: remove malloc, the caller should provide a sufficient buffer
 crypt_status AES_encrypt_CBC(aes_ctx *ctx, const uint8_t *plaintext, unsigned int plaintext_len,
                             const uint8_t *iv, uint8_t *ciphertext, unsigned int ciphertext_len)
 {
@@ -455,7 +456,10 @@ crypt_status AES_encrypt_GCM(aes_ctx *ctx,
                              const uint8_t *iv, uint32_t iv_len, 
                              uint8_t *ciphertext, uint8_t *auth_tag)
 {
-    // I think NIST recommends IV of at laest 96 bits, perhaps a check is needed here
+    if(iv_len != AES_IV_LEN_BYTES){
+        return CRYPT_BAD_IV;
+    }
+
     uint8_t H[AES_BLOCK_SIZE_BYTES] = {0};
     uint8_t zero_block[AES_BLOCK_SIZE_BYTES] = {0};
     
@@ -464,7 +468,7 @@ crypt_status AES_encrypt_GCM(aes_ctx *ctx,
 
     // prepare the initial counter block (J0). For a 96-bit IV, J0 = IV || 0^31 || 1
     uint8_t J0[AES_BLOCK_SIZE_BYTES] = {0};
-    memcpy(J0, iv, 12);
+    memcpy(J0, iv, AES_IV_LEN_BYTES);
     J0[15] = 0x01;
 
     // compute E_K(J0), this will be used at the end to mask the GHASH output and create the final tag
@@ -715,6 +719,80 @@ crypt_status AES_decrypt_CTR(aes_ctx *ctx, const uint8_t *ciphertext,
     }
 
     return CRYPT_OKAY;
+}
+
+crypt_status AES_decrypt_GCM(aes_ctx *ctx, 
+                             const uint8_t *ciphertext, uint32_t ciphertext_len,
+                             const uint8_t *aad, uint32_t aad_len,
+                             const uint8_t *iv, uint32_t iv_len, 
+                             uint8_t *plaintext, const uint8_t *auth_tag)
+{
+    crypt_status res = CRYPT_OKAY;
+    
+    if(iv_len != AES_IV_LEN_BYTES){
+        return CRYPT_BAD_IV;
+    }
+
+    // H = E_k(0^128), the hash subkey or H = CIPH_k(0^128) in NIST document
+    uint8_t H[AES_BLOCK_SIZE_BYTES] = {0};
+    uint8_t zero_block[AES_BLOCK_SIZE_BYTES] = {0};
+
+    AES_encrypt_block(ctx, zero_block, H);
+
+    // prepare the initial counter block (J0). For a 96-bit IV, J0 = IV || 0^31 || 1
+    uint8_t J0[AES_BLOCK_SIZE_BYTES] = {0};
+    memcpy(J0, iv, AES_IV_LEN_BYTES);
+    J0[15] = 0x01;
+
+    // compute E_K(J0), this will be used at the end to mask the GHASH output and create the final tag
+    uint8_t tag_mask[AES_BLOCK_SIZE_BYTES] = {0};
+    AES_encrypt_block(ctx, J0, tag_mask);
+
+    // compute the tag and verify if the tag is correct
+    uint8_t S[AES_BLOCK_SIZE_BYTES] = {0};
+    GHASH(H, aad, aad_len, ciphertext, ciphertext_len, S);
+    // tag = GHASH_Output ^ E_K(J0)
+    uint8_t computed_tag[AES_GCM_TAG_LEN_BYTES] = {0};
+    xor_blocks(S, tag_mask, computed_tag);
+
+    int tags_correct = 0;
+    for(int i = 0; i < AES_GCM_TAG_LEN_BYTES; i++){
+        tags_correct |= computed_tag[i] ^ auth_tag[i];
+    }
+    if(tags_correct != 0){
+        res = CRYPT_DECRYPT_FAILURE;
+        goto cleanup;
+    }
+
+    // decrypt the ciphertext
+    // The starting counter block for the payload is inc_32(J0)
+    uint8_t CB[AES_BLOCK_SIZE_BYTES];
+    memcpy(CB, J0, AES_BLOCK_SIZE_BYTES);
+
+    uint32_t remaining = ciphertext_len;
+    uint32_t offset = 0;
+
+    while (remaining > 0) {
+        inc32(CB);
+
+        uint8_t ectr[AES_BLOCK_SIZE_BYTES];
+        AES_encrypt_block(ctx, CB, ectr);
+
+        uint32_t chunk = (remaining > AES_BLOCK_SIZE_BYTES) ? AES_BLOCK_SIZE_BYTES : remaining;
+        for (uint32_t i = 0; i < chunk; i++) {
+            plaintext[offset + i] = ciphertext[offset + i] ^ ectr[i];
+        }
+
+        offset += chunk;
+        remaining -= chunk;
+    }
+
+cleanup:
+    memset_s(H, 0, sizeof(H));
+    memset_s(tag_mask, 0, sizeof(tag_mask));
+    memset_s(J0, 0, sizeof(J0));
+    
+    return res;
 }
 
 

@@ -4,10 +4,13 @@
 #include <stdint.h>
 #include "common.h"
 
+#define CHACHA20_STATE_LEN_FOUR_BYTE_WORD 16
 #define CHACHA20_STATE_LEN_BYTES 64
 #define CHACHA20_KEYSTREAM_LEN_BYTES 64
 #define CHACHA20_KEY_LEN_BYTES 32
 #define CHACHA20_NONCE_LEN_BYTES 12
+
+#define CHACHA20_INNER_BLOCK_ROUND_NUM 10
 
 typedef struct{
     uint32_t state[16];

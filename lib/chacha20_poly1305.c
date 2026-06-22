@@ -144,16 +144,19 @@ crypt_status chacha20_poly1305_decrypt(chacha20_poly1305_ctx *ctx,
 {
     if(!ctx || !aad || !iv) return CRYPT_NULL_PTR;
 
+    crypt_status res = CRYPT_OKAY;
     // preliminary checks
     if(iv_len + constant_len != CHACHA20_NONCE_LEN_BYTES){
-        return CRYPT_BAD_NONCE;
+        // return CRYPT_BAD_NONCE;
+        res = CRYPT_DECRYPT_FAILURE;
     }
 
     if(plaintext_len < encrypted_text_len - POLY1305_MAC_LEN_BYTES){
-        return CRYPT_BAD_BUFFER_LEN;
+        // return CRYPT_BAD_BUFFER_LEN;
+        res = CRYPT_DECRYPT_FAILURE;
     }
 
-    crypt_status res = CRYPT_OKAY;
+    
 
     // extracting mac and ciphertext from the encrypted_text
     int ciphertext_len = encrypted_text_len - POLY1305_MAC_LEN_BYTES;
@@ -178,8 +181,8 @@ crypt_status chacha20_poly1305_decrypt(chacha20_poly1305_ctx *ctx,
 
     CRYPT_CHECK_OKAY_CL(compute_mac(ctx, mac_data, mac_data_len, nonce, computed_mac));
     
-    if(compare_mac(extracted_mac, computed_mac)){
-        res = CRYPT_INVALID_TEXT;
+    if(compare_mac(extracted_mac, computed_mac) || res != CRYPT_OKAY){
+        res = CRYPT_DECRYPT_FAILURE;
         goto cleanup;
     }
 

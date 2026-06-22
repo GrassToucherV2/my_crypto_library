@@ -27,23 +27,23 @@ static void chacha20_inner_block(uint32_t *state){
 }
 
 void chacha20_block(chacha20_ctx *ctx, unsigned char keystream[CHACHA20_KEYSTREAM_LEN_BYTES]){
-    uint32_t tmp_state[16];
+    uint32_t tmp_state[CHACHA20_STATE_LEN_FOUR_BYTE_WORD];
     for(int i = 0; i < 16; i++){
         tmp_state[i] = ctx->state[i];
     }
 
     // 10 rounds of inner block transformation
-    for(int i = 0; i < 10; i++) {
+    for(int i = 0; i < CHACHA20_INNER_BLOCK_ROUND_NUM; i++) {
         chacha20_inner_block(tmp_state);
     }
 
-    for(int i = 0; i < 16; i++){
+    for(int i = 0; i < CHACHA20_STATE_LEN_FOUR_BYTE_WORD; i++){
         tmp_state[i] += ctx->state[i];
     }
 
     // serialize - write the keystream in little endian
     uint32_t *keystream32 = (uint32_t *)keystream;
-    for(int i = 0; i < 16; i++){
+    for(int i = 0; i < CHACHA20_STATE_LEN_FOUR_BYTE_WORD; i++){
         keystream32[i] = BE32TOLE32(tmp_state[i]);
     }
 }

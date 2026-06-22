@@ -10,6 +10,8 @@
 #define AES_128_KEY_SIZE_BYTES 16
 #define AES_192_KEY_SIZE_BYTES 24
 #define AES_256_KEY_SIZE_BYTES 32
+#define AES_IV_LEN_BYTES 12
+#define AES_GCM_TAG_LEN_BYTES 16
 
 #define AES_128_NUM_ROUNDS 10
 #define AES_192_NUM_ROUNDS 12
@@ -61,6 +63,13 @@ crypt_status AES_decrypt_CBC(aes_ctx *ctx, const unsigned char *ciphertext, unsi
 
 crypt_status AES_decrypt_CTR(aes_ctx *ctx, const uint8_t *ciphertext,
                            uint8_t *plaintext, unsigned int plaintext_len);
+
+
+crypt_status AES_decrypt_GCM(aes_ctx *ctx, 
+                             const uint8_t *ciphertext, uint32_t ciphertext_len,
+                             const uint8_t *aad, uint32_t aad_len,
+                             const uint8_t *iv, uint32_t iv_len, 
+                             uint8_t *plaintext, const uint8_t *auth_tag);
 
 crypt_status AES_cleanup(aes_ctx *ctx);
 
