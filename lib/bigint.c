@@ -6,6 +6,8 @@
 #include "bigint.h"
 #include <time.h>
 
+#define MAX_NUM_DIGITS 128 //128 * 32 = 4096
+
 void print_bigint_ctx(const bigint *a){
     printf("MSD              = %u\n", a->MSD);
     printf("number of digits = %u\n", a->num_of_digit);
@@ -1012,7 +1014,7 @@ bigint_err bigint_mul_pow_2(const bigint *a, unsigned int b, bigint *c){
 bigint_err bigint_square(const bigint *a, bigint *c){
     if(!a || !c) return BIGINT_ERROR_NULLPTR;
 
-    CHECK_OKAY(bigint_mul_karatsuba(a, a, c));
+    CHECK_OKAY(bigint_mul(a, a, c));
 
     return BIGINT_OKAY;
 }
@@ -1191,12 +1193,46 @@ bigint_err bigint_div_pow_2(const bigint *a, unsigned int b, bigint *c){
     return BIGINT_OKAY;
 }
 
-bigint_err bigint_mod(const bigint *a, const bigint *b, bigint *r){
-    if(!a || !b || !r) return BIGINT_ERROR_NULLPTR;
+// Shift-and-Substract algorithm for division. This is much faster than
+// modulo/division used before, but side channel remains an issue
+bigint_err bigint_mod(const bigint *a, const bigint *mod, bigint *r){
+    if(!a || !mod || !r) return BIGINT_ERROR_NULLPTR;
 
-    CHECK_OKAY(bigint_div(a, b, NULL, r));
+    if(!bigint_cmp_zero(mod)){
+        return BIGINT_ERROR_DIVIDE_BY_ZERO;
+    }
 
-    return BIGINT_OKAY;
+    bigint current, tmp_sub;
+    
+    CHECK_OKAY(bigint_init(&current, mod->MSD + 2));
+    CHECK_OKAY(bigint_init(&tmp_sub, mod->MSD + 2));
+    CHECK_OKAY(bigint_set_zero(&current));
+
+    int bits_per_digit = sizeof(digit) * 8;
+
+    for(int i = a->MSD; i >= 0; i--){
+        for(int bit = bits_per_digit - 1; bit >= 0; bit--){
+            
+            // Shift current left by 1 bit and check 
+            CHECK_OKAY(bigint_left_bit_shift(&current, &current));
+            digit next_bit = (a->digits[i] >> bit) & 1;
+            
+            current.digits[0] = (current.digits[0] & ~(digit)1) | next_bit;
+                
+            // if current >= mod, subtract mod safely using the temp buffer
+            if (bigint_cmp(&current, mod) != -1) {
+                CHECK_OKAY(bigint_sub(&current, mod, &tmp_sub));
+                CHECK_OKAY(bigint_copy(&tmp_sub, &current)); 
+            }
+        }
+    }
+
+    CHECK_OKAY(bigint_copy(&current, r));
+
+    bigint_free(&current);
+    bigint_free(&tmp_sub);
+
+    return BIGINT_OKAY; 
 }
 
 /*
@@ -1262,67 +1298,56 @@ bigint_err bigint_square_mod(const bigint *a, const bigint *m, bigint *c){
     return BIGINT_OKAY;
 }
 
-/* 
-    Right-to-left shift binary method, algorithm based on Applied Cryptography by Bruce Schneier
-    https://en.wikipedia.org/wiki/Modular_exponentiation
-*/
+// square and multiply for modular exponentiation. Much faster than previous implementation.
+// But as with bigint_mod, side channel is an issue
+bigint_err bigint_expt_mod(const bigint *base, const bigint *exp, const bigint *mod, bigint *r) {
+    if (!base || !exp || !mod || !r) return BIGINT_ERROR_NULLPTR;
 
-// square and multiplication variant
-bigint_err bigint_expt_mod(const bigint *a, const bigint *e, const bigint *m, bigint *c){
-    if(!a || !e || !m || !c) return BIGINT_ERROR_NULLPTR;
-
-    if(!bigint_cmp_zero(m)){
+    // Prevent division/modulo by zero
+    if (!bigint_cmp_zero(mod)) {
         return BIGINT_ERROR_DIVIDE_BY_ZERO;
     }
 
-    if(c->num_of_digit < m->MSD + 1){
-        CHECK_OKAY(bigint_expand(c, m->MSD + 1));
-    }
-
-    CHECK_OKAY(bigint_set_zero(c));
+    bigint b_mod, tmp;
+    CHECK_OKAY(bigint_init(&b_mod, mod->MSD + 2));
     
-    // if m = 1, then the result is always 0
-    bigint one, two;
-    CHECK_OKAY(bigint_init(&one, 1));
-    CHECK_OKAY(bigint_init(&two, 2));
-    CHECK_OKAY(bigint_from_small_int(&one, 1));
-    CHECK_OKAY(bigint_from_small_int(&two, 2));
-    if(!bigint_cmp(&one, m)){
-        return BIGINT_OKAY;    
-    }
+    // multiplication will double the digits, so pre-allocate tmp to fit (MSD + 1) * 2
+    CHECK_OKAY(bigint_init(&tmp, (mod->MSD + 1) * 2 + 1));
 
-    bigint base, exponent, res;
-    CHECK_OKAY(bigint_init(&base, a->num_of_digit));
-    CHECK_OKAY(bigint_init(&exponent, e->num_of_digit));
-    CHECK_OKAY(bigint_init(&res, e->num_of_digit));
-    CHECK_OKAY(bigint_copy(a, &base));
-    CHECK_OKAY(bigint_copy(e, &exponent));
+    // initialize res = 1 % mod in case mod = 1
+    CHECK_OKAY(bigint_from_small_int(r, 1));
+    CHECK_OKAY(bigint_mod(r, mod, r));
 
-    CHECK_OKAY(bigint_from_small_int(c, 1));
-    CHECK_OKAY(bigint_mod(&base, m, &base));
-    // while exponent > 0, this should be okay even if digits are unsigned
-    // due to exponent being shifted by 1 bit at a time, so exponent will have to be 0
-    // which will terminate the loop before underflow happens
-    while(bigint_cmp_zero(&exponent)){
-        CHECK_OKAY(bigint_mod(&exponent, &two, &res));
-        // if res = 1
-        if(!bigint_cmp(&res, &one)){
-            CHECK_OKAY(bigint_mul_mod(c, &base, m, c));
+    // reduce the base once before the loop: b_mod = base % mod
+    CHECK_OKAY(bigint_mod(base, mod, &b_mod));
+
+    // extract number of bits in the exponent
+    int total_bits = bigint_bits_count(exp);
+    int bits_per_digit = sizeof(digit) * 8;
+
+    for (int i = total_bits - 1; i >= 0; i--) {
+        
+        // 1. always Square
+        CHECK_OKAY(bigint_square(r, &tmp));
+        CHECK_OKAY(bigint_mod(&tmp, mod, r));
+
+        // 2. extract specific bit at position 'i' in the exponent
+        int digit_idx = i / bits_per_digit;
+        int bit_idx = i % bits_per_digit;
+        digit bit = (exp->digits[digit_idx] >> bit_idx) & 1;
+
+        // 3. multiply if the bit is 1
+        if (bit) {
+            CHECK_OKAY(bigint_mul(r, &b_mod, &tmp));
+            CHECK_OKAY(bigint_mod(&tmp, mod, r));
         }
-
-        CHECK_OKAY(bigint_halve(&exponent, &exponent));
-        CHECK_OKAY(bigint_square_mod(&base, m, &base));
     }
 
-    bigint_free(&one);
-    bigint_free(&two);
-    bigint_free(&base);
-    bigint_free(&res);
-    bigint_free(&exponent);
+    bigint_free(&b_mod);
+    bigint_free(&tmp);
 
     return BIGINT_OKAY;
 }
-
 /*
     This gcd functions implements Euclidean algorithm to finid the gcd(a, b)
 */
